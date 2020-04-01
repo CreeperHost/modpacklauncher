@@ -227,26 +227,28 @@ def dependencySources = [
 
 task writeVersion() {
     dependsOn tasks.getByName("downloadLicenses")
-    def jsonSlurper = new JsonSlurper()
-    def data = jsonSlurper.parse(new File("$projectDir/build/reports/license/dependency-license.json"))
-    def dependencies = data.get("dependencies")
-    def licenses = [:]
-    for (obj in dependencies) {
-        def value = obj
-        licenses.put(value.name as String, [
-                license: value.licenses.last().name as String,
-                repository: dependencySources.get(value.name.take(value.name.lastIndexOf(":")) as String)
-        ])
-    }
-    file("web/version.json").newWriter().withWriter { w ->
-        w << JsonOutput.toJson(
-                [
-                        jarVersion: version,
-                        webVersion: getCheckedOutGitCommitHash("web"),
-                        timestampBuilt: Instant.now().getEpochSecond(),
-                        javaLicense: licenses
-                ]
-        )
+    doLast {
+        def jsonSlurper = new JsonSlurper()
+        def data = jsonSlurper.parse(new File("$projectDir/build/reports/license/dependency-license.json"))
+        def dependencies = data.get("dependencies")
+        def licenses = [:]
+        for (obj in dependencies) {
+            def value = obj
+            licenses.put(value.name as String, [
+                    license   : value.licenses.last().name as String,
+                    repository: dependencySources.get(value.name.take(value.name.lastIndexOf(":")) as String)
+            ])
+        }
+        file("web/version.json").newWriter().withWriter { w ->
+            w << JsonOutput.toJson(
+                    [
+                            jarVersion    : version,
+                            webVersion    : getCheckedOutGitCommitHash("web"),
+                            timestampBuilt: Instant.now().getEpochSecond(),
+                            javaLicense   : licenses
+                    ]
+            )
+        }
     }
 }
 
