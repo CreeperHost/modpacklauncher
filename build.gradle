@@ -254,6 +254,7 @@ task writeVersion() {
 }
 
 writeVersion.dependsOn project(":web").tasks.getByName("npm_run-script_license")
+tasks.getByName("npm_run-script_license").dependsOn tasks.getByName("npmInstall")
 project(":web").npm_run_buildall.dependsOn writeVersion
 project(":web").npm_run_build.dependsOn writeVersion
 
