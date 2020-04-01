@@ -253,10 +253,9 @@ task writeVersion() {
     }
 }
 
+writeVersion.dependsOn project(":web").tasks.getByName("npm_run-script_license")
 project(":web").npm_run_buildall.dependsOn writeVersion
 project(":web").npm_run_build.dependsOn writeVersion
-project(":web").npm_run_buildall.dependsOn project(":web").tasks.getByName("npm_run-script_license")
-project(":web").npm_run_build.dependsOn project(":web").tasks.getByName("npm_run-script_license")
 
 project(":web").npmInstall.dependsOn submodulesUpdate
 
