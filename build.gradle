@@ -1,0 +1,313 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+    }
+    dependencies {
+        classpath "net.sf.proguard:proguard-gradle:6.0.3"
+        classpath "commons-net:commons-net:3.5"
+    }
+}
+
+
+plugins {
+    id "com.github.johnrengelman.shadow" version "5.0.0"
+    id "org.beryx.runtime" version "1.7.0"
+    id "de.undercouch.download" version "4.0.0"
+    id "com.github.node-gradle.node" version "2.2.3"
+    id "com.palantir.graal" version "0.6.0-30-gade71a8"
+    id "com.install4j.gradle" version "8.0.4"
+    id "com.palantir.git-version" version "0.12.2"
+    id "com.github.hierynomus.license" version "0.15.0"
+}
+
+apply plugin: "maven"
+//apply plugin: "maven-publish"
+apply plugin: "java"
+apply plugin: "eclipse"
+
+repositories {
+    mavenCentral()
+    gradlePluginPortal()
+}
+
+import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
+
+group = "net.creeperhost"
+archivesBaseName = "launcher"
+ext.details = versionDetails()
+version = details.lastTag;
+ext.branch = (details.branchName == "master" ? "develop" : details.branchName)
+if (details.branchName != "release") version = version + "-" + branch
+if (details.branchName != "release" && details.commitDistance > 0) version = version + "-" + details.commitDistance
+if (details.branchName != "release" && details.commitDistance > 0) version = version + "-" + details.gitHash
+targetCompatibility = sourceCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = "11"
+
+install4j {
+    license = "$System.env.IJLICENSE"
+    installDir = file("/Applications/install4j.app")
+}
+
+task cleanMedia(type: Delete) {
+    delete "releaseBuild"
+    delete "releaseUpload"
+}
+
+task media(type: com.install4j.gradle.Install4jTask) {
+    projectFile = "installerstuff.install4j"
+    release = version
+    variables = [branch: branch]
+}
+
+media.dependsOn cleanMedia
+
+task prepareUploadJREs(type: Copy) {
+    from("$projectDir/releaseBuild/jres")
+    into new File("$projectDir/releaseUpload/jres/")
+}
+
+prepareUploadJREs.dependsOn media
+
+task prepareUpload(type: Copy) {
+    from fileTree("$projectDir/releaseBuild/").files
+    into new File("$projectDir/releaseUpload/" + branch + "/" + version + "/")
+}
+
+prepareUpload.dependsOn prepareUploadJREs
+
+task prepareUploadXML(type: Copy) {
+    from new File("$projectDir/releaseUpload/" + branch + "/" + version + "/updates.xml")
+    into new File("$projectDir/releaseUpload/");
+    rename { String fileName ->
+        fileName.replace("updates.xml", branch + ".xml")
+    }
+}
+
+prepareUploadXML.dependsOn prepareUpload
+
+task ftpRelease(type: Exec) {
+    commandLine "lftp", "-e", "mirror -R --verbose ${projectDir}/releaseUpload/ ${System.env.FTPDIR}", "-u", "${System.env.FTPUSER},${System.env.FTPPASS}", "${System.env.FTPSERVER}"
+}
+
+ftpRelease.dependsOn prepareUploadXML
+
+ext.getCheckedOutGitCommitHash = { subBranch ->
+   def gitFolder = "$projectDir/.git/"
+   if (subBranch != null) {
+        gitFolder = "$projectDir/.git/modules/" + subBranch + "/"
+    }
+
+    def takeFromHash = 8
+
+    def head = new File(gitFolder + "HEAD").text.split(":")
+    def isCommit = head.length == 1
+
+    if(isCommit) return head[0].trim().take(takeFromHash)
+
+    def refHead = new File(gitFolder + head[1].trim())
+    refHead.text.trim().take takeFromHash
+}
+
+sourceSets {
+    main {
+        resources {
+            sourceSets.main.resources
+            output.dir("./web/dist/",  builtBy: ":web:npm_run_build")
+        }
+    }
+}
+
+def mainClassNameGlobal = "net.creeperhost.creeperlauncher.CreeperLauncher"
+
+mainClassName = mainClassNameGlobal
+
+
+graal {
+    outputName "binary"
+    graalVersion "19.2.1"
+    option "-J-Xmx2g"
+    option "-J-Xms2g"
+    option "--allow-incomplete-classpath"
+    option "-H:ReflectionConfigurationFiles=graal.json"
+    mainClass mainClassNameGlobal
+}
+
+ext {
+    MANIFEST = manifest{
+        attributes([
+                "Main-Class":               mainClassName,
+                "Specification-Title":      "Launcher",
+                "Specification-Vendor":     "Creeperhost LTD",
+                "Specification-Version":    version,
+                "Implementation-Title":     "CreeperLauncher",
+                "Implementation-Version":   version,
+                "Implementation-Vendor":    "Creeperhost LTD"
+        ] as LinkedHashMap, "net/creeperhost/creeperlauncher/")
+    }
+}
+
+dependencies {
+    compile group: "org.apache.tika", name: "tika-core", version: "1.22"
+    compile group: "com.google.code.gson", name: "gson", version: "2.8.5"
+    compileOnly files("lib/i4jruntime.jar")
+    compile "org.java-websocket:Java-WebSocket:1.4.0"
+    compile group: "com.github.oshi", name: "oshi-core", version: "4.1.1"
+    compile group: "com.squareup.okhttp3", name: "okhttp", version: "4.2.2"
+    compile group: "org.apache.commons", name: "commons-compress", version: "1.2"
+
+    compileOnly group: "org.apache.ant", name: "ant-commons-net", version: "1.10.7"
+}
+
+project(":web") {
+    buildscript {
+        repositories {
+            maven {
+                url "https://plugins.gradle.org/m2/"
+            }
+        }
+        dependencies {
+            classpath "com.github.node-gradle:gradle-node-plugin:2.2.3"
+        }
+    }
+
+    apply plugin: "com.github.node-gradle.node"
+
+    node {
+        version = "12.16.1"
+        npmVersion = "6.12.0"
+        download = true
+        npmWorkDir = file("${project.buildDir}/npm")
+    }
+
+    npm_run_build {
+        inputs.files fileTree("public")
+        inputs.files fileTree("src")
+        inputs.file "package-lock.json"
+        inputs.file "package.json"
+        outputs.dir "dist"
+    }
+}
+
+task submodulesUpdate() {
+    doLast {
+        println "git submodule deinit . -f".execute().text.trim()
+        println "git submodule update --init --remote".execute().text.trim()
+        println "Web submodule at:"
+        println "git -C web log -1".execute().text.trim()
+    }
+}
+
+build.dependsOn(":web:npm_run_build")
+
+
+task buildAll(dependsOn: "build") {}
+buildAll.dependsOn(":web:npm_run_buildall")
+
+media.dependsOn buildAll
+
+import groovy.json.JsonOutput
+import java.time.Instant
+import groovy.json.JsonSlurper
+
+def dependencySources = [
+    "org.jetbrains:annotations": "https://github.com/JetBrains/java-annotations",
+    "com.squareup.okio:okio": "https://github.com/square/okio",
+    "com.github.oshi:oshi-core": "https://github.com/oshi/oshi",
+    "net.java.dev.jna:jna-platform": "https://github.com/java-native-access/jna",
+    "org.apache.commons:commons-compress": "https://github.com/apache/commons-compress",
+    "org.jetbrains.kotlin:kotlin-stdlib-common": "https://github.com/JetBrains/kotlin/tree/master/libraries",
+    "org.java-websocket:Java-WebSocket": "https://github.com/TooTallNate/Java-WebSocket",
+    "com.squareup.okhttp3:okhttp": "https://github.com/square/okhttp",
+    "net.java.dev.jna:jna": "https://github.com/java-native-access/jna",
+    "org.slf4j:slf4j-api": "https://github.com/qos-ch/slf4j",
+    "com.google.code.gson:gson": "https://github.com/google/gson",
+    "org.jetbrains.kotlin:kotlin-stdlib": "https://github.com/JetBrains/kotlin/tree/master/libraries/stdlib",
+    "org.apache.tika:tika-core": "https://github.com/apache/tika"
+]
+
+task writeVersion() {
+    dependsOn tasks.getByName("downloadLicenses")
+    doLast {
+        def jsonSlurper = new JsonSlurper()
+        def data = jsonSlurper.parse(new File("$projectDir/build/reports/license/dependency-license.json"))
+        def dependencies = data.get("dependencies")
+        def licenses = [:]
+        for (obj in dependencies) {
+            def value = obj
+            licenses.put(value.name as String, [
+                    license   : value.licenses.last().name as String,
+                    repository: dependencySources.get(value.name.take(value.name.lastIndexOf(":")) as String)
+            ])
+        }
+        file("web/version.json").newWriter().withWriter { w ->
+            w << JsonOutput.toJson(
+                    [
+                            jarVersion    : version,
+                            webVersion    : getCheckedOutGitCommitHash("web"),
+                            timestampBuilt: Instant.now().getEpochSecond(),
+                            javaLicense   : licenses
+                    ]
+            )
+        }
+    }
+}
+
+project(":web").npm_run_buildall.dependsOn writeVersion
+project(":web").npm_run_build.dependsOn writeVersion
+project(":web").npmInstall.dependsOn submodulesUpdate
+
+import org.apache.tools.ant.filters.ReplaceTokens
+
+task processSource(type: Sync) {
+    from sourceSets.main.java
+    inputs.property 'version', version
+    filter(ReplaceTokens, tokens: [APPVERSION: version, WEBVERSION: getCheckedOutGitCommitHash("web")])
+    into "$buildDir/src"
+}
+
+compileJava {
+    options.encoding = "UTF-8"
+    dependsOn processSource
+    source = processSource.outputs
+}
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+    classifier = "sources"
+    from sourceSets.main.allSource
+    manifest.from(MANIFEST)
+}
+
+artifacts {
+    archives sourcesJar
+    archives shadowJar
+}
+
+jar {
+    manifest.from(MANIFEST)
+}
+
+def currentOS = DefaultNativePlatform.getCurrentOperatingSystem()
+
+task copyElectron(dependsOn: ":web:npm_run_build", type: Copy) {
+    if (currentOS.isWindows()) {
+        copy {
+            from fileTree("${projectDir}/web/release/win-unpacked/")
+            into new File(projectDir, "/bin")
+        }
+    } else if (currentOS.isLinux()) {
+        copy {
+            from fileTree("${projectDir}/web/release/linux-unpacked/")
+            into new File(projectDir, "/bin")
+        }
+    } else if (currentOS.isMacOsX()) {
+        copy {
+            from fileTree("${projectDir}/web/release/mac/ftbapp.app")
+            into new File(projectDir, "/bin/ftbapp.app")
+        }
+    }
+}
+
+wrapper {
+    gradleVersion = "5.0"
+}
+
