@@ -1,4 +1,4 @@
 [submodule "web"]
 	path = web
-	url = git@git.creeper.host:creeperhost-launcher/frontend/web-frontend.git
+	url = git@github.com:FTBTeam/FTB-App.git
     branch = master
