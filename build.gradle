@@ -23,7 +23,6 @@ plugins {
 
 apply plugin: com.hierynomus.gradle.license.LicenseReportingPlugin
 apply plugin: "maven"
-//apply plugin: "maven-publish"
 apply plugin: "java"
 apply plugin: "eclipse"
 
@@ -69,12 +68,26 @@ task prepareUploadJREs(type: Copy) {
 
 prepareUploadJREs.dependsOn media
 
-task prepareUpload(type: Copy) {
-    from fileTree("$projectDir/releaseBuild/").files
-    into new File("$projectDir/releaseUpload/" + branch + "/" + version + "/")
+task cleanJREs(type: Delete) {
+    delete "releaseBuild/jres"
 }
 
-prepareUpload.dependsOn prepareUploadJREs
+cleanJREs.dependsOn prepareUploadJREs
+
+task prepareUpload {
+    doLast {
+        copy {
+            from("$projectDir/releaseBuild/")
+            into new File("$projectDir/releaseUpload/" + branch + "/" + version + "/")
+            includeEmptyDirs = false
+            eachFile { details -> 
+                details.setRelativePath new RelativePath(true, details.name)
+            }
+        }
+    }
+}
+
+prepareUpload.dependsOn cleanJREs
 
 task prepareUploadXML(type: Copy) {
     from new File("$projectDir/releaseUpload/" + branch + "/" + version + "/updates.xml")
@@ -314,4 +327,3 @@ task copyElectron(dependsOn: ":web:npm_run_build", type: Copy) {
 wrapper {
     gradleVersion = "5.0"
 }
-
