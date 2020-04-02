@@ -253,7 +253,7 @@ task writeVersion() {
                     repository: dependencySources.get(value.name.take(value.name.lastIndexOf(":")) as String)
             ])
         }
-        file("web/src/assets/version.json").newWriter().withWriter { w ->
+        file("web/public/version.json").newWriter().withWriter { w ->
             w << JsonOutput.toJson(
                     [
                             jarVersion    : version,
