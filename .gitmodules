@@ -1,4 +1,0 @@
-[submodule "web"]
-	path = web
-	url = git@github.com:FTBTeam/FTB-App.git
-    branch = master
