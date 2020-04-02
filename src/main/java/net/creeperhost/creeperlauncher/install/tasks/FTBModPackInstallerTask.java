@@ -6,12 +6,12 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.stream.JsonReader;
 import net.creeperhost.creeperlauncher.Constants;
-import net.creeperhost.creeperlauncher.CreeperLauncher;
 import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.api.DownloadableFile;
-import net.creeperhost.creeperlauncher.minecraft.EnumForgeInstallType;
 import net.creeperhost.creeperlauncher.minecraft.GameLauncher;
 import net.creeperhost.creeperlauncher.minecraft.McUtils;
+import net.creeperhost.creeperlauncher.minecraft.modloader.ModLoader;
+import net.creeperhost.creeperlauncher.minecraft.modloader.ModLoaderManager;
 import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.os.OSUtils;
 import net.creeperhost.creeperlauncher.pack.FTBPack;
@@ -94,7 +94,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
             currentStage = Stage.API;
             downloadJsons(instanceDir);
             currentStage = Stage.FORGE;
-            File forgeJson = installForge();
+            File forgeJson = installModLoaders();
             currentStage = Stage.DOWNLOADS;
             downloadFiles(instanceDir, forgeJson);
             currentStage = Stage.POSTINSTALL;
@@ -526,169 +526,14 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
         return null;
     }
 
-    public EnumForgeInstallType getInstallerType(String minecraftVersion)
+    public File installModLoaders()
     {
-        for (String s : EnumForgeInstallType.INSTALLER.getVersions())
-        {
-            if (minecraftVersion.equalsIgnoreCase(s))
-            {
-                CreeperLogger.INSTANCE.info("Installer type found");
-                return EnumForgeInstallType.INSTALLER;
-            }
+        List<ModLoader> modLoaders = ModLoaderManager.getModLoaders(getTargets());
+        if (modLoaders.size() != 1) {
+            throw new RuntimeException("Only one mod loader is currently supported!");
+        } else {
+            ModLoader modLoader = modLoaders.get(0);
+            return modLoader.install(instance);
         }
-        for (String s : EnumForgeInstallType.UNIVERSAL.getVersions())
-        {
-            if (minecraftVersion.equalsIgnoreCase(s))
-            {
-                CreeperLogger.INSTANCE.info("Installer type found");
-                return EnumForgeInstallType.UNIVERSAL;
-            }
-        }
-        for (String s : EnumForgeInstallType.JAR.getVersions())
-        {
-            if (minecraftVersion.equalsIgnoreCase(s))
-            {
-                CreeperLogger.INSTANCE.info("Installer type found");
-                return EnumForgeInstallType.JAR;
-            }
-        }
-        return null;
-    }
-
-    public File installForge()
-    {
-        File returnFile = null;
-        EnumForgeInstallType installType = getInstallerType(getMinecraftVersion());
-
-        switch (installType)
-        {
-            case INSTALLER:
-            {
-                String forgeUrl = "https://dist.creeper.host/versions/net/minecraftforge/forge/" + getMinecraftVersion() + "-" + getForgeVersion() + "/forge-" + getMinecraftVersion() + "-" + getForgeVersion() + "-installer.jar";
-                String forgeUrlJson = "https://dist.creeper.host/versions/net/minecraftforge/forge/" + getMinecraftVersion() + "-" + getForgeVersion() + "/forge-" + getMinecraftVersion() + "-" + getForgeVersion() + "-installer.json";
-
-                CreeperLogger.INSTANCE.info("Attempting to download " + forgeUrl);
-                File installerFile = new File(instance.getDir() + File.separator + "installer.jar");
-                File installerJson = new File(instance.getDir() + File.separator + "installer.json");
-
-                DownloadUtils.downloadFile(installerFile, forgeUrl);
-                DownloadUtils.downloadFile(installerJson, forgeUrlJson);
-
-                if(!installerJson.exists())
-                {
-                    //If we do not have the file lets extract it from the installer jar
-                    ForgeUtils.extractJson(installerFile.getAbsolutePath(), "installer.json");
-                }
-
-                instance.setPostInstall(() ->
-                {
-                    ForgeUtils.runForgeInstaller(installerFile.getAbsolutePath());
-                    McUtils.removeProfile(new File(Constants.LAUNCHER_PROFILES_JSON), "forge");
-                    installerFile.delete();
-                }, false);
-
-                instance.modLoader = getMinecraftVersion() + "-forge-" + getForgeVersion();
-                try
-                {
-                    instance.saveJson();
-                } catch (Exception ignored) {}
-                return installerJson;
-            }
-            case UNIVERSAL:
-            {
-                String newname = getMinecraftVersion() + "-forge" + getMinecraftVersion() + "-" + getForgeVersion();
-                instance.modLoader = newname;
-                CreeperLogger.INSTANCE.info("Minecraft version: " + getMinecraftVersion() + " Forge version: " + getForgeVersion());
-                File file = new File(Constants.VERSIONS_FOLDER_LOC + File.separator + newname);
-                file.mkdir();
-
-                try
-                {
-                    URI url = ForgeUtils.findForgeDownloadURL(getMinecraftVersion(), getForgeVersion());
-                    File forgeFile = new File(file.getAbsolutePath() + File.separator + newname + ".jar");
-                    DownloadableFile forge = new DownloadableFile(getForgeVersion(), forgeFile.getAbsolutePath(), url.toString(), new ArrayList<>(), 0, false, false, 0, newname, "modloader", String.valueOf(System.currentTimeMillis() / 1000L));
-                    DownloadTask task = new DownloadTask(forge, forgeFile.toPath());
-                    task.execute().join();
-
-                    CreeperLogger.INSTANCE.info("Completed download of " + newname);
-
-                    if (forgeFile.exists())
-                    {
-                        ForgeUtils.extractJson(forgeFile.getAbsolutePath(), newname + ".json");
-                        File forgeJson = new File(file.getAbsolutePath() + File.separator + newname + ".json");
-                        if (forgeJson.exists())
-                        {
-                            ForgeUtils.updateForgeJson(forgeJson, newname, getMinecraftVersion());
-                            //Move the forge jar to its home in libs
-                            File libForgeDir = new File(Constants.LIBRARY_LOCATION + File.separator + "net" + File.separator + "minecraftforge" + File.separator + "forge" + File.separator + getMinecraftVersion() + "-" + getForgeVersion());
-                            if (!libForgeDir.exists()) libForgeDir.mkdirs();
-                            File forgeLib = new File(libForgeDir + File.separator + "forge-" + getMinecraftVersion() + "-" + getForgeVersion() + ".jar");
-                            if (!forgeLib.exists())
-                                Files.copy(forgeFile.toPath(), forgeLib.toPath(), StandardCopyOption.REPLACE_EXISTING);
-
-                            returnFile = forgeJson;
-                        } else
-                        {
-                            CreeperLogger.INSTANCE.error("Failed to get the 'version.json' for '" + newname + "'");
-                        }
-                    }
-                } catch (Throwable e)
-                {
-                    CreeperLogger.INSTANCE.error(e.toString());
-                    e.printStackTrace();
-                }
-                try
-                {
-                    instance.saveJson();
-                } catch (Exception ignored) {}
-                return returnFile;
-            }
-            case JAR:
-            {
-                String newname = getMinecraftVersion() + "-forge" + getMinecraftVersion() + "-" + getForgeVersion();
-                CreeperLogger.INSTANCE.info("Minecraft version: " + getMinecraftVersion() + " Forge version: " + getForgeVersion());
-                File file = new File(Constants.VERSIONS_FOLDER_LOC + File.separator + newname);
-                file.mkdir();
-                try
-                {
-                    URI url = null;
-                    try
-                    {
-                        url = ForgeUtils.findForgeDownloadURL(getMinecraftVersion(), getForgeVersion());
-                    } catch (URISyntaxException | MalformedURLException e)
-                    {
-                        e.printStackTrace();
-                    }
-                    File instMods = new File(instance.getDir() + File.separator + "instmods");
-                    instMods.mkdir();
-
-                    File forgeFile = new File(instMods.getAbsolutePath() + File.separator + newname + ".jar");
-                    DownloadableFile forge = new DownloadableFile(getForgeVersion(), forgeFile.getAbsolutePath(), url.toString(), new ArrayList<>(), 0, false, false, 0, newname, "modloader", String.valueOf(System.currentTimeMillis() / 1000L));
-                    DownloadTask task = new DownloadTask(forge, forgeFile.toPath());
-                    task.execute();
-
-                    File mcFile = new File(instMods.getAbsolutePath() + File.separator + "minecraft" + ".jar");
-                    DownloadableFile mc = McUtils.getMinecraftDownload(getMinecraftVersion(), instMods.getAbsolutePath());
-                    DownloadTask mcTask = new DownloadTask(mc, mcFile.toPath());
-                    mcTask.execute();
-
-                    instance.setPreUninstall(() ->
-                    {
-                        File versionInstance = new File(Constants.VERSIONS_FOLDER_LOC + File.separator + instance.getUuid());
-                        if (versionInstance.exists()) FileUtils.deleteDirectory(versionInstance);
-                    }, false);
-                    instance.modLoader = newname;
-                    try
-                    {
-                        instance.saveJson();
-                    } catch (Exception e)
-                    {
-                        CreeperLogger.INSTANCE.error("Failed to save instance json");
-                        CreeperLogger.INSTANCE.error(e.toString());
-                    }
-                } catch (Exception ignored) { }
-            }
-        }
-        return returnFile;
     }
 }
