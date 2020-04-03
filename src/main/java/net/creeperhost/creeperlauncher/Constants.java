@@ -21,7 +21,8 @@ public class Constants
     public static final String MC_LAUNCHER = "https://launcher.mojang.com/download/Minecraft.";
 
     //API
-    public static final String CREEPERHOST_MODPACK_SEARCH2 = "https://api.modpacks.ch/public/modpack/";
+    public static final String CREEPERHOST_MODPACK = "https://api.modpacks.ch";
+    public static final String CREEPERHOST_MODPACK_SEARCH2 = CREEPERHOST_MODPACK + "/public/modpack/";
 
     //Forge
     public static final String FORGE_XML = "https://files.minecraftforge.net/maven/net/minecraftforge/forge/maven-metadata.xml";
