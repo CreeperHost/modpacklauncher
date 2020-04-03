@@ -8,9 +8,10 @@ public class Constants
 {
     //CWD
     public static final String WORKING_DIR = System.getProperty("user.dir");
+    public static final String DATA_DIR = System.getProperty("user.home");
 
     //Launcher titles
-    public static final String windowTitle = "FTB Launcher";
+    public static final String windowTitle = "Modpack Launcher";
     public static final String version = "1.0.0";
 
     //Mojang
@@ -29,15 +30,15 @@ public class Constants
 
     //Paths
     public static final String BIN_LOCATION = WORKING_DIR + File.separator + "bin";
-    public static final String MINECRAFT_LAUNCHER_LOCATION = WORKING_DIR + File.separator + "bin" + File.separator + "launcher." + OSUtils.getExtension();
-    public static final String MINECRAFT_MAC_LAUNCHER_EXECUTABLE = WORKING_DIR + File.separator + "bin" + File.separator + "Minecraft.app" + File.separator + "Contents" + File.separator + "MacOS" + File.separator + "launcher";
+    public static final String MINECRAFT_LAUNCHER_LOCATION = DATA_DIR + File.separator + "bin" + File.separator + "launcher." + OSUtils.getExtension();
+    public static final String MINECRAFT_MAC_LAUNCHER_EXECUTABLE = DATA_DIR + File.separator + "bin" + File.separator + "Minecraft.app" + File.separator + "Contents" + File.separator + "MacOS" + File.separator + "launcher";
     public static final String MINECRAFT_MAC_LAUNCHER_VOLUME = "/Volumes/Minecraft";
-    public static final String MINECRAFT_LINUX_LAUNCHER_EXECUTABLE = WORKING_DIR + File.separator + "bin" + File.separator + "minecraft-launcher" + File.separator + "minecraft-launcher";
-    public static final String VERSIONS_FOLDER_LOC = WORKING_DIR + File.separator + "bin" + File.separator + "versions";
-    public static final String INSTANCES_FOLDER_LOC = WORKING_DIR + File.separator + "instances";
-    public static final String LAUNCHER_PROFILES_JSON = WORKING_DIR + File.separator + "bin" + File.separator + "launcher_profiles.json";
-    public static final String LIBRARY_LOCATION = WORKING_DIR + File.separator + "bin" + File.separator + "libraries";
-    public static final String CACHE_LOCATION = WORKING_DIR + File.separator + ".localCache";
+    public static final String MINECRAFT_LINUX_LAUNCHER_EXECUTABLE = DATA_DIR + File.separator + "bin" + File.separator + "minecraft-launcher" + File.separator + "minecraft-launcher";
+    public static final String VERSIONS_FOLDER_LOC = DATA_DIR + File.separator + "bin" + File.separator + "versions";
+    public static final String INSTANCES_FOLDER_LOC = DATA_DIR + File.separator + "instances";
+    public static final String LAUNCHER_PROFILES_JSON = DATA_DIR + File.separator + "bin" + File.separator + "launcher_profiles.json";
+    public static final String LIBRARY_LOCATION = DATA_DIR + File.separator + "bin" + File.separator + "libraries";
+    public static final String CACHE_LOCATION = DATA_DIR + File.separator + ".localCache";
 
     //Other
     public static final int WEBSOCKET_PORT = 13377;
