@@ -46,6 +46,9 @@ targetCompatibility = sourceCompatibility = compileJava.sourceCompatibility = co
 install4j {
     license = "$System.env.IJLICENSE"
     installDir = file("/Applications/install4j.app")
+    appleIdPassword = "$System.env.APPLEPASSWORD"
+    macKeystorePassword = "$System.env.KEYSTOREPASSWORD"
+    disableSigning = true
 }
 
 task cleanMedia(type: Delete) {
