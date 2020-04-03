@@ -36,30 +36,36 @@ public class Instances
 
     public static void refreshInstances()
     {
+        //File file = new File(Settings.settings.getOrDefault("instanceDir", Constants.INSTANCES_FOLDER_LOC));
         File file = new File(Constants.INSTANCES_FOLDER_LOC);
         instances.clear();
         File[] files = file.listFiles();
+        int l=0,t=0;
         if (files != null)
         {
             for (File f : files)
             {
                 if (f.isDirectory())
                 {
+                    t++;
                     try
                     {
                         Instances.loadInstance(f.getName());
+                        l++;
                     } catch (FileNotFoundException err)
                     {
-                        CreeperLogger.INSTANCE.error("Not a valid instance: " + f.getName());
-                        err.printStackTrace();
+                        CreeperLogger.INSTANCE.error("Not a valid instance '" + f.getName() + "', skipping...");
+                        //err.printStackTrace();
                     }
                 }
             }
         }
+        CreeperLogger.INSTANCE.info("Loaded "+l+" out of "+t+" instances.");
     }
 
     private static void loadInstance(String _uuid) throws FileNotFoundException
     {
+        //File json = new File(Settings.settings.getOrDefault("instanceDir", Constants.INSTANCES_FOLDER_LOC) + File.separator + _uuid, "instance.json");
         File json = new File(Constants.INSTANCES_FOLDER_LOC + File.separator + _uuid, "instance.json");
         if (!json.exists()) throw new FileNotFoundException("Instance corrupted; " + json.getAbsoluteFile());
         UUID uuid = UUID.fromString(_uuid);

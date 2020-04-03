@@ -64,6 +64,7 @@ public class LocalInstance implements IPack
         UUID uuid = UUID.randomUUID();
         this.uuid = uuid;
         this.versionId = versionId;
+        //this.path = Settings.settings.getOrDefault("instanceDir", Constants.INSTANCES_FOLDER_LOC) + File.separator + this.uuid;
         this.path = Constants.INSTANCES_FOLDER_LOC + File.separator + this.uuid;
         this.name = pack.getName();
         this.version = pack.getVersion();
@@ -135,6 +136,7 @@ public class LocalInstance implements IPack
     {
         //We're loading an existing instance
         this.uuid = uuid;
+        //this.path = Settings.settings.getOrDefault("instanceDir", Constants.INSTANCES_FOLDER_LOC) + File.separator + this.uuid;
         this.path = Constants.INSTANCES_FOLDER_LOC + File.separator + this.uuid;
         File json = new File(this.path, "instance.json");
         if (!json.exists()) throw new FileNotFoundException("Instance does not exist!");
@@ -175,6 +177,7 @@ public class LocalInstance implements IPack
         UUID uuid = UUID.randomUUID();
         this.uuid = uuid;
         this.isImport = true;
+        //this.path = Settings.settings.getOrDefault("instanceDir", Constants.INSTANCES_FOLDER_LOC) + File.separator + this.uuid;
         this.path = Constants.INSTANCES_FOLDER_LOC + File.separator + this.uuid;
     }
 
@@ -183,6 +186,7 @@ public class LocalInstance implements IPack
         //this = originalInstance;
         UUID uuid = UUID.randomUUID();
         this.uuid = uuid;
+        //this.path = Settings.settings.getOrDefault("instanceDir", Constants.INSTANCES_FOLDER_LOC) + File.separator + this.uuid;
         this.path = Constants.INSTANCES_FOLDER_LOC + File.separator + this.uuid;
     }
 
