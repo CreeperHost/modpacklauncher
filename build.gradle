@@ -99,7 +99,8 @@ task ftpRelease(type: Exec) {
 ftpRelease.dependsOn prepareUpload
 
 task ftpReleaseXML(type: Exec) {
-    commandLine "lftp", "-e", "put -O / --verbose ${projectDir}/${branch}/${version}/${branch}.xml", "-u", "${System.env.FTPUSER},${System.env.FTPPASS}", "${System.env.FTPSERVER}"
+    commandLine "lftp", "-e", "put ${projectDir}/releaseBuild/updates.xml -o ${branch}.xml", "-u", "${System.env.FTPUSER},${System.env.FTPPASS}", "${System.env.FTPSERVER}"
+
 }
 
 ftpReleaseXML.dependsOn ftpRelease
