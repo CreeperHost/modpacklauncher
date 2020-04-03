@@ -12,7 +12,6 @@ public class Constants
 
     //Launcher titles
     public static final String windowTitle = "Modpack Launcher";
-    public static final String version = "1.0.0";
 
     //Mojang
     public static final String MC_VERSION_MANIFEST = "https://launchermeta.mojang.com/mc/game/version_manifest.json";
