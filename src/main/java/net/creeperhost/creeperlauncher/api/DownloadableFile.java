@@ -85,7 +85,7 @@ public class DownloadableFile
             boolean pokeOrigin = true;
             try {
                 tmpContentLength = connection.getContentLength();
-                if(tmpContentLength != null && tmpContentLength > 0)
+                if(tmpContentLength > 0)
                 {
                     //We've managed to get the content length from the cdn!
                     pokeOrigin = false;
