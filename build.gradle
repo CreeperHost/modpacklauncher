@@ -258,6 +258,7 @@ task writeVersion() {
                     [
                             jarVersion    : version,
                             webVersion    : getCheckedOutGitCommitHash("web"),
+                            branch        : branch,
                             timestampBuilt: Instant.now().getEpochSecond(),
                             javaLicense   : licenses
                     ]
