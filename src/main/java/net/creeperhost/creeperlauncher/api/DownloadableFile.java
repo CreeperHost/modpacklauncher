@@ -81,19 +81,35 @@ public class DownloadableFile
             connection.setReadTimeout(25000);
             connection.connect();
             //Grab the new origin header
-            String origin = connection.getHeaderField("origin");
-            if(origin != null && origin.length() > 0)
+            int tmpContentLength = 0;
+            boolean pokeOrigin = true;
+            try {
+                tmpContentLength = connection.getContentLength();
+                if(tmpContentLength != null && tmpContentLength > 0)
+                {
+                    //We've managed to get the content length from the cdn!
+                    pokeOrigin = false;
+                }
+            } catch (Exception ignored)
             {
-                //If we have an origin header, let's grab the file size from the horses mouth
-                connection.disconnect();
-                URL _url = new URL(origin.replace(" ", "%20"));
-                connection = (HttpURLConnection) _url.openConnection();
-                connection.setRequestMethod("HEAD");
-                connection.setConnectTimeout(15000);
-                connection.setReadTimeout(25000);
-                connection.connect();
+                pokeOrigin = true;
             }
-            remoteSize = connection.getContentLength();
+            if(pokeOrigin) {
+                //cdn is not giving us content length due to gzip(?), let's go poke the origin of the files.
+                String origin = connection.getHeaderField("origin");
+                if (origin != null && origin.length() > 0) {
+                    //If we have an origin header, let's grab the file size from the horses mouth
+                    connection.disconnect();
+                    URL _url = new URL(origin.replace(" ", "%20"));
+                    connection = (HttpURLConnection) _url.openConnection();
+                    connection.setRequestMethod("HEAD");
+                    connection.setConnectTimeout(15000);
+                    connection.setReadTimeout(25000);
+                    connection.connect();
+                }
+                tmpContentLength = connection.getContentLength();
+            }
+            remoteSize = tmpContentLength;
             remoteExists = ((connection.getResponseCode() == 200) && (connection.getContentLength() >= 0));
             if(!remoteExists)
             {
