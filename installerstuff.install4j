@@ -47,7 +47,7 @@
       </iconImageFiles>
     </launcher>
   </launchers>
-  <installerGui autoUpdateDescriptorUrl="https://dist.creeper.host/FTBApp/${compiler:branch}.xml" useAutoUpdateBaseUrl="true" autoUpdateBaseUrl="https://dist.creeper.host/FTBApp/${compiler:branch}/${compiler:sys.version}/">
+  <installerGui autoUpdateDescriptorUrl="https://apps.modpacks.ch/FTBApp/${compiler:branch}.xml" useAutoUpdateBaseUrl="true" autoUpdateBaseUrl="https://apps.modpacks.ch/FTBApp/${compiler:branch}/${compiler:sys.version}/">
     <applications>
       <application id="installer" beanClass="com.install4j.runtime.beans.applications.InstallerApplication" customIcnsFile="./ftbl.icns" customIcoFile="./ftbl.ico">
         <serializedBean>
@@ -901,12 +901,12 @@ file.getParent() != null || (file.getName().endsWith(".app") &amp;&amp; director
     </styles>
   </installerGui>
   <mediaSets>
-    <unixInstaller name="Unix Installer" id="67" downloadURL="https://dist.creeper.host/FTBApp/${compiler:branch}/${compiler:sys.version}/" contentFilesType="downloadable">
+    <unixInstaller name="Unix Installer" id="67" downloadURL="https://apps.modpacks.ch/FTBApp/${compiler:branch}/${compiler:sys.version}/" contentFilesType="downloadable">
       <exclude>
         <entry filesetId="58" />
         <entry filesetId="60" />
       </exclude>
-      <jreBundle jreBundleSource="generated" manualJreEntry="true" bundleType="dynamic" bundleUrl="https://dist.creeper.host/FTBApp/jres/linux-amd64-11.0.5.tar.gz" directDownload="true" />
+      <jreBundle jreBundleSource="generated" manualJreEntry="true" bundleType="dynamic" bundleUrl="https://apps.modpacks.ch/FTBApp/jres/linux-amd64-11.0.5.tar.gz" directDownload="true" />
     </unixInstaller>
     <macosArchive name="macOS Single Bundle Archive" id="70" launcherId="69">
       <exclude>
@@ -920,12 +920,12 @@ file.getParent() != null || (file.getName().endsWith(".app") &amp;&amp; director
         <symlink name="Applications" target="/Applications" />
       </topLevelFiles>
     </macosArchive>
-    <windows name="Windows" id="79" downloadURL="https://dist.creeper.host/FTBApp/${compiler:branch}/${compiler:sys.version}/" customInstallBaseDir="~/AppData/Roaming" contentFilesType="downloadable">
+    <windows name="Windows" id="79" downloadURL="https://apps.modpacks.ch/FTBApp/${compiler:branch}/${compiler:sys.version}/" customInstallBaseDir="~/AppData/Roaming" contentFilesType="downloadable">
       <exclude>
         <entry filesetId="60" />
         <entry filesetId="63" />
       </exclude>
-      <jreBundle jreBundleSource="generated" bundleType="dynamic" bundleUrl="https://dist.creeper.host/FTBApp/jres/windows-amd64-11.0.5.tar.gz" directDownload="true" />
+      <jreBundle jreBundleSource="generated" bundleType="dynamic" bundleUrl="https://apps.modpacks.ch/FTBApp/jres/windows-amd64-11.0.5.tar.gz" directDownload="true" />
     </windows>
   </mediaSets>
   <buildOptions faster="true" />

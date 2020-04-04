@@ -306,21 +306,25 @@ jar {
 def currentOS = DefaultNativePlatform.getCurrentOperatingSystem()
 
 task copyElectron(dependsOn: ":web:npm_run_build", type: Copy) {
-    if (currentOS.isWindows()) {
-        copy {
-            from fileTree("${projectDir}/web/release/win-unpacked/")
-            into new File(projectDir, "/bin")
+    try {
+        if (currentOS.isWindows()) {
+            copy {
+                from fileTree("${projectDir}/web/release/win-unpacked/")
+                into new File(projectDir, "/bin")
+            }
+        } else if (currentOS.isLinux()) {
+            copy {
+                from fileTree("${projectDir}/web/release/linux-unpacked/")
+                into new File(projectDir, "/bin")
+            }
+        } else if (currentOS.isMacOsX()) {
+            copy {
+                from fileTree("${projectDir}/web/release/mac/ftbapp.app")
+                into new File(projectDir, "/bin/ftbapp.app")
+            }
         }
-    } else if (currentOS.isLinux()) {
-        copy {
-            from fileTree("${projectDir}/web/release/linux-unpacked/")
-            into new File(projectDir, "/bin")
-        }
-    } else if (currentOS.isMacOsX()) {
-        copy {
-            from fileTree("${projectDir}/web/release/mac/ftbapp.app")
-            into new File(projectDir, "/bin/ftbapp.app")
-        }
+    } catch (Throwable t) {
+        print "Error while copying files, continuing anyway";
     }
 }
 
