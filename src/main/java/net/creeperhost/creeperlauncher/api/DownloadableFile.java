@@ -106,10 +106,10 @@ public class DownloadableFile
                     connection.setConnectTimeout(15000);
                     connection.setReadTimeout(25000);
                     connection.connect();
+                    tmpContentLength = connection.getContentLength();
                 }
-                tmpContentLength = connection.getContentLength();
             }
-            remoteSize = tmpContentLength;
+            remoteSize = (tmpContentLength == null) ? 0 : tmpContentLength;
             remoteExists = ((connection.getResponseCode() == 200) && (connection.getContentLength() >= 0));
             if(!remoteExists)
             {
