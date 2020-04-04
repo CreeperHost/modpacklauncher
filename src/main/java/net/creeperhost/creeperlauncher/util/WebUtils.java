@@ -39,7 +39,7 @@ public class WebUtils
                     conn.addRequestProperty("Cookie", cookie.split(";", 2)[0]);
                 }
             }
-            conn.setRequestProperty("User-Agent", "ftblauncher/" + Constants.APPVERSION + " Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.138 Safari/537.36 Vivaldi/1.8.770.56");
+            conn.setRequestProperty("User-Agent", "modpacklauncher/" + Constants.APPVERSION + " Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.138 Safari/537.36 Vivaldi/1.8.770.56");
             BufferedReader rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));
             String line;
             StringBuilder respData = new StringBuilder();
