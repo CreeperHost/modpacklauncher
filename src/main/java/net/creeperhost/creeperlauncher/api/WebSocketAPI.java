@@ -46,7 +46,7 @@ public class WebSocketAPI extends WebSocketServer
     {
         try
         {
-            CreeperLogger.INSTANCE.error("an error occurred on connection " + conn.getRemoteSocketAddress() + ":" + ex);
+            CreeperLogger.INSTANCE.error("an error occurred on connection " + conn.getRemoteSocketAddress() + ":" + ex, ex);
         } catch (NullPointerException ignored)
         {
         }

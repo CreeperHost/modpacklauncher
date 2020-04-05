@@ -85,7 +85,7 @@ public class DownloadableFile
             boolean pokeOrigin = true;
             try {
                 tmpContentLength = connection.getContentLength();
-                if(tmpContentLength != null && tmpContentLength > 0)
+                if(tmpContentLength > 0)
                 {
                     //We've managed to get the content length from the cdn!
                     pokeOrigin = false;
@@ -106,11 +106,11 @@ public class DownloadableFile
                     connection.setConnectTimeout(15000);
                     connection.setReadTimeout(25000);
                     connection.connect();
+                    tmpContentLength = connection.getContentLength();
                 }
-                tmpContentLength = connection.getContentLength();
             }
             remoteSize = tmpContentLength;
-            remoteExists = ((connection.getResponseCode() == 200) && (connection.getContentLength() >= 0));
+            remoteExists = ((connection.getResponseCode() == 200) && (tmpContentLength >= 0));
             if(!remoteExists)
             {
                 if(connection.getResponseCode() == 200)
