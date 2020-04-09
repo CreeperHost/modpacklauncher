@@ -19,7 +19,16 @@ public class WebUtils
 {
     private static List<String> cookies;
     private static boolean logHide;
+    /*public static String URLBuilder(String Base, String... parts)
+    {
+        String URL = Base;
+        for(String part : parts)
+        {
 
+            URL += "/" + URLEncoder.encode(part.replace("/", ""));
+        }
+        return URL;
+    }*/
     public static String getWebResponse(String urlString)
     {
         try
@@ -103,7 +112,7 @@ public class WebUtils
             URL url = new URL(urlString);
 
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.138 Safari/537.36 Vivaldi/1.8.770.56");
+            conn.setRequestProperty("User-Agent", "modpacklauncher/" + Constants.APPVERSION + " Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.138 Safari/537.36 Vivaldi/1.8.770.56");
             conn.setRequestMethod(method);
             if (cookies != null)
             {

@@ -1,4 +1,8 @@
 build:
+  only:
+    - branches
+  except:
+    - tags
   stage: build
   script:
     - cd /Users/aaronmills

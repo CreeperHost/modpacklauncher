@@ -564,8 +564,8 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
         {
             case INSTALLER:
             {
-                String forgeUrl = "https://dist.creeper.host/versions/net/minecraftforge/forge/" + getMinecraftVersion() + "-" + getForgeVersion() + "/forge-" + getMinecraftVersion() + "-" + getForgeVersion() + "-installer.jar";
-                String forgeUrlJson = "https://dist.creeper.host/versions/net/minecraftforge/forge/" + getMinecraftVersion() + "-" + getForgeVersion() + "/forge-" + getMinecraftVersion() + "-" + getForgeVersion() + "-installer.json";
+                String forgeUrl = "https://apps.modpacks.ch/versions/net/minecraftforge/forge/" + getMinecraftVersion() + "-" + getForgeVersion() + "/forge-" + getMinecraftVersion() + "-" + getForgeVersion() + "-installer.jar";
+                String forgeUrlJson = "https://apps.modpacks.ch/versions/net/minecraftforge/forge/" + getMinecraftVersion() + "-" + getForgeVersion() + "/forge-" + getMinecraftVersion() + "-" + getForgeVersion() + "-installer.json";
 
                 CreeperLogger.INSTANCE.info("Attempting to download " + forgeUrl);
                 File installerFile = new File(instance.getDir() + File.separator + "installer.jar");
