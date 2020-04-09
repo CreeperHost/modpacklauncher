@@ -19,7 +19,15 @@ public class WebUtils
 {
     private static List<String> cookies;
     private static boolean logHide;
-
+    public static String URLBuilder(String Base, String... parts)
+    {
+        String URL = Base;
+        for(String part : parts)
+        {
+            URL += "/" + URLEncoder.encode(part.replace("/", ""), StandardCharsets.UTF_8.toString());
+        }
+        return URL;
+    }
     public static String getWebResponse(String urlString)
     {
         try
