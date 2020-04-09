@@ -342,7 +342,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                                 }
                             }
                         }
-                        String uri = "https://dist.creeper.host/versions/" + artifact.getPath();
+                        String uri = "https://apps.modpacks.ch/versions/" + artifact.getPath();
                         File localPath = artifact.getLocalPath(new File(Constants.LIBRARY_LOCATION));
                         if (!ForgeUtils.isUrlValid(uri))
                         {
