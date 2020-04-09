@@ -1,11 +1,15 @@
 package net.creeperhost.creeperlauncher.util;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
 public class MiscUtils
 {
+    public static final DateFormat ISO_8601 = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
+
     public static String byteArrayToHex(byte[] a)
     {
         StringBuilder sb = new StringBuilder(a.length * 2);
