@@ -54,6 +54,8 @@ public class Settings
 
     public static String getDefaultThreadLimit(String arg)
     {
-        return String.valueOf((Runtime.getRuntime().availableProcessors() / 2) - 1);
+        int defaultThreads = (Runtime.getRuntime().availableProcessors() / 2) - 1;
+        if(defaultThreads < 2) defaultThreads = 2;
+        return String.valueOf(defaultThreads);
     }
 }

@@ -1,6 +1,7 @@
 package net.creeperhost.creeperlauncher;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.logging.FileHandler;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
@@ -44,5 +45,14 @@ public class CreeperLogger
     public void error(String input)
     {
         logger.severe(input);
+    }
+
+    public void error(String input, Throwable ex)
+    {
+        logger.severe(input);
+        for(StackTraceElement el: ex.getStackTrace())
+        {
+            logger.severe(el.toString());
+        }
     }
 }

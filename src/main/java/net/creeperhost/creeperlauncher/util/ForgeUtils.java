@@ -18,7 +18,7 @@ public class ForgeUtils
 {
     public static URI findForgeDownloadURL(String minecraftVersion, String forgeVersion) throws URISyntaxException, MalformedURLException
     {
-        String repo = "https://dist.creeper.host/versions/net/minecraftforge/forge/";
+        String repo = "https://apps.modpacks.ch/versions/net/minecraftforge/forge/";
 
         URI url = new URI(repo + minecraftVersion + "-" + forgeVersion + "/" +
                 "forge-" + minecraftVersion + "-" + forgeVersion + "-universal.jar");
