@@ -1,15 +1,23 @@
 package net.creeperhost.creeperlauncher.api;
 
 import net.creeperhost.creeperlauncher.Constants;
+import net.creeperhost.creeperlauncher.CreeperLauncher;
 import net.creeperhost.creeperlauncher.CreeperLogger;
+import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.data.BaseData;
 import net.creeperhost.creeperlauncher.util.GsonUtils;
 import org.java_websocket.WebSocket;
+import org.java_websocket.drafts.Draft;
+import org.java_websocket.exceptions.InvalidDataException;
 import org.java_websocket.handshake.ClientHandshake;
+import org.java_websocket.handshake.ServerHandshakeBuilder;
 import org.java_websocket.server.WebSocketServer;
 
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.util.Random;
+import java.util.UUID;
 
 public class WebSocketAPI extends WebSocketServer
 {
@@ -18,9 +26,40 @@ public class WebSocketAPI extends WebSocketServer
         super(address);
     }
 
+    public static Random random = new Random();
+
+    public static int generateRandomPort() {
+        return random.nextInt(9999) + 10000;
+    }
+
+    public static String generateSecret() {
+        return UUID.randomUUID().toString();
+    }
+
     @Override
     public void onOpen(WebSocket conn, ClientHandshake handshake)
     {
+        if (CreeperLauncher.defaultWebsocketPort)
+        {
+            conn.send(GsonUtils.GSON.toJson(new Object() {
+                public int port = CreeperLauncher.websocketPort;
+                public String secret = CreeperLauncher.websocketSecret;
+            }));
+            conn.close();
+            CreeperLogger.INSTANCE.info("Front end connected: " + conn.getRemoteSocketAddress() + " - sending our socket and secret and relaunching websocket");
+            try {
+                stop();
+            } catch (Exception ignored) {}
+            CreeperLauncher.defaultWebsocketPort = false;
+            Settings.webSocketAPI = new WebSocketAPI(new InetSocketAddress(InetAddress.getLoopbackAddress(), CreeperLauncher.websocketPort));
+            return;
+        }
+
+        if (!handshake.getFieldValue("secret").equals(CreeperLauncher.websocketSecret)) {
+            conn.close();
+            CreeperLogger.INSTANCE.error("Secret not provided. Connection from " + conn.getRemoteSocketAddress() + " closed.");
+            return;
+        }
         CreeperLogger.INSTANCE.info("Front end connected: " + conn.getRemoteSocketAddress());
     }
 
