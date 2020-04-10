@@ -128,6 +128,8 @@ public class CreeperLauncher
 
         args.add("--ws");
         args.add(websocketPort + ":" + websocketSecret);
+        args.add("--pid");
+        args.add(String.valueOf(ProcessHandle.current().pid()));
 
         ProcessBuilder app = new ProcessBuilder(args);
 
