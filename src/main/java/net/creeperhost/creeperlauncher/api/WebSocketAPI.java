@@ -55,11 +55,6 @@ public class WebSocketAPI extends WebSocketServer
             return;
         }
 
-        if (!handshake.getFieldValue("secret").equals(CreeperLauncher.websocketSecret)) {
-            conn.close();
-            CreeperLogger.INSTANCE.error("Secret not provided. Connection from " + conn.getRemoteSocketAddress() + " closed.");
-            return;
-        }
         CreeperLogger.INSTANCE.info("Front end connected: " + conn.getRemoteSocketAddress());
     }
 
