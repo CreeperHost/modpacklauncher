@@ -40,11 +40,8 @@ public class WebSocketAPI extends WebSocketServer
     public void onOpen(WebSocket conn, ClientHandshake handshake)
     {
         if (CreeperLauncher.defaultWebsocketPort)
-        {
-            conn.send(GsonUtils.GSON.toJson(new Object() {
-                public int port = CreeperLauncher.websocketPort;
-                public String secret = CreeperLauncher.websocketSecret;
-            }));
+        { 
+            conn.send("{\"port\": \"" + CreeperLauncher.websocketPort + "\", \"secret\": \"" + CreeperLauncher.websocketSecret + "\"}");
             conn.close();
             CreeperLogger.INSTANCE.info("Front end connected: " + conn.getRemoteSocketAddress() + " - sending our socket and secret and relaunching websocket");
             try {
