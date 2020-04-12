@@ -69,22 +69,54 @@ public class CreeperLauncher
 
         boolean startProcess = true;
 
-        if (args.length >= 3)
+        /*
+        Borrowed from ModpackServerDownloader project
+         */
+        HashMap<String, String> Args = new HashMap<String, String>();
+        for(String arg : args)
         {
-            if(args[1].equals("--pid")) {
-                try {
-                    long pid = Long.parseLong(args[2]);
-                    Optional<ProcessHandle> electronProc = ProcessHandle.of(pid);
-                    if (electronProc.isPresent())
-                    {
-                        startProcess = false;
-                        defaultWebsocketPort = true;
-                        ProcessHandle handle = electronProc.get();
-                        handle.onExit().thenRun(CreeperLauncher::exit);
-                        Runtime.getRuntime().addShutdownHook(new Thread(handle::destroy));
+            if(arg.length() > 2) {
+                if (arg.substring(0, 2).equals("--")) {
+                    argName = arg.substring(2);
+                    Args.put(argName, "");
+                }
+                if (argName != null) {
+                    if (argName.length() > 2) {
+                        if (!argName.equals(arg.substring(2))) {
+                            if (Args.containsKey(argName)) {
+                                Args.remove(argName);
+                            }
+                            Args.put(argName, arg);
+                            argName = null;
+                        }
                     }
-                } catch (Exception ignored) {}
+                }
             }
+        }
+        /*
+        End
+         */
+
+        if(Args.containsKey("pid"))
+        {
+            try {
+                long pid = Long.parseLong(Args.get("pid"));
+                Optional<ProcessHandle> electronProc = ProcessHandle.of(pid);
+                if (electronProc.isPresent())
+                {
+                    startProcess = false;
+                    defaultWebsocketPort = true;
+                    ProcessHandle handle = electronProc.get();
+                    handle.onExit().thenRun(CreeperLauncher::exit);
+                    Runtime.getRuntime().addShutdownHook(new Thread(handle::destroy));
+                }
+            } catch (Exception ignored) {
+                CreeperLogger.INSTANCE.error("Error connecting to process", ignored)
+                CreeperLogger.INSTANCE.info("Arguments:", args);
+            }
+        } else {
+            CreeperLogger.INSTANCE.info("No PID args");
+            CreeperLogger.INSTANCE.info("Arguments:", args);
         }
 
         Settings.webSocketAPI = new WebSocketAPI(new InetSocketAddress(InetAddress.getLoopbackAddress(), defaultWebsocketPort ? Constants.WEBSOCKET_PORT : websocketPort));
