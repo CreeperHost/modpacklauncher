@@ -111,12 +111,14 @@ public class CreeperLauncher
                     Runtime.getRuntime().addShutdownHook(new Thread(handle::destroy));
                 }
             } catch (Exception ignored) {
-                CreeperLogger.INSTANCE.error("Error connecting to process", ignored)
-                CreeperLogger.INSTANCE.info("Arguments:", args);
+                CreeperLogger.INSTANCE.error("Error connecting to process", ignored);
+                CreeperLogger.INSTANCE.info("Arguments:", Args);
+                CreeperLogger.INSTANCE.info("arguments:", args);
             }
         } else {
             CreeperLogger.INSTANCE.info("No PID args");
-            CreeperLogger.INSTANCE.info("Arguments:", args);
+            CreeperLogger.INSTANCE.info("Arguments:", Args);
+            CreeperLogger.INSTANCE.info("arguments:", args);
         }
 
         Settings.webSocketAPI = new WebSocketAPI(new InetSocketAddress(InetAddress.getLoopbackAddress(), defaultWebsocketPort ? Constants.WEBSOCKET_PORT : websocketPort));
