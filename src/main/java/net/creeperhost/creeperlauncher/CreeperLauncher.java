@@ -19,6 +19,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -73,6 +74,7 @@ public class CreeperLauncher
         Borrowed from ModpackServerDownloader project
          */
         HashMap<String, String> Args = new HashMap<String, String>();
+        String argName = null;
         for(String arg : args)
         {
             if(arg.length() > 2) {
@@ -112,13 +114,9 @@ public class CreeperLauncher
                 }
             } catch (Exception ignored) {
                 CreeperLogger.INSTANCE.error("Error connecting to process", ignored);
-                CreeperLogger.INSTANCE.info("Arguments:", Args);
-                CreeperLogger.INSTANCE.info("arguments:", args);
             }
         } else {
             CreeperLogger.INSTANCE.info("No PID args");
-            CreeperLogger.INSTANCE.info("Arguments:", Args);
-            CreeperLogger.INSTANCE.info("arguments:", args);
         }
 
         Settings.webSocketAPI = new WebSocketAPI(new InetSocketAddress(InetAddress.getLoopbackAddress(), defaultWebsocketPort ? Constants.WEBSOCKET_PORT : websocketPort));
