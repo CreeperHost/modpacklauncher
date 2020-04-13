@@ -44,11 +44,11 @@ public class WebSocketAPI extends WebSocketServer
             conn.send("{\"port\": \"" + CreeperLauncher.websocketPort + "\", \"secret\": \"" + CreeperLauncher.websocketSecret + "\"}");
             conn.close();
             CreeperLogger.INSTANCE.info("Front end connected: " + conn.getRemoteSocketAddress() + " - sending our socket and secret and relaunching websocket");
+            CreeperLauncher.defaultWebsocketPort = false;
+            Settings.webSocketAPI = new WebSocketAPI(new InetSocketAddress(InetAddress.getLoopbackAddress(), CreeperLauncher.websocketPort));
             try {
                 stop();
             } catch (Exception ignored) {}
-            CreeperLauncher.defaultWebsocketPort = false;
-            Settings.webSocketAPI = new WebSocketAPI(new InetSocketAddress(InetAddress.getLoopbackAddress(), CreeperLauncher.websocketPort));
             return;
         }
 
