@@ -327,4 +327,13 @@ public class McUtils
         }
         return success;
     }
+
+    public static int parseMinorVersion(String minecraftVersion) {
+        String[] split = minecraftVersion.split("\\.");
+        if (split.length >= 2) {
+            return Integer.parseInt(split[1]);
+        }
+        return -1;
+    }
+
 }

@@ -1,12 +1,15 @@
 package net.creeperhost.creeperlauncher.util;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.stream.Collectors;
 
 public class DownloadUtils
 {
@@ -62,6 +65,12 @@ public class DownloadUtils
         {
             e.printStackTrace();
             return null;
+        }
+    }
+
+    public static String urlToString(URL url) throws IOException {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()))) {
+            return reader.lines().collect(Collectors.joining("\n"));
         }
     }
 }

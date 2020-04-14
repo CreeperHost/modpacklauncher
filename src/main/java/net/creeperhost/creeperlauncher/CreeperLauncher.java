@@ -14,11 +14,13 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -34,6 +36,9 @@ public class CreeperLauncher
     public static AtomicBoolean isInstalling = new AtomicBoolean(false);
     public static AtomicReference<FTBModPackInstallerTask> currentInstall = new AtomicReference<>();
     public static LocalCache localCache = new LocalCache();
+    public static boolean defaultWebsocketPort = false;
+    public static int websocketPort = WebSocketAPI.generateRandomPort();
+    public static String websocketSecret = WebSocketAPI.generateSecret();
 
     public CreeperLauncher() {}
 
@@ -46,7 +51,7 @@ public class CreeperLauncher
 
             if (UpdateChecker.isUpdateScheduled())
             {
-                UpdateChecker.executeScheduledUpdate(Arrays.asList("-q", "-splash", "\"Updating...\""), true, null);
+                UpdateChecker.executeScheduledUpdate(Arrays.asList("-q", "-splash", "\"Updating...\""), true, Arrays.asList(args), null);
             }
         } catch (Throwable ignored)
         {
@@ -62,60 +67,132 @@ public class CreeperLauncher
             localCache.clean();
         });
         Settings.loadSettings();
-        Settings.webSocketAPI = new WebSocketAPI(new InetSocketAddress(InetAddress.getLoopbackAddress(), Constants.WEBSOCKET_PORT));
+
+        boolean startProcess = true;
+
+        /*
+        Borrowed from ModpackServerDownloader project
+         */
+        HashMap<String, String> Args = new HashMap<String, String>();
+        String argName = null;
+        for(String arg : args)
+        {
+            if(arg.length() > 2) {
+                if (arg.substring(0, 2).equals("--")) {
+                    argName = arg.substring(2);
+                    Args.put(argName, "");
+                }
+                if (argName != null) {
+                    if (argName.length() > 2) {
+                        if (!argName.equals(arg.substring(2))) {
+                            if (Args.containsKey(argName)) {
+                                Args.remove(argName);
+                            }
+                            Args.put(argName, arg);
+                            argName = null;
+                        }
+                    }
+                }
+            }
+        }
+        /*
+        End
+         */
+
+        if(Args.containsKey("pid"))
+        {
+            try {
+                long pid = Long.parseLong(Args.get("pid"));
+                Optional<ProcessHandle> electronProc = ProcessHandle.of(pid);
+                if (electronProc.isPresent())
+                {
+                    startProcess = false;
+                    defaultWebsocketPort = true;
+                    ProcessHandle handle = electronProc.get();
+                    handle.onExit().thenRun(CreeperLauncher::exit);
+                    Runtime.getRuntime().addShutdownHook(new Thread(handle::destroy));
+                }
+            } catch (Exception ignored) {
+                CreeperLogger.INSTANCE.error("Error connecting to process", ignored);
+            }
+        } else {
+            CreeperLogger.INSTANCE.info("No PID args");
+        }
+
+        Settings.webSocketAPI = new WebSocketAPI(new InetSocketAddress(InetAddress.getLoopbackAddress(), defaultWebsocketPort ? Constants.WEBSOCKET_PORT : websocketPort));
         Settings.webSocketAPI.start();
-        File electron = null;
+
+        if (startProcess) {
+            startElectron();
+        }
+    }
+
+    private static void startElectron() {
+        File electron;
         OS os = OSUtils.getOs();
-        ProcessBuilder app = null;
+
+        ArrayList<String> args = new ArrayList<>();
+
+
         switch (os)
         {
             case MAC:
                 electron = new File(Constants.BIN_LOCATION, "ftbapp.app");
-                app = new ProcessBuilder(electron.getAbsolutePath() + File.separator + "Contents" + File.separator + "MacOS" + File.separator + "ftbapp");
+                args.add(0, electron.getAbsolutePath() + File.separator + "Contents" + File.separator + "MacOS" + File.separator + "ftbapp");
                 break;
             case LINUX:
                 electron = new File(Constants.BIN_LOCATION, "ftb-app");
                 FileUtils.setFilePermissions(electron);
 
-                app = new ProcessBuilder(electron.getAbsolutePath());
+                args.add(0, electron.getAbsolutePath());
 
                 try {
                     if (Files.exists(Path.of("/proc/sys/kernel/unprivileged_userns_clone")) && new String(Files.readAllBytes(Path.of("/proc/sys/kernel/unprivileged_userns_clone"))).equals("0"))
                     {
-                        app = new ProcessBuilder(electron.getAbsolutePath(), "--no-sandbox");
+                        args.add(1,  "--no-sandbox");
                     }
                 } catch (IOException ignored) {}
                 break;
             default:
                 electron = new File(Constants.BIN_LOCATION, "ftbapp.exe");
-                app = new ProcessBuilder(electron.getAbsolutePath());
+                args.add(0, electron.getAbsolutePath());
         }
+
+        args.add("--ws");
+        args.add(websocketPort + ":" + websocketSecret);
+        args.add("--pid");
+        args.add(String.valueOf(ProcessHandle.current().pid()));
+
+        ProcessBuilder app = new ProcessBuilder(args);
+
         if (electron.exists())
         {
             try
             {
+                CreeperLogger.INSTANCE.info("Starting Electron: " + String.join(" ", args));
                 elect = app.start();
                 new StreamGobblerLog(elect.getErrorStream(), CreeperLogger.INSTANCE::error);
                 new StreamGobblerLog(elect.getInputStream(), CreeperLogger.INSTANCE::info);
             } catch (IOException e)
             {
-                e.printStackTrace();
+                CreeperLogger.INSTANCE.error("Error starting Electron: ", e);
             }
             CompletableFuture<Process> completableFuture = elect.onExit();
-            completableFuture.thenRun(() ->
-            {
-                try
-                {
-                    Settings.webSocketAPI.stop();
-                } catch (IOException | InterruptedException e)
-                {
-                    e.printStackTrace();
-                }
-                Settings.saveSettings();
-                System.exit(0);
-            });
+            completableFuture.thenRun(CreeperLauncher::exit);
             Runtime.getRuntime().addShutdownHook(new Thread(elect::destroy));
         }
+    }
+
+    private static void exit() {
+        try
+        {
+            Settings.webSocketAPI.stop();
+        } catch (IOException | InterruptedException e)
+        {
+            e.printStackTrace();
+        }
+        Settings.saveSettings();
+        System.exit(0);
     }
 }
 

@@ -4,4 +4,5 @@ public class BaseData
 {
     public String type;
     public int requestId;
+    public String secret;
 }
