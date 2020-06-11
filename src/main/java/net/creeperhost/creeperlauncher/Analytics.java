@@ -1,6 +1,7 @@
 package net.creeperhost.creeperlauncher;
 
 import net.creeperhost.creeperlauncher.util.WebUtils;
+import java.util.concurrent.CompletableFuture;
 
 public class Analytics
 {
