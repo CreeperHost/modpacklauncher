@@ -253,8 +253,7 @@ public class LocalInstance implements IPack
             List<DownloadableFile> requiredDownloads = update.getRequiredDownloads(new File(this.path, "version.json"), null);
             requiredDownloads.forEach(e -> {
                 File file = new File(e.getPath());
-                System.out.println(file);
-                System.out.println(file.delete());
+                file.delete();
             });
         } catch (MalformedURLException e) {
             // fall back to old delete
