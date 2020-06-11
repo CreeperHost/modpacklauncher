@@ -221,7 +221,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
         return new FTBPack(name, version, Constants.INSTANCES_FOLDER_LOC + File.separator + name, authorList, description, mc_version, url, arturl, id, minMemory, recMemory);
     }
 
-    List<DownloadableFile> getRequiredDownloads(File target, File forgeTarget) throws MalformedURLException
+    public List<DownloadableFile> getRequiredDownloads(File target, File forgeTarget) throws MalformedURLException
     {
         List<DownloadableFile> downloadableFileList = new ArrayList<>();
         JsonReader versionReader = null;
