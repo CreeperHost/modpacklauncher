@@ -11,6 +11,7 @@ import net.creeperhost.creeperlauncher.api.data.*;
 import net.creeperhost.creeperlauncher.api.handlers.*;
 
 import java.util.HashMap;
+import java.util.concurrent.CompletableFuture;
 
 public class WebSocketMessengerHandler
 {
@@ -72,7 +73,7 @@ public class WebSocketMessengerHandler
                 {
                     BaseData parsedData = gson.fromJson(data, typeToken.getType());
                     if (parsedData.secret != null && parsedData.secret.equals(CreeperLauncher.websocketSecret)) {
-                        iMessageHandler.handle(parsedData);
+                        CompletableFuture.runAsync(()->iMessageHandler.handle(parsedData));
                     }
                 }
             }
