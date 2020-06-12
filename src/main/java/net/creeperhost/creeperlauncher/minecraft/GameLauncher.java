@@ -13,23 +13,26 @@ public class GameLauncher
 {
     public void launchGame()
     {
-        String exe = Constants.MINECRAFT_LAUNCHER_LOCATION;
-        OS os = OSUtils.getOs();
-        if (os == OS.MAC)
+        CompletableFuture.runAsync(() ->
         {
-            exe = Constants.MINECRAFT_MAC_LAUNCHER_EXECUTABLE;
-        }
-        if (os == OS.LINUX)
-        {
-            exe = Constants.MINECRAFT_LINUX_LAUNCHER_EXECUTABLE;
-        }
-        try
-        {
-            new ProcessBuilder(exe, "--workDir", Constants.BIN_LOCATION).start();
-        } catch (IOException e)
-        {
-            e.printStackTrace();
-        }
+            String exe = Constants.MINECRAFT_LAUNCHER_LOCATION;
+            OS os = OSUtils.getOs();
+            if (os == OS.MAC)
+            {
+                exe = Constants.MINECRAFT_MAC_LAUNCHER_EXECUTABLE;
+            }
+            if (os == OS.LINUX)
+            {
+                exe = Constants.MINECRAFT_LINUX_LAUNCHER_EXECUTABLE;
+            }
+            try
+            {
+                new ProcessBuilder(exe, "--workDir", Constants.BIN_LOCATION).start();
+            } catch (IOException e)
+            {
+                e.printStackTrace();
+            }
+        }).join();
     }
 
     public static void launchGameAndClose()
