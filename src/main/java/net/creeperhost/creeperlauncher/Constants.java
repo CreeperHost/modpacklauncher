@@ -8,8 +8,8 @@ public class Constants
 {
     //CWD
     public static final String WORKING_DIR = System.getProperty("user.dir");
-    //public static final String DATA_DIR = System.getProperty("user.home") + File.seperator + ".ftba";
-    public static final String DATA_DIR = WORKING_DIR;
+    public static final String DATA_DIR = System.getProperty("user.home") + File.separator + ".ftba";
+    //public static final String DATA_DIR = WORKING_DIR;
 
     //Launcher titles
     public static final String windowTitle = "Modpack Launcher";
@@ -30,7 +30,8 @@ public class Constants
     public static final String FORGE_RECOMMENDED = "https://files.minecraftforge.net/maven/net/minecraftforge/forge/promotions_slim.json";
 
     //Paths
-    public static final String BIN_LOCATION = WORKING_DIR + File.separator + "bin";
+    public static final String BIN_LOCATION_OLD = WORKING_DIR + File.separator + "bin";
+    public static final String BIN_LOCATION = DATA_DIR + File.separator + "bin";
     public static final String MINECRAFT_LAUNCHER_LOCATION = DATA_DIR + File.separator + "bin" + File.separator + "launcher." + OSUtils.getExtension();
     public static final String MINECRAFT_MAC_LAUNCHER_EXECUTABLE = DATA_DIR + File.separator + "bin" + File.separator + "Minecraft.app" + File.separator + "Contents" + File.separator + "MacOS" + File.separator + "launcher";
     public static final String MINECRAFT_MAC_LAUNCHER_VOLUME = "/Volumes/Minecraft";

@@ -68,6 +68,20 @@ public class CreeperLauncher
         });
         Settings.loadSettings();
 
+        if (!Settings.settings.getOrDefault("migrate", "").isEmpty())
+        {
+            // need to migrate data dir
+            try {
+                System.out.println("MIGRATING");
+                Files.move(Path.of(Constants.BIN_LOCATION_OLD), Path.of(Constants.BIN_LOCATION)); // all the rest will move over
+                Files.move(Path.of(Constants.WORKING_DIR, "instances"), Path.of(Constants.INSTANCES_FOLDER_LOC));
+                Files.move(Path.of(Constants.WORKING_DIR, ".localCache"), Path.of(Constants.CACHE_LOCATION));
+            } catch (IOException e) {
+                // Failed migration. ???
+                e.printStackTrace();
+            }
+        }
+
         boolean startProcess = true;
 
         /*
