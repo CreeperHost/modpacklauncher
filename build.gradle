@@ -41,7 +41,7 @@ group = "net.creeperhost"
 archivesBaseName = "launcher"
 ext.details = versionDetails()
 ext.branch = (ext.details.branchName == "master" ? "develop" : ext.details.branchName)
-version = getDate() + "-" + details.gitHash + "-" + ext.branch
+version = getDate() + "-" + details.gitHash + (ext.details.branchName == "release" ? "" : "-" + ext.branch)
 
 targetCompatibility = sourceCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = "11"
     
