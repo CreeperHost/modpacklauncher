@@ -17,6 +17,7 @@ import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -35,7 +36,7 @@ public class CreeperLauncher
     public static Process elect = null;
     public static AtomicBoolean isInstalling = new AtomicBoolean(false);
     public static AtomicReference<FTBModPackInstallerTask> currentInstall = new AtomicReference<>();
-    public static LocalCache localCache = new LocalCache();
+    public static LocalCache localCache = null;
     public static boolean defaultWebsocketPort = false;
     public static int websocketPort = WebSocketAPI.generateRandomPort();
     public static String websocketSecret = WebSocketAPI.generateSecret();
@@ -70,17 +71,21 @@ public class CreeperLauncher
 
         if (!Settings.settings.getOrDefault("migrate", "").isEmpty())
         {
-            // need to migrate data dir
-            try {
-                System.out.println("MIGRATING");
-                Files.move(Path.of(Constants.BIN_LOCATION_OLD), Path.of(Constants.BIN_LOCATION)); // all the rest will move over
-                Files.move(Path.of(Constants.WORKING_DIR, "instances"), Path.of(Constants.INSTANCES_FOLDER_LOC));
-                Files.move(Path.of(Constants.WORKING_DIR, ".localCache"), Path.of(Constants.CACHE_LOCATION));
-            } catch (IOException e) {
-                // Failed migration. ???
-                e.printStackTrace();
+            System.out.println("MIGRATING");
+            move(Path.of(Constants.BIN_LOCATION_OURS, "launcher." + OSUtils.getExtension()), Path.of(Constants.MINECRAFT_LAUNCHER_LOCATION));
+            move(Path.of(Constants.BIN_LOCATION_OURS, "Minecraft.app"), Path.of(Constants.BIN_LOCATION, "Minecraft.app"));
+            move(Path.of(Constants.BIN_LOCATION_OURS, "minecraft-launcher"), Path.of(Constants.BIN_LOCATION, "minecraft-launcher"));
+            move(Path.of(Constants.BIN_LOCATION_OURS, "versions"), Path.of(Constants.VERSIONS_FOLDER_LOC));
+            move(Path.of(Constants.BIN_LOCATION_OURS, "launcher_profiles.json"), Path.of(Constants.LAUNCHER_PROFILES_JSON));
+            move(Path.of(Constants.BIN_LOCATION_OURS, "launcher_settings.json"), Path.of(Constants.LAUNCHER_PROFILES_JSON));
+            move(Path.of(Constants.BIN_LOCATION_OURS, "libraries"), Path.of(Constants.LIBRARY_LOCATION));
+            move(Path.of(Constants.WORKING_DIR, ".localCache"), Path.of(Constants.CACHE_LOCATION));
+            if (!move(Path.of(Constants.WORKING_DIR, "instances"), Path.of(Constants.INSTANCES_FOLDER_LOC))) {
+                // Failed migration, not sure how to handle this right now
             }
         }
+
+        localCache = new LocalCache(); // moved to here so that it doesn't exist prior to migrating
 
         boolean startProcess = true;
 
@@ -141,6 +146,18 @@ public class CreeperLauncher
         }
     }
 
+    private static boolean move(Path in, Path out)
+    {
+        try {
+            Files.move(in, out, StandardCopyOption.COPY_ATTRIBUTES);
+            return true;
+        } catch (Exception e) {
+            System.out.println("Unable to move " + in);
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     private static void startElectron() {
         File electron;
         OS os = OSUtils.getOs();
@@ -151,11 +168,11 @@ public class CreeperLauncher
         switch (os)
         {
             case MAC:
-                electron = new File(Constants.BIN_LOCATION, "ftbapp.app");
+                electron = new File(Constants.BIN_LOCATION_OURS, "ftbapp.app");
                 args.add(0, electron.getAbsolutePath() + File.separator + "Contents" + File.separator + "MacOS" + File.separator + "ftbapp");
                 break;
             case LINUX:
-                electron = new File(Constants.BIN_LOCATION, "ftb-app");
+                electron = new File(Constants.BIN_LOCATION_OURS, "ftb-app");
                 FileUtils.setFilePermissions(electron);
 
                 args.add(0, electron.getAbsolutePath());
@@ -168,7 +185,7 @@ public class CreeperLauncher
                 } catch (IOException ignored) {}
                 break;
             default:
-                electron = new File(Constants.BIN_LOCATION, "ftbapp.exe");
+                electron = new File(Constants.BIN_LOCATION_OURS, "ftbapp.exe");
                 args.add(0, electron.getAbsolutePath());
         }
 

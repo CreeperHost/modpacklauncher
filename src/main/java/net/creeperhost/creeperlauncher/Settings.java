@@ -5,13 +5,9 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.stream.JsonReader;
 import net.creeperhost.creeperlauncher.api.WebSocketAPI;
 
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.*;
 import java.io.*;
 import java.nio.file.Files;
 import java.util.HashMap;
-import java.util.Map;
 
 public class Settings
 {
@@ -40,10 +36,10 @@ public class Settings
             File json = new File(Constants.BIN_LOCATION, "settings.json");
             System.out.println(json);
             System.out.println(json.exists());
-            boolean old;
+            boolean old = false;
             if (!json.exists())
             {
-                File jsonOld = new File(Constants.BIN_LOCATION_OLD, "settings.json");
+                File jsonOld = new File(Constants.BIN_LOCATION_OURS, "settings.json");
                 old = jsonOld.exists();
                 System.out.println(jsonOld);
                 System.out.println(jsonOld.exists());
@@ -61,6 +57,9 @@ public class Settings
                 if (Settings.settings.getClass() != HashMap.class)
                 {
                     Settings.settings = new HashMap<>();
+                }
+                if (old)
+                {
                     Settings.settings.put("migrate", "yes");
                 }
             } else {
