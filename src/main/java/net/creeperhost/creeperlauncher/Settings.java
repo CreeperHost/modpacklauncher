@@ -19,6 +19,7 @@ public class Settings
         try
         {
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            boolean migrate = !Settings.settings.getOrDefault("migrate", "no").equals("no");
             Settings.settings.remove("migrate");
             String jsonSettings = gson.toJson(Settings.settings);
             File json = new File(Constants.BIN_LOCATION, "settings.json");
@@ -26,6 +27,7 @@ public class Settings
             BufferedWriter fileWriter = new BufferedWriter(new FileWriter(json.getAbsolutePath()));
             fileWriter.write(jsonSettings);
             fileWriter.close();
+            if (migrate) Settings.settings.put("migrate", "yes");
         } catch (Exception ignored) {}
     }
 
@@ -35,7 +37,7 @@ public class Settings
         {
             File json = new File(Constants.BIN_LOCATION, "settings.json");
             boolean old = false;
-            if (!json.exists())
+            if (!json.exists() || new File(Constants.WORKING_DIR, "instances").exists())
             {
                 File jsonOld = new File(Constants.BIN_LOCATION_OURS, "settings.json");
                 old = jsonOld.exists();
