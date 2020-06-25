@@ -112,7 +112,9 @@ public class CreeperLauncher
                             new OpenModalData.ModalButton("Ok", "red", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
                         ));
                     } else {
+                        Settings.settings.remove("instanceLocation");
                         Settings.settings.put("instanceLocation", value);
+                        Settings.saveSettings();
                         OpenModalData.openModal("Success", "Moved instance folder successfully", List.of(
                             new OpenModalData.ModalButton( "Yay!", "green", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
                         ));
