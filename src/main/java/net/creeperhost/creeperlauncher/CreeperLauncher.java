@@ -91,6 +91,7 @@ public class CreeperLauncher
                     Path currentInstanceLoc = Path.of(Settings.settings.getOrDefault(key, Constants.INSTANCES_FOLDER_LOC));
                     File currentInstanceDir = currentInstanceLoc.toFile();
                     File[] subFiles = currentInstanceDir.listFiles();
+                    Path newInstanceDir = Path.of(value);
                     boolean failed = false;
                     if (subFiles != null) {
                         for (File file : subFiles) {
@@ -101,9 +102,12 @@ public class CreeperLauncher
                         }
                     }
                     if (failed) {
-                        // revert here
-                    }
-                    if (failed) {
+                        File[] newInstanceDirFiles = newInstanceDir.toFile().listFiles();
+                        if (newInstanceDirFiles != null) {
+                            for (File file : newInstanceDirFiles) {
+                                move(Path.of(file.getAbsolutePath()), currentInstanceLoc.resolve(file.getName()));
+                            }
+                        }
                         OpenModalData.openModal("Error", "Unable to move instances. Please ensure you have permission to create files and folders in this location.", List.of(
                             new OpenModalData.ModalButton("Ok", "red", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
                         ));
@@ -131,7 +135,7 @@ public class CreeperLauncher
         for(String arg : args)
         {
             if(arg.length() > 2) {
-                if (arg.substring(0, 2).equals("--")) {
+                if (arg.startsWith("--")) {
                     argName = arg.substring(2);
                     Args.put(argName, "");
                 }
