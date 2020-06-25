@@ -36,12 +36,14 @@ public class WebSocketMessengerHandler
         registerHandler(UninstallInstanceData.class, new UninstallInstanceHandler());
         registerDataMap("instanceConfigure", InstanceConfigureData.class);
         registerHandler(InstanceConfigureData.class, new InstanceConfigureHandler());
-        registerDataMap("instanceBrowse", browseInstanceData.class);
-        registerHandler(browseInstanceData.class, new browseInstanceHandler());
-        registerDataMap("getSettings", settingsInfoData.class);
-        registerHandler(settingsInfoData.class, new SettingsInfoHandler());
-        registerDataMap("saveSettings", settingsConfigureData.class);
-        registerHandler(settingsConfigureData.class, new SettingsConfigureHandler());
+        registerDataMap("instanceBrowse", BrowseInstanceData.class);
+        registerHandler(BrowseInstanceData.class, new BrowseInstanceHandler());
+        registerDataMap("getSettings", SettingsInfoData.class);
+        registerHandler(SettingsInfoData.class, new SettingsInfoHandler());
+        registerDataMap("saveSettings", SettingsConfigureData.class);
+        registerHandler(SettingsConfigureData.class, new SettingsConfigureHandler());
+        registerDataMap("modalCallback", OpenModalData.ModalCallbackData.class);
+        registerHandler(OpenModalData.ModalCallbackData.class, new ModalCallbackHandler());
     }
 
     public static void registerHandler(Class<? extends BaseData> clazz, IMessageHandler<? extends BaseData> handler)

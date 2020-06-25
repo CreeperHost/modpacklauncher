@@ -1,6 +1,7 @@
 package net.creeperhost.creeperlauncher.api.data;
 
 import net.creeperhost.creeperlauncher.install.tasks.FTBModPackInstallerTask;
+import net.creeperhost.creeperlauncher.util.SettingsChangeUtil;
 
 public class InstallInstanceData extends BaseData
 {
@@ -23,6 +24,7 @@ public class InstallInstanceData extends BaseData
             this.message = message;
             this.uuid = uuid;
             // Todo: get tasks from install, update corresponding TaskData objects and send update to other side
+            SettingsChangeUtil.settingsChanged("instanceLocation", "test"); // TODO: REMOVE REMOVE REMOVE REMOVE REMOVE
         }
     }
 

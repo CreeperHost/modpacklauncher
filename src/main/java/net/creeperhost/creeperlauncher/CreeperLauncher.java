@@ -3,11 +3,14 @@ package net.creeperhost.creeperlauncher;
 import com.install4j.api.launcher.ApplicationLauncher;
 import com.install4j.api.update.UpdateChecker;
 import net.creeperhost.creeperlauncher.api.WebSocketAPI;
+import net.creeperhost.creeperlauncher.api.WebSocketMessengerHandler;
+import net.creeperhost.creeperlauncher.api.data.OpenModalData;
 import net.creeperhost.creeperlauncher.install.tasks.FTBModPackInstallerTask;
 import net.creeperhost.creeperlauncher.install.tasks.LocalCache;
 import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.os.OSUtils;
 import net.creeperhost.creeperlauncher.util.FileUtils;
+import net.creeperhost.creeperlauncher.util.SettingsChangeUtil;
 import net.creeperhost.creeperlauncher.util.StreamGobblerLog;
 
 import java.io.File;
@@ -18,10 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -83,6 +83,23 @@ public class CreeperLauncher
                 // Failed migration, not sure how to handle this right now
             }
         }
+
+        SettingsChangeUtil.registerListener("instanceLocation", (key, value) -> {
+            OpenModalData.openModal("Confirmation", "Are you sure you wish to move your instances to this location?", List.of(
+                new OpenModalData.ModalButton("moveData", "Yes", "green", () -> {
+                    if (!move(Path.of(Settings.settings.getOrDefault(key, Constants.INSTANCES_FOLDER_LOC)), Path.of(value, "instances"))) {
+                        OpenModalData.openModal("Error", "Unable to move instances. Please ensure you have permission to create files and folders in this location.", List.of(
+                            new OpenModalData.ModalButton("Ok", "red", () -> {})
+                        ));
+                    } else {
+                        OpenModalData.openModal("Success", "Moved instance folder successfully", List.of(
+                            new OpenModalData.ModalButton( "Yay!", "green", () -> {})
+                        ));
+                    }
+                }),
+                new OpenModalData.ModalButton("No", "red", () -> {})
+            ));
+        });
 
         localCache = new LocalCache(); // moved to here so that it doesn't exist prior to migrating
 
