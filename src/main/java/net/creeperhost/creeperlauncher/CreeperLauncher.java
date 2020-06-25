@@ -92,15 +92,14 @@ public class CreeperLauncher
                     File currentInstanceDir = currentInstanceLoc.toFile();
                     File[] subFiles = currentInstanceDir.listFiles();
                     boolean failed = false;
-                    if (subFiles != null)
-                        for(File file : subFiles)
-                        {
-                            System.out.println(file.getName());
+                    if (subFiles != null) {
+                        for (File file : subFiles) {
                             if (!move(Path.of(file.getAbsolutePath()), Path.of(value, file.getName()))) {
                                 failed = true;
                                 break;
                             }
                         }
+                    }
                     if (failed) {
                         // revert here
                     }
@@ -109,6 +108,7 @@ public class CreeperLauncher
                             new OpenModalData.ModalButton("Ok", "red", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
                         ));
                     } else {
+                        Settings.settings.put("instanceLocation", value);
                         OpenModalData.openModal("Success", "Moved instance folder successfully", List.of(
                             new OpenModalData.ModalButton( "Yay!", "green", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
                         ));
@@ -116,6 +116,7 @@ public class CreeperLauncher
                 }),
                 new OpenModalData.ModalButton("No", "red", () -> {})
             ));
+            return false;
         });
 
         localCache = new LocalCache(); // moved to here so that it doesn't exist prior to migrating

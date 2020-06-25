@@ -17,7 +17,6 @@ public class ModalCallbackHandler implements IMessageHandler<OpenModalData.Modal
                     break;
                 }
             }
-            OpenModalData.currentlyOpenModal = null;
         }
     }
 }

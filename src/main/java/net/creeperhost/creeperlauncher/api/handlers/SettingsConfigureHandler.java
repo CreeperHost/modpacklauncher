@@ -17,9 +17,14 @@ public class SettingsConfigureHandler implements IMessageHandler<SettingsConfigu
                 boolean changed = false;
                 if (Settings.settings.containsKey(setting.getKey()) && !Settings.settings.get(setting.getKey()).equals(setting.getValue()))
                     changed = true;
-                Settings.settings.remove(setting.getKey());
-                Settings.settings.put(setting.getKey(), setting.getValue());
-                if (changed) SettingsChangeUtil.settingsChanged(setting.getKey(), setting.getValue());
+                if (changed) {
+                    if (SettingsChangeUtil.settingsChanged(setting.getKey(), setting.getValue())) {
+                        Settings.settings.remove(setting.getKey());
+                        Settings.settings.put(setting.getKey(), setting.getValue());
+                    }
+                }
+
+
             } catch (Exception e) {
             }
         }

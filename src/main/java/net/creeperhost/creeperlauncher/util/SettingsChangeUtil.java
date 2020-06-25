@@ -15,17 +15,17 @@ public class SettingsChangeUtil {
         settingsChangedListeners.put(key, handler);
     }
 
-    public static void settingsChanged(String key, String value) {
+    public static boolean settingsChanged(String key, String value) {
         if (settingsChangedListeners.containsKey(key)) {
             try {
-                settingsChangedListeners.get(key).handle(key, value);
+                return settingsChangedListeners.get(key).handle(key, value);
             } catch (Exception e) {
             }
-
         }
+        return true;
     }
 
     public interface ISettingsChangedHandler {
-        void handle(String key, String value);
+        boolean handle(String key, String value);
     }
 }
