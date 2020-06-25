@@ -37,7 +37,7 @@ public class Settings
         {
             File json = new File(Constants.BIN_LOCATION, "settings.json");
             boolean old = false;
-            if (!json.exists())
+            if (!json.exists() || new File(Constants.WORKING_DIR, "instances").exists())
             {
                 File jsonOld = new File(Constants.BIN_LOCATION_OURS, "settings.json");
                 old = jsonOld.exists();
