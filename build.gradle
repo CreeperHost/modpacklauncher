@@ -107,6 +107,58 @@ task ftpReleaseXML(type: Exec) {
 
 ftpReleaseXML.dependsOn ftpRelease
 
+// copy of above, but disconected at media
+task cleanMediaManual(type: Delete) {
+    delete "releaseBuild"
+    delete "releaseUpload"
+}
+
+task mediaManual(type: com.install4j.gradle.Install4jTask) {
+    projectFile = "installerstuff.install4j"
+    release = version
+    variables = [branch: branch]
+}
+
+mediaManual.dependsOn cleanMedia
+
+task prepareUploadJREsManual(type: Copy) {
+    from("$projectDir/releaseBuild/jres")
+    into new File("$projectDir/releaseUpload/jres/")
+}
+
+prepareUploadJREsManual.dependsOn mediaManual
+
+task cleanJREsManual(type: Delete) {
+    delete "releaseBuild/jres"
+}
+
+cleanJREsManual.dependsOn prepareUploadJREsManual
+
+task prepareUpload {
+    doLast {
+        copy {
+            from("$projectDir/releaseBuild/")
+            into new File("$projectDir/releaseUpload/" + branch + "/" + version + "/")
+            includeEmptyDirs = false
+            eachFile { details ->
+                details.setRelativePath new RelativePath(true, details.name)
+            }
+        }
+    }
+}
+
+prepareUploadManual.dependsOn cleanJREsManual
+
+task ftpReleaseManual(type: Exec) {
+    commandLine "lftp", "-e", "mirror -R --verbose ${projectDir}/releaseUpload/ ${System.env.FTPDIR}", "-u", "${System.env.FTPUSER},${System.env.FTPPASS}", "${System.env.FTPSERVER}"
+}
+
+task ftpReleaseXMLManual(type: Exec) {
+    commandLine "lftp", "-e", "put ${projectDir}/releaseBuild/updates.xml -o ${branch}.xml", "-u", "${System.env.FTPUSER},${System.env.FTPPASS}", "${System.env.FTPSERVER}"
+}
+
+ftpReleaseXMLManual.dependsOn ftpReleaseManual
+
 ext.getCheckedOutGitCommitHash = { subBranch ->
    def gitFolder = "$projectDir/.git/"
    if (subBranch != null) {
