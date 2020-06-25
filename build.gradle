@@ -134,7 +134,7 @@ task cleanJREsManual(type: Delete) {
 
 cleanJREsManual.dependsOn prepareUploadJREsManual
 
-task prepareUpload {
+task prepareUploadManual {
     doLast {
         copy {
             from("$projectDir/releaseBuild/")
