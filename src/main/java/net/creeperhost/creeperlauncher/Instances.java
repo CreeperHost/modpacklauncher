@@ -36,7 +36,7 @@ public class Instances
 
     public static void refreshInstances()
     {
-        File file = new File(Settings.settings.getOrDefault("instancesLocation", Constants.INSTANCES_FOLDER_LOC));
+        File file = new File(Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC));
         instances.clear();
         File[] files = file.listFiles();
         int l=0,t=0;
@@ -64,7 +64,7 @@ public class Instances
 
     private static void loadInstance(String _uuid) throws FileNotFoundException
     {
-        File json = new File(Settings.settings.getOrDefault("instancesLocation", Constants.INSTANCES_FOLDER_LOC) + File.separator + _uuid, "instance.json");
+        File json = new File(Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC) + File.separator + _uuid, "instance.json");
         if (!json.exists()) throw new FileNotFoundException("Instance corrupted; " + json.getAbsoluteFile());
         UUID uuid = UUID.fromString(_uuid);
         LocalInstance loadedInstance = new LocalInstance(uuid);

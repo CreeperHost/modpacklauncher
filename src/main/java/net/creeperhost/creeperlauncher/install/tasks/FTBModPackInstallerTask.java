@@ -84,7 +84,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
             startTime.set(System.currentTimeMillis());
             lastError.set("");
             CreeperLogger.INSTANCE.info(instance.getName() + " " + instance.getId() + " " + instance.getVersionId());
-            File instanceRoot = new File(Settings.settings.getOrDefault("instancesLocation", Constants.INSTANCES_FOLDER_LOC));
+            File instanceRoot = new File(Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC));
             instanceRoot.mkdir();
             currentStage = Stage.VANILLA;
             McUtils.downloadVanillaLauncher();
@@ -219,7 +219,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                 }
             }
         }
-        return new FTBPack(name, version, Settings.settings.getOrDefault("instancesLocation", Constants.INSTANCES_FOLDER_LOC) + File.separator + name, authorList, description, mc_version, url, arturl, id, minMemory, recMemory);
+        return new FTBPack(name, version, Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC) + File.separator + name, authorList, description, mc_version, url, arturl, id, minMemory, recMemory);
     }
 
     public List<DownloadableFile> getRequiredDownloads(File target, File forgeTarget) throws MalformedURLException
