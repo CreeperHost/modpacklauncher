@@ -229,8 +229,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
         try
         {
             versionReader = new JsonReader(new FileReader(target));
-        } catch (FileNotFoundException e)
-        {
+        } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
 
@@ -260,6 +259,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                 }
             }
         }
+
         if (forgeTarget != null)
         {
             JsonReader reader = null;

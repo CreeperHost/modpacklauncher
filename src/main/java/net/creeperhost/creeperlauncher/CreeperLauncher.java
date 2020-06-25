@@ -83,6 +83,7 @@ public class CreeperLauncher
             if (!move(Path.of(Constants.WORKING_DIR, "instances"), Path.of(Constants.INSTANCES_FOLDER_LOC))) {
                 // Failed migration, not sure how to handle this right now
             }
+            Instances.refreshInstances();
         }
 
         SettingsChangeUtil.registerListener("instanceLocation", (key, value) -> {
@@ -115,6 +116,7 @@ public class CreeperLauncher
                         Settings.settings.remove("instanceLocation");
                         Settings.settings.put("instanceLocation", value);
                         Settings.saveSettings();
+                        Instances.refreshInstances();
                         OpenModalData.openModal("Success", "Moved instance folder successfully", List.of(
                             new OpenModalData.ModalButton( "Yay!", "green", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
                         ));
