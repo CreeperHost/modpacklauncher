@@ -87,7 +87,7 @@ public class CreeperLauncher
         SettingsChangeUtil.registerListener("instanceLocation", (key, value) -> {
             OpenModalData.openModal("Confirmation", "Are you sure you wish to move your instances to this location?", List.of(
                 new OpenModalData.ModalButton("moveData", "Yes", "green", () -> {
-                    if (!move(Path.of(Settings.settings.getOrDefault(key, Constants.INSTANCES_FOLDER_LOC)), Path.of(value, "instances"))) {
+                    if (!move(Path.of(Settings.settings.getOrDefault(key, Constants.INSTANCES_FOLDER_LOC)), Path.of(value))) {
                         OpenModalData.openModal("Error", "Unable to move instances. Please ensure you have permission to create files and folders in this location.", List.of(
                             new OpenModalData.ModalButton("Ok", "red", () -> {})
                         ));

@@ -17,7 +17,11 @@ public class SettingsChangeUtil {
 
     public static void settingsChanged(String key, String value) {
         if (settingsChangedListeners.containsKey(key)) {
-            settingsChangedListeners.get(key).handle(key, value);
+            try {
+                settingsChangedListeners.get(key).handle(key, value);
+            } catch (Exception e) {
+            }
+
         }
     }
 
