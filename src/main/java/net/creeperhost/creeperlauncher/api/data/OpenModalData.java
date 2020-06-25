@@ -18,6 +18,7 @@ public class OpenModalData extends BaseData
         this.title = title;
         this.message = message;
         this.buttons = buttons;
+        this.id = UUID.randomUUID().toString();
     }
 
     public static void openModal(String title, String message, List<ModalButton> modalButtons) {

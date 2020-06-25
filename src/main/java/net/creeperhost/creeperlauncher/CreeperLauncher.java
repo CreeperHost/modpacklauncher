@@ -182,7 +182,7 @@ public class CreeperLauncher
     private static boolean move(Path in, Path out)
     {
         try {
-            Files.move(in, out, StandardCopyOption.COPY_ATTRIBUTES);
+            Files.move(in, out);
             return true;
         } catch (Exception e) {
             System.out.println("Unable to move " + in);
