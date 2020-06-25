@@ -4,6 +4,7 @@ import com.install4j.api.launcher.ApplicationLauncher;
 import com.install4j.api.update.UpdateChecker;
 import net.creeperhost.creeperlauncher.api.WebSocketAPI;
 import net.creeperhost.creeperlauncher.api.WebSocketMessengerHandler;
+import net.creeperhost.creeperlauncher.api.data.CloseModalData;
 import net.creeperhost.creeperlauncher.api.data.OpenModalData;
 import net.creeperhost.creeperlauncher.install.tasks.FTBModPackInstallerTask;
 import net.creeperhost.creeperlauncher.install.tasks.LocalCache;
@@ -95,7 +96,7 @@ public class CreeperLauncher
                         for(File file : subFiles)
                         {
                             System.out.println(file.getName());
-                            if (!move(Path.of(Settings.settings.getOrDefault(key, Constants.INSTANCES_FOLDER_LOC)), Path.of(value, file.getName()))) {
+                            if (!move(Path.of(file.getAbsolutePath()), Path.of(value, file.getName()))) {
                                 failed = true;
                                 break;
                             }
@@ -103,13 +104,13 @@ public class CreeperLauncher
                     if (failed) {
                         // revert here
                     }
-                    if (!move(Path.of(Settings.settings.getOrDefault(key, Constants.INSTANCES_FOLDER_LOC)), Path.of(value))) {
+                    if (failed) {
                         OpenModalData.openModal("Error", "Unable to move instances. Please ensure you have permission to create files and folders in this location.", List.of(
-                            new OpenModalData.ModalButton("Ok", "red", () -> {})
+                            new OpenModalData.ModalButton("Ok", "red", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
                         ));
                     } else {
                         OpenModalData.openModal("Success", "Moved instance folder successfully", List.of(
-                            new OpenModalData.ModalButton( "Yay!", "green", () -> {})
+                            new OpenModalData.ModalButton( "Yay!", "green", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
                         ));
                     }
                 }),
