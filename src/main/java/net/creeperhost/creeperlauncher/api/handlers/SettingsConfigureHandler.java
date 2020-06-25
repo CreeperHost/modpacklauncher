@@ -5,7 +5,7 @@ import net.creeperhost.creeperlauncher.api.data.settingsConfigureData;
 
 import java.util.Map;
 
-public class settingsConfigureHandler implements IMessageHandler<settingsConfigureData>
+public class SettingsConfigureHandler implements IMessageHandler<settingsConfigureData>
 {
     @Override
     public void handle(settingsConfigureData data)

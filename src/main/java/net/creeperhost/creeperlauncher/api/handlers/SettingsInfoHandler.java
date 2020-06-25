@@ -5,7 +5,7 @@ import net.creeperhost.creeperlauncher.api.data.settingsInfoData;
 
 import java.util.HashMap;
 
-public class settingsInfoHandler implements IMessageHandler<settingsInfoData>
+public class SettingsInfoHandler implements IMessageHandler<settingsInfoData>
 {
     @Override
     public void handle(settingsInfoData data)

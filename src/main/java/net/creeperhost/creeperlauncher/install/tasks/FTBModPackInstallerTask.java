@@ -7,6 +7,7 @@ import com.google.gson.JsonParser;
 import com.google.gson.stream.JsonReader;
 import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.CreeperLogger;
+import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.DownloadableFile;
 import net.creeperhost.creeperlauncher.minecraft.GameLauncher;
 import net.creeperhost.creeperlauncher.minecraft.McUtils;
@@ -83,7 +84,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
             startTime.set(System.currentTimeMillis());
             lastError.set("");
             CreeperLogger.INSTANCE.info(instance.getName() + " " + instance.getId() + " " + instance.getVersionId());
-            File instanceRoot = new File(Constants.INSTANCES_FOLDER_LOC);
+            File instanceRoot = new File(Settings.settings.getOrDefault("instancesLocation", Constants.INSTANCES_FOLDER_LOC));
             instanceRoot.mkdir();
             currentStage = Stage.VANILLA;
             McUtils.downloadVanillaLauncher();

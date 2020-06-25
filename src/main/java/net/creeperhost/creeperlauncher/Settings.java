@@ -45,7 +45,6 @@ public class Settings
                 System.out.println(jsonOld.exists());
                 if (old) {
                     json.getParentFile().mkdirs();
-                    System.out.println("MIGRATINGZ");
                     Files.copy(jsonOld.toPath(), json.toPath());
                 }
             }
@@ -66,9 +65,13 @@ public class Settings
                 Settings.settings = new HashMap<>();
                 json.createNewFile();
             }
+            Settings.settings.put("instanceLocation", Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC));
+            saveSettings();
         } catch (Exception err)
         {
             Settings.settings = new HashMap<>();
+            Settings.settings.put("instanceLocation", Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC));
+            saveSettings();
         }
     }
 

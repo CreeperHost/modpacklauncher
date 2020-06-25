@@ -6,7 +6,6 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 import net.creeperhost.creeperlauncher.CreeperLauncher;
-import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.data.*;
 import net.creeperhost.creeperlauncher.api.handlers.*;
 
@@ -40,9 +39,9 @@ public class WebSocketMessengerHandler
         registerDataMap("instanceBrowse", browseInstanceData.class);
         registerHandler(browseInstanceData.class, new browseInstanceHandler());
         registerDataMap("getSettings", settingsInfoData.class);
-        registerHandler(settingsInfoData.class, new settingsInfoHandler());
+        registerHandler(settingsInfoData.class, new SettingsInfoHandler());
         registerDataMap("saveSettings", settingsConfigureData.class);
-        registerHandler(settingsConfigureData.class, new settingsConfigureHandler());
+        registerHandler(settingsConfigureData.class, new SettingsConfigureHandler());
     }
 
     public static void registerHandler(Class<? extends BaseData> clazz, IMessageHandler<? extends BaseData> handler)
