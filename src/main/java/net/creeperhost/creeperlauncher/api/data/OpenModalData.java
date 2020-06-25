@@ -30,7 +30,7 @@ public class OpenModalData extends BaseData
         public final String message;
         private final String name;
         private final String colour;
-        public final Runnable callback;
+        public final transient Runnable callback;
 
         public ModalButton(String name, String colour, Runnable callback) {
             this(UUID.randomUUID().toString(), name, colour, callback);
