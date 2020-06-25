@@ -7,6 +7,7 @@ import com.google.gson.JsonParser;
 import com.google.gson.stream.JsonReader;
 import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.CreeperLogger;
+import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.DownloadableFile;
 import net.creeperhost.creeperlauncher.minecraft.GameLauncher;
 import net.creeperhost.creeperlauncher.minecraft.McUtils;
@@ -83,7 +84,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
             startTime.set(System.currentTimeMillis());
             lastError.set("");
             CreeperLogger.INSTANCE.info(instance.getName() + " " + instance.getId() + " " + instance.getVersionId());
-            File instanceRoot = new File(Constants.INSTANCES_FOLDER_LOC);
+            File instanceRoot = new File(Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC));
             instanceRoot.mkdir();
             currentStage = Stage.VANILLA;
             McUtils.downloadVanillaLauncher();
@@ -218,18 +219,17 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                 }
             }
         }
-        return new FTBPack(name, version, Constants.INSTANCES_FOLDER_LOC + File.separator + name, authorList, description, mc_version, url, arturl, id, minMemory, recMemory);
+        return new FTBPack(name, version, Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC) + File.separator + name, authorList, description, mc_version, url, arturl, id, minMemory, recMemory);
     }
 
-    List<DownloadableFile> getRequiredDownloads(File target, File forgeTarget) throws MalformedURLException
+    public List<DownloadableFile> getRequiredDownloads(File target, File forgeTarget) throws MalformedURLException
     {
         List<DownloadableFile> downloadableFileList = new ArrayList<>();
         JsonReader versionReader = null;
         try
         {
             versionReader = new JsonReader(new FileReader(target));
-        } catch (FileNotFoundException e)
-        {
+        } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
 
@@ -259,6 +259,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                 }
             }
         }
+
         if (forgeTarget != null)
         {
             JsonReader reader = null;

@@ -3,6 +3,7 @@ package net.creeperhost.creeperlauncher.pack;
 import com.google.gson.*;
 import com.google.gson.stream.JsonReader;
 import net.creeperhost.creeperlauncher.*;
+import net.creeperhost.creeperlauncher.api.DownloadableFile;
 import net.creeperhost.creeperlauncher.install.tasks.FTBModPackInstallerTask;
 import net.creeperhost.creeperlauncher.minecraft.GameLauncher;
 import net.creeperhost.creeperlauncher.minecraft.McUtils;
@@ -15,14 +16,14 @@ import net.creeperhost.creeperlauncher.util.MiscUtils;
 
 import java.awt.*;
 import java.io.*;
+import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Base64;
-import java.util.Comparator;
+import java.util.*;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class LocalInstance implements IPack
 {
@@ -64,7 +65,7 @@ public class LocalInstance implements IPack
         UUID uuid = UUID.randomUUID();
         this.uuid = uuid;
         this.versionId = versionId;
-        this.path = Settings.settings.getOrDefault("instanceDir", Constants.INSTANCES_FOLDER_LOC) + File.separator + this.uuid;
+        this.path = Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC) + File.separator + this.uuid;
         this.name = pack.getName();
         this.version = pack.getVersion();
         this.dir = this.path;
@@ -135,7 +136,7 @@ public class LocalInstance implements IPack
     {
         //We're loading an existing instance
         this.uuid = uuid;
-        this.path = Settings.settings.getOrDefault("instanceDir", Constants.INSTANCES_FOLDER_LOC) + File.separator + this.uuid;
+        this.path = Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC) + File.separator + this.uuid;
         File json = new File(this.path, "instance.json");
         if (!json.exists()) throw new FileNotFoundException("Instance does not exist!");
         Gson gson = new Gson();
@@ -175,7 +176,7 @@ public class LocalInstance implements IPack
         UUID uuid = UUID.randomUUID();
         this.uuid = uuid;
         this.isImport = true;
-        this.path = Settings.settings.getOrDefault("instanceDir", Constants.INSTANCES_FOLDER_LOC) + File.separator + this.uuid;
+        this.path = Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC) + File.separator + this.uuid;
     }
 
     public LocalInstance(LocalInstance originalInstance)
@@ -183,7 +184,7 @@ public class LocalInstance implements IPack
         //this = originalInstance;
         UUID uuid = UUID.randomUUID();
         this.uuid = uuid;
-        this.path = Settings.settings.getOrDefault("instanceDir", Constants.INSTANCES_FOLDER_LOC) + File.separator + this.uuid;
+        this.path = Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC) + File.separator + this.uuid;
     }
 
     private LocalInstance()
@@ -227,7 +228,7 @@ public class LocalInstance implements IPack
 
     public FTBModPackInstallerTask update(long versionId)
     {
-        File mods = new File(this.path, "mods/");
+        /*File mods = new File(this.path, "mods/");
         File coremods = new File(this.path, "coremods/");
         File instmods = new File(this.path, "instmods/");
 
@@ -240,11 +241,38 @@ public class LocalInstance implements IPack
         FileUtils.deleteDirectory(instmods);
         FileUtils.deleteDirectory(config);
         FileUtils.deleteDirectory(resources);
-        FileUtils.deleteDirectory(scripts);
+        FileUtils.deleteDirectory(scripts);*/ // Commented out to add new cleanup code
+
+
 
         this.versionId = versionId;
 
         FTBModPackInstallerTask update = new FTBModPackInstallerTask(this);
+
+        try {
+            List<DownloadableFile> requiredDownloads = update.getRequiredDownloads(new File(this.path, "version.json"), null);
+            requiredDownloads.forEach(e -> {
+                File file = new File(e.getPath());
+                file.delete();
+            });
+        } catch (MalformedURLException e) {
+            // fall back to old delete
+            File mods = new File(this.path, "mods/");
+            File coremods = new File(this.path, "coremods/");
+            File instmods = new File(this.path, "instmods/");
+
+            File config = new File(this.path, "config/");
+            File resources = new File(this.path, "resources/");
+            File scripts = new File(this.path, "scripts/");
+
+            FileUtils.deleteDirectory(mods);
+            FileUtils.deleteDirectory(coremods);
+            FileUtils.deleteDirectory(instmods);
+            FileUtils.deleteDirectory(config);
+            FileUtils.deleteDirectory(resources);
+            FileUtils.deleteDirectory(scripts);
+        }
+
         update.execute().thenRunAsync(() ->
         {
             this.updateVersionFromFile();
@@ -389,6 +417,7 @@ public class LocalInstance implements IPack
     {
         return version;
     }
+
     private void updateVersionFromFile()
     {
         JsonReader versionReader = null;

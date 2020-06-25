@@ -1,6 +1,7 @@
 package net.creeperhost.creeperlauncher.api.data;
 
 import net.creeperhost.creeperlauncher.install.tasks.FTBModPackInstallerTask;
+import net.creeperhost.creeperlauncher.util.SettingsChangeUtil;
 
 public class InstallInstanceData extends BaseData
 {

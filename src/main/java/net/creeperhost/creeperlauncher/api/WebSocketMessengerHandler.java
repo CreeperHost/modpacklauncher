@@ -6,11 +6,11 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 import net.creeperhost.creeperlauncher.CreeperLauncher;
-import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.data.*;
 import net.creeperhost.creeperlauncher.api.handlers.*;
 
 import java.util.HashMap;
+import java.util.concurrent.CompletableFuture;
 
 public class WebSocketMessengerHandler
 {
@@ -36,12 +36,14 @@ public class WebSocketMessengerHandler
         registerHandler(UninstallInstanceData.class, new UninstallInstanceHandler());
         registerDataMap("instanceConfigure", InstanceConfigureData.class);
         registerHandler(InstanceConfigureData.class, new InstanceConfigureHandler());
-        registerDataMap("instanceBrowse", browseInstanceData.class);
-        registerHandler(browseInstanceData.class, new browseInstanceHandler());
-        registerDataMap("getSettings", settingsInfoData.class);
-        registerHandler(settingsInfoData.class, new settingsInfoHandler());
-        registerDataMap("saveSettings", settingsConfigureData.class);
-        registerHandler(settingsConfigureData.class, new settingsConfigureHandler());
+        registerDataMap("instanceBrowse", BrowseInstanceData.class);
+        registerHandler(BrowseInstanceData.class, new BrowseInstanceHandler());
+        registerDataMap("getSettings", SettingsInfoData.class);
+        registerHandler(SettingsInfoData.class, new SettingsInfoHandler());
+        registerDataMap("saveSettings", SettingsConfigureData.class);
+        registerHandler(SettingsConfigureData.class, new SettingsConfigureHandler());
+        registerDataMap("modalCallback", OpenModalData.ModalCallbackData.class);
+        registerHandler(OpenModalData.ModalCallbackData.class, new ModalCallbackHandler());
     }
 
     public static void registerHandler(Class<? extends BaseData> clazz, IMessageHandler<? extends BaseData> handler)
@@ -72,7 +74,7 @@ public class WebSocketMessengerHandler
                 {
                     BaseData parsedData = gson.fromJson(data, typeToken.getType());
                     if (parsedData.secret != null && parsedData.secret.equals(CreeperLauncher.websocketSecret)) {
-                        iMessageHandler.handle(parsedData);
+                        CompletableFuture.runAsync(()->iMessageHandler.handle(parsedData));
                     }
                 }
             }
