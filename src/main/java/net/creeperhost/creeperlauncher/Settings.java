@@ -34,15 +34,11 @@ public class Settings
         try
         {
             File json = new File(Constants.BIN_LOCATION, "settings.json");
-            System.out.println(json);
-            System.out.println(json.exists());
             boolean old = false;
             if (!json.exists())
             {
                 File jsonOld = new File(Constants.BIN_LOCATION_OURS, "settings.json");
                 old = jsonOld.exists();
-                System.out.println(jsonOld);
-                System.out.println(jsonOld.exists());
                 if (old) {
                     json.getParentFile().mkdirs();
                     Files.copy(jsonOld.toPath(), json.toPath());
