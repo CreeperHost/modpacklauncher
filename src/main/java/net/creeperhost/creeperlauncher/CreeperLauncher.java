@@ -18,9 +18,8 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -77,6 +76,9 @@ public class CreeperLauncher
             }
         }
 
+        deleteDirectory(Path.of(Constants.WORKING_DIR, ".localCache"));
+        deleteDirectory(Path.of(Constants.OLD_CACHE_LOCATION));
+
         if (migrate)
         {
             move(Path.of(Constants.BIN_LOCATION_OURS, "launcher." + OSUtils.getExtension()), Path.of(Constants.MINECRAFT_LAUNCHER_LOCATION));
@@ -86,7 +88,6 @@ public class CreeperLauncher
             move(Path.of(Constants.BIN_LOCATION_OURS, "launcher_profiles.json"), Path.of(Constants.LAUNCHER_PROFILES_JSON));
             move(Path.of(Constants.BIN_LOCATION_OURS, "launcher_settings.json"), Path.of(Constants.LAUNCHER_PROFILES_JSON));
             move(Path.of(Constants.BIN_LOCATION_OURS, "libraries"), Path.of(Constants.LIBRARY_LOCATION));
-            move(Path.of(Constants.WORKING_DIR, ".localCache"), Path.of(Constants.CACHE_LOCATION));
             if (migrateInstances)
             {
                 if (!move(Path.of(Constants.WORKING_DIR, "instances"), Path.of(Constants.INSTANCES_FOLDER_LOC))) {
@@ -167,9 +168,7 @@ public class CreeperLauncher
                 return true;
             } else {
                 OpenModalData.openModal("Update", "Unable to switch from branch " + Constants.BRANCH + " via this toggle.", List.of(
-                    new OpenModalData.ModalButton( "Ok", "red", () -> {
-                        Settings.webSocketAPI.sendMessage(new CloseModalData());
-                    })
+                    new OpenModalData.ModalButton( "Ok", "red", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
                 ));
                 return false;
             }
@@ -240,6 +239,37 @@ public class CreeperLauncher
 
         if (startProcess) {
             startElectron();
+        }
+    }
+
+    private static void deleteDirectory(Path directory)
+    {
+
+        if (Files.exists(directory))
+        {
+            try
+            {
+                Files.walkFileTree(directory, new SimpleFileVisitor<>()
+                {
+                    @Override
+                    public FileVisitResult visitFile(Path path, BasicFileAttributes basicFileAttributes) throws IOException
+                    {
+                        Files.delete(path);
+                        return FileVisitResult.CONTINUE;
+                    }
+
+                    @Override
+                    public FileVisitResult postVisitDirectory(Path directory, IOException ioException) throws IOException
+                    {
+                        Files.delete(directory);
+                        return FileVisitResult.CONTINUE;
+                    }
+                });
+            }
+            catch (Exception ignored)
+            {
+
+            }
         }
     }
 
