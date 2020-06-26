@@ -17,6 +17,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -39,7 +40,6 @@ public class CreeperLauncher
     public static boolean defaultWebsocketPort = false;
     public static int websocketPort = WebSocketAPI.generateRandomPort();
     public static final String websocketSecret = WebSocketAPI.generateSecret();
-    public static final String JARNAME = Constants.APPVERSION;
 
     public CreeperLauncher() {}
 
@@ -55,6 +55,7 @@ public class CreeperLauncher
                 json.getParentFile().mkdirs();
                 try {
                     Files.copy(jsonOld.toPath(), json.toPath());
+                    Files.delete(jsonOld.toPath());
                 } catch (Exception e) {
                     // shrug
                 }
@@ -62,11 +63,18 @@ public class CreeperLauncher
             migrate = true;
         }
 
+        Settings.loadSettings();
+
         File oldInstances = new File(Constants.WORKING_DIR, "instances");
 
+        boolean migrateInstances = false;
+
         if (oldInstances.exists()) {
-            File[] files = oldInstances.listFiles();
-            migrate = migrate && files != null && files.length > 0;
+            if (Settings.settings.getOrDefault("instanceLocation", "").isBlank()) {
+                File[] files = oldInstances.listFiles();
+                migrate = migrate && files != null && files.length > 0;
+                migrateInstances = migrate;
+            }
         }
 
         if (migrate)
@@ -79,17 +87,18 @@ public class CreeperLauncher
             move(Path.of(Constants.BIN_LOCATION_OURS, "launcher_settings.json"), Path.of(Constants.LAUNCHER_PROFILES_JSON));
             move(Path.of(Constants.BIN_LOCATION_OURS, "libraries"), Path.of(Constants.LIBRARY_LOCATION));
             move(Path.of(Constants.WORKING_DIR, ".localCache"), Path.of(Constants.CACHE_LOCATION));
-            if (!move(Path.of(Constants.WORKING_DIR, "instances"), Path.of(Constants.INSTANCES_FOLDER_LOC))) {
-                // Failed migration, not sure how to handle this right now
+            if (migrateInstances)
+            {
+                if (!move(Path.of(Constants.WORKING_DIR, "instances"), Path.of(Constants.INSTANCES_FOLDER_LOC))) {
+                    // Failed migration, not sure how to handle this right now
+                }
             }
         }
 
-        Settings.loadSettings();
-
-        String branch = Settings.settings.getOrDefault("channel", "");
+        String branch = Settings.settings.getOrDefault("enablePreview", "");
         String[] updaterArgs = new String[]{};
-        if (!branch.isEmpty())
-            updaterArgs = new String[] {"-VupdatesUrl=https://apps.modpacks.ch/FTBApp/" + branch + ".xml"};
+        if (branch.equals("true"))
+            updaterArgs = new String[] {"-VupdatesUrl=https://apps.modpacks.ch/FTBApp/preview.xml"};
 
         //Auto update - will block, kill us and relaunch if necessary
         try
@@ -104,8 +113,16 @@ public class CreeperLauncher
         {
         }
 
+        Path[] jarPath = new Path[] { null };
+
         try {
-            Files.newDirectoryStream(Paths.get("."), path -> (path.toString().endsWith(".jar") && !path.toString().contains(JARNAME))).forEach(path -> path.toFile().delete());
+            jarPath[0] = Path.of(CreeperLauncher.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getFileName(); // will be launcher.jar
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+        }
+
+        try {
+            Files.newDirectoryStream(Paths.get("."), path -> (path.toString().endsWith(".jar") && !path.equals(jarPath[0]))).forEach(path -> path.toFile().delete());
         } catch (IOException ignored) {}
 
         Instances.refreshInstances();
