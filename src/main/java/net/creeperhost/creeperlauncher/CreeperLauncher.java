@@ -45,10 +45,56 @@ public class CreeperLauncher
 
     public static void main(String[] args)
     {
+        File json = new File(Constants.BIN_LOCATION, "settings.json");
+        boolean migrate = false;
+        if (!json.exists())
+        {
+            File jsonOld = new File(Constants.BIN_LOCATION_OURS, "settings.json");
+
+            if (jsonOld.exists()) {
+                json.getParentFile().mkdirs();
+                try {
+                    Files.copy(jsonOld.toPath(), json.toPath());
+                } catch (Exception e) {
+                    // shrug
+                }
+            }
+            migrate = true;
+        }
+
+        File oldInstances = new File(Constants.WORKING_DIR, "instances");
+
+        if (oldInstances.exists()) {
+            File[] files = oldInstances.listFiles();
+            migrate = migrate && files != null && files.length > 0;
+        }
+
+        if (migrate)
+        {
+            move(Path.of(Constants.BIN_LOCATION_OURS, "launcher." + OSUtils.getExtension()), Path.of(Constants.MINECRAFT_LAUNCHER_LOCATION));
+            move(Path.of(Constants.BIN_LOCATION_OURS, "Minecraft.app"), Path.of(Constants.BIN_LOCATION, "Minecraft.app"));
+            move(Path.of(Constants.BIN_LOCATION_OURS, "minecraft-launcher"), Path.of(Constants.BIN_LOCATION, "minecraft-launcher"));
+            move(Path.of(Constants.BIN_LOCATION_OURS, "versions"), Path.of(Constants.VERSIONS_FOLDER_LOC));
+            move(Path.of(Constants.BIN_LOCATION_OURS, "launcher_profiles.json"), Path.of(Constants.LAUNCHER_PROFILES_JSON));
+            move(Path.of(Constants.BIN_LOCATION_OURS, "launcher_settings.json"), Path.of(Constants.LAUNCHER_PROFILES_JSON));
+            move(Path.of(Constants.BIN_LOCATION_OURS, "libraries"), Path.of(Constants.LIBRARY_LOCATION));
+            move(Path.of(Constants.WORKING_DIR, ".localCache"), Path.of(Constants.CACHE_LOCATION));
+            if (!move(Path.of(Constants.WORKING_DIR, "instances"), Path.of(Constants.INSTANCES_FOLDER_LOC))) {
+                // Failed migration, not sure how to handle this right now
+            }
+        }
+
+        Settings.loadSettings();
+
+        String branch = Settings.settings.getOrDefault("channel", "");
+        String[] updaterArgs = new String[]{};
+        if (!branch.isEmpty())
+            updaterArgs = new String[] {"-VupdatesUrl=https://apps.modpacks.ch/FTBApp/" + branch + ".xml"};
+
         //Auto update - will block, kill us and relaunch if necessary
         try
         {
-            ApplicationLauncher.launchApplicationInProcess("346", null, null, null, null);
+            ApplicationLauncher.launchApplicationInProcess("346", updaterArgs, null, null, null);
 
             if (UpdateChecker.isUpdateScheduled())
             {
@@ -62,24 +108,7 @@ public class CreeperLauncher
             Files.newDirectoryStream(Paths.get("."), path -> (path.toString().endsWith(".jar") && !path.toString().contains(JARNAME))).forEach(path -> path.toFile().delete());
         } catch (IOException ignored) {}
 
-
-        if (!Settings.settings.getOrDefault("migrate", "").isEmpty())
-        {
-            move(Path.of(Constants.BIN_LOCATION_OURS, "launcher." + OSUtils.getExtension()), Path.of(Constants.MINECRAFT_LAUNCHER_LOCATION));
-            move(Path.of(Constants.BIN_LOCATION_OURS, "Minecraft.app"), Path.of(Constants.BIN_LOCATION, "Minecraft.app"));
-            move(Path.of(Constants.BIN_LOCATION_OURS, "minecraft-launcher"), Path.of(Constants.BIN_LOCATION, "minecraft-launcher"));
-            move(Path.of(Constants.BIN_LOCATION_OURS, "versions"), Path.of(Constants.VERSIONS_FOLDER_LOC));
-            move(Path.of(Constants.BIN_LOCATION_OURS, "launcher_profiles.json"), Path.of(Constants.LAUNCHER_PROFILES_JSON));
-            move(Path.of(Constants.BIN_LOCATION_OURS, "launcher_settings.json"), Path.of(Constants.LAUNCHER_PROFILES_JSON));
-            move(Path.of(Constants.BIN_LOCATION_OURS, "libraries"), Path.of(Constants.LIBRARY_LOCATION));
-            move(Path.of(Constants.WORKING_DIR, ".localCache"), Path.of(Constants.CACHE_LOCATION));
-            if (!move(Path.of(Constants.WORKING_DIR, "instances"), Path.of(Constants.INSTANCES_FOLDER_LOC))) {
-                // Failed migration, not sure how to handle this right now
-            }
-            Instances.refreshInstances();
-        }
-
-        Settings.loadSettings();
+        Instances.refreshInstances();
 
         SettingsChangeUtil.registerListener("instanceLocation", (key, value) -> {
             OpenModalData.openModal("Confirmation", "Are you sure you wish to move your instances to this location?", List.of(
