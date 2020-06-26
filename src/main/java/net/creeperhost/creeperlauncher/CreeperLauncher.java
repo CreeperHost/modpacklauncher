@@ -150,7 +150,7 @@ public class CreeperLauncher
                             ));
                         }
                     }),
-                    new OpenModalData.ModalButton("No", "red", () -> {})
+                    new OpenModalData.ModalButton("No", "red", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
             ));
             return false;
         });
