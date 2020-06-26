@@ -237,9 +237,9 @@ public class CreeperLauncher
         String branch = Settings.settings.getOrDefault("enablePreview", "");
         String[] updaterArgs = new String[]{};
         if (branch.equals("true"))
-            updaterArgs = new String[] {"-VupdatesUrl=https://apps.modpacks.ch/FTBApp/preview.xml"};
+            updaterArgs = new String[] {"-VupdatesUrl=https://apps.modpacks.ch/FTBApp/preview.xml", "-VforceUpdate=true"};
         else
-            updaterArgs = new String[] {"-VupdatesUrl=https://apps.modpacks.ch/FTBApp/release.xml"};
+            updaterArgs = new String[] {"-VupdatesUrl=https://apps.modpacks.ch/FTBApp/release.xml", "-VforceUpdate=true"};
 
         //Auto update - will block, kill us and relaunch if necessary
         try
