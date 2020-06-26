@@ -154,7 +154,7 @@ public class CreeperLauncher
 
 
         SettingsChangeUtil.registerListener("enablePreview", (key, value) -> {
-            if (Constants.BRANCH.equals("release") || Constants.BRANCH.equals("preview") || Constants.BRANCH.equals("develop"))
+            if (Constants.BRANCH.equals("release") || Constants.BRANCH.equals("preview"))
             {
                 OpenModalData.openModal("Update", "Do you wish to change to this branch now?", List.of(
                     new OpenModalData.ModalButton( "Yes", "green", () -> {
