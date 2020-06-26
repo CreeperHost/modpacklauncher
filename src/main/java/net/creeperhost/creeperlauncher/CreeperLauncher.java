@@ -40,6 +40,8 @@ public class CreeperLauncher
     public static int websocketPort = WebSocketAPI.generateRandomPort();
     public static final String websocketSecret = WebSocketAPI.generateSecret();
 
+    private static boolean warnedDevelop = false;
+
     public CreeperLauncher() {}
 
     public static void main(String[] args)
@@ -167,9 +169,13 @@ public class CreeperLauncher
                 ));
                 return true;
             } else {
-                OpenModalData.openModal("Update", "Unable to switch from branch " + Constants.BRANCH + " via this toggle.", List.of(
-                    new OpenModalData.ModalButton( "Ok", "red", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
-                ));
+                if (!warnedDevelop)
+                {
+                    warnedDevelop = true;
+                    OpenModalData.openModal("Update", "Unable to switch from branch " + Constants.BRANCH + " via this toggle.", List.of(
+                            new OpenModalData.ModalButton("Ok", "red", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
+                    ));
+                }
                 return false;
             }
         });
@@ -279,7 +285,7 @@ public class CreeperLauncher
         if (Constants.BRANCH.equals("release") && preview.equals("true"))
         {
             updaterArgs = new String[] {"-VupdatesUrl=https://apps.modpacks.ch/FTBApp/preview.xml", "-VforceUpdate=true"};
-        } else if (Constants.BRANCH.equals("preview") && !preview.equals("true")) {
+        } else if (Constants.BRANCH.equals("preview") && !preview.isEmpty() && !preview.equals("true")) {
             updaterArgs = new String[] {"-VupdatesUrl=https://apps.modpacks.ch/FTBApp/release.xml", "-VforceUpdate=true"};
         }
         //Auto update - will block, kill us and relaunch if necessary
