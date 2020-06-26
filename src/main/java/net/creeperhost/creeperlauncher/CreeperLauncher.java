@@ -45,25 +45,31 @@ public class CreeperLauncher
 
     public static void main(String[] args)
     {
-        //Auto update - will block, kill us and relaunch if necessary
-        try
+        File json = new File(Constants.BIN_LOCATION, "settings.json");
+        boolean migrate = false;
+        if (!json.exists())
         {
-            ApplicationLauncher.launchApplicationInProcess("346", null, null, null, null);
+            File jsonOld = new File(Constants.BIN_LOCATION_OURS, "settings.json");
 
-            if (UpdateChecker.isUpdateScheduled())
-            {
-                UpdateChecker.executeScheduledUpdate(Arrays.asList("-q", "-splash", "\"Updating...\""), true, Arrays.asList(args), null);
+            if (jsonOld.exists()) {
+                json.getParentFile().mkdirs();
+                try {
+                    Files.copy(jsonOld.toPath(), json.toPath());
+                } catch (Exception e) {
+                    // shrug
+                }
             }
-        } catch (Throwable ignored)
-        {
+            migrate = true;
         }
 
-        try {
-            Files.newDirectoryStream(Paths.get("."), path -> (path.toString().endsWith(".jar") && !path.toString().contains(JARNAME))).forEach(path -> path.toFile().delete());
-        } catch (IOException ignored) {}
+        File oldInstances = new File(Constants.WORKING_DIR, "instances");
 
+        if (oldInstances.exists()) {
+            File[] files = oldInstances.listFiles();
+            migrate = migrate && files != null && files.length > 0;
+        }
 
-        if (!Settings.settings.getOrDefault("migrate", "").isEmpty())
+        if (migrate)
         {
             move(Path.of(Constants.BIN_LOCATION_OURS, "launcher." + OSUtils.getExtension()), Path.of(Constants.MINECRAFT_LAUNCHER_LOCATION));
             move(Path.of(Constants.BIN_LOCATION_OURS, "Minecraft.app"), Path.of(Constants.BIN_LOCATION, "Minecraft.app"));
@@ -80,6 +86,29 @@ public class CreeperLauncher
         }
 
         Settings.loadSettings();
+
+        String branch = Settings.settings.getOrDefault("channel", "");
+        String[] updaterArgs = new String[]{};
+        if (!branch.isEmpty())
+            updaterArgs = new String[] {"-VupdatesUrl=https://apps.modpacks.ch/FTBApp/" + branch + ".xml"};
+
+        //Auto update - will block, kill us and relaunch if necessary
+        try
+        {
+            ApplicationLauncher.launchApplicationInProcess("346", updaterArgs, null, null, null);
+
+            if (UpdateChecker.isUpdateScheduled())
+            {
+                UpdateChecker.executeScheduledUpdate(Arrays.asList("-q", "-splash", "\"Updating...\""), true, Arrays.asList(args), null);
+            }
+        } catch (Throwable ignored)
+        {
+        }
+
+        try {
+            Files.newDirectoryStream(Paths.get("."), path -> (path.toString().endsWith(".jar") && !path.toString().contains(JARNAME))).forEach(path -> path.toFile().delete());
+        } catch (IOException ignored) {}
+
 
         SettingsChangeUtil.registerListener("instanceLocation", (key, value) -> {
             OpenModalData.openModal("Confirmation", "Are you sure you wish to move your instances to this location?", List.of(

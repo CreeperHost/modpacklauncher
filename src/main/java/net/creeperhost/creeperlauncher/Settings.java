@@ -25,7 +25,6 @@ public class Settings
             BufferedWriter fileWriter = new BufferedWriter(new FileWriter(json.getAbsolutePath()));
             fileWriter.write(jsonSettings);
             fileWriter.close();
-            if (migrate) Settings.settings.put("migrate", "yes");
         } catch (Exception ignored) {}
     }
 
@@ -34,16 +33,6 @@ public class Settings
         try
         {
             File json = new File(Constants.BIN_LOCATION, "settings.json");
-            boolean old = false;
-            if (!json.exists() || new File(Constants.WORKING_DIR, "instances").exists())
-            {
-                File jsonOld = new File(Constants.BIN_LOCATION_OURS, "settings.json");
-                old = jsonOld.exists();
-                if (old) {
-                    json.getParentFile().mkdirs();
-                    Files.copy(jsonOld.toPath(), json.toPath());
-                }
-            }
 
             if (json.exists()) {
                 Gson gson = new Gson();
