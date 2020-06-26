@@ -19,8 +19,6 @@ public class Settings
         try
         {
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
-            boolean migrate = !Settings.settings.getOrDefault("migrate", "no").equals("no");
-            Settings.settings.remove("migrate");
             String jsonSettings = gson.toJson(Settings.settings);
             File json = new File(Constants.BIN_LOCATION, "settings.json");
             if (!json.exists()) json.createNewFile();
@@ -31,7 +29,7 @@ public class Settings
         } catch (Exception ignored) {}
     }
 
-    public static void loadSettings()
+    public static void  loadSettings()
     {
         try
         {
@@ -54,10 +52,6 @@ public class Settings
                 if (Settings.settings.getClass() != HashMap.class)
                 {
                     Settings.settings = new HashMap<>();
-                }
-                if (old)
-                {
-                    Settings.settings.put("migrate", "yes");
                 }
             } else {
                 Settings.settings = new HashMap<>();

@@ -3,7 +3,6 @@ package net.creeperhost.creeperlauncher;
 import com.install4j.api.launcher.ApplicationLauncher;
 import com.install4j.api.update.UpdateChecker;
 import net.creeperhost.creeperlauncher.api.WebSocketAPI;
-import net.creeperhost.creeperlauncher.api.WebSocketMessengerHandler;
 import net.creeperhost.creeperlauncher.api.data.CloseModalData;
 import net.creeperhost.creeperlauncher.api.data.OpenModalData;
 import net.creeperhost.creeperlauncher.install.tasks.FTBModPackInstallerTask;
@@ -21,7 +20,6 @@ import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -40,7 +38,8 @@ public class CreeperLauncher
     public static LocalCache localCache = null;
     public static boolean defaultWebsocketPort = false;
     public static int websocketPort = WebSocketAPI.generateRandomPort();
-    public static String websocketSecret = WebSocketAPI.generateSecret();
+    public static final String websocketSecret = WebSocketAPI.generateSecret();
+    public static final String JARNAME = "launcher.jar";
 
     public CreeperLauncher() {}
 
@@ -60,15 +59,9 @@ public class CreeperLauncher
         }
 
         try {
-            Files.newDirectoryStream(Paths.get("."), path -> (path.toString().endsWith(".jar") && !path.toString().contains(Constants.APPVERSION))).forEach(path -> path.toFile().delete());
+            Files.newDirectoryStream(Paths.get("."), path -> (path.toString().endsWith(".jar") && !path.toString().contains(JARNAME))).forEach(path -> path.toFile().delete());
         } catch (IOException ignored) {}
 
-        Instances.refreshInstances();
-        CompletableFuture.runAsync(() ->
-        {
-            localCache.clean();
-        });
-        Settings.loadSettings();
 
         if (!Settings.settings.getOrDefault("migrate", "").isEmpty())
         {
@@ -85,6 +78,8 @@ public class CreeperLauncher
             }
             Instances.refreshInstances();
         }
+
+        Settings.loadSettings();
 
         SettingsChangeUtil.registerListener("instanceLocation", (key, value) -> {
             OpenModalData.openModal("Confirmation", "Are you sure you wish to move your instances to this location?", List.of(
@@ -127,7 +122,14 @@ public class CreeperLauncher
             return false;
         });
 
+        Instances.refreshInstances();
+
         localCache = new LocalCache(); // moved to here so that it doesn't exist prior to migrating
+
+        CompletableFuture.runAsync(() ->
+        {
+            localCache.clean();
+        });
 
         boolean startProcess = true;
 
@@ -191,6 +193,19 @@ public class CreeperLauncher
     private static boolean move(Path in, Path out)
     {
         try {
+            File outFile = out.toFile();
+            if (outFile.exists() && outFile.isDirectory())
+            {
+                File[] files = outFile.listFiles();
+                if (files != null) {
+                    for (File file : files) {
+                        Path path = file.toPath();
+                        Path destPath = out.resolve(file.getName());
+                        Files.move(path, destPath);
+                    }
+                }
+                return true;
+            }
             Files.move(in, out);
             return true;
         } catch (Exception e) {
