@@ -45,4 +45,5 @@ public class Constants
     //Other
     public static final int WEBSOCKET_PORT = 13377;
     public static final String APPVERSION = "@APPVERSION@";
+    public static final String BRANCH = "@BRANCH@";
 }

@@ -154,15 +154,25 @@ public class CreeperLauncher
 
 
         SettingsChangeUtil.registerListener("enablePreview", (key, value) -> {
-            OpenModalData.openModal("Update", "Do you wish to change to this branch now?", List.of(
+            if (Constants.BRANCH.equals("release") || Constants.BRANCH.equals("preview"))
+            {
+                OpenModalData.openModal("Update", "Do you wish to change to this branch now?", List.of(
                     new OpenModalData.ModalButton( "Yes", "green", () -> {
                         doUpdate(args);
                     }),
                     new OpenModalData.ModalButton( "No", "red", () -> {
                         Settings.webSocketAPI.sendMessage(new CloseModalData());
                     })
-            ));
-            return true;
+                ));
+                return true;
+            } else {
+                OpenModalData.openModal("Update", "Unable to switch from branch " + Constants.BRANCH + " via this toggle.", List.of(
+                    new OpenModalData.ModalButton( "Ok", "red", () -> {
+                        Settings.webSocketAPI.sendMessage(new CloseModalData());
+                    })
+                ));
+                return false;
+            }
         });
 
         Instances.refreshInstances();
@@ -234,13 +244,14 @@ public class CreeperLauncher
     }
 
     private static void doUpdate(String[] args) {
-        String branch = Settings.settings.getOrDefault("enablePreview", "");
+        String preview = Settings.settings.getOrDefault("enablePreview", "");
         String[] updaterArgs = new String[]{};
-        if (branch.equals("true"))
-            updaterArgs = new String[] {"-VupdatesUrl=https://apps.modpacks.ch/FTBApp/preview.xml"};
-        else
-            updaterArgs = new String[] {"-VupdatesUrl=https://apps.modpacks.ch/FTBApp/release.xml"};
-
+        if (Constants.BRANCH.equals("release") && preview.equals("true"))
+        {
+            updaterArgs = new String[] {"-VupdatesUrl=https://apps.modpacks.ch/FTBApp/preview.xml", "-VforceUpdate=true"};
+        } else if (Constants.BRANCH.equals("preview") && !preview.equals("true")) {
+            updaterArgs = new String[] {"-VupdatesUrl=https://apps.modpacks.ch/FTBApp/release.xml", "-VforceUpdate=true"};
+        }
         //Auto update - will block, kill us and relaunch if necessary
         try
         {
