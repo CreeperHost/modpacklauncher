@@ -326,8 +326,6 @@ project(":web").tasks.getByName("npm_run-script_license").dependsOn project(":we
 project(":web").npm_run_buildall.dependsOn writeVersion
 project(":web").npm_run_build.dependsOn writeVersion
 
-project(":web").npmInstall.dependsOn submodulesUpdate
-
 import org.apache.tools.ant.filters.ReplaceTokens
 
 task processSource(type: Sync) {
