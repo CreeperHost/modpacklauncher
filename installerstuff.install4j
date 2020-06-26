@@ -45,7 +45,7 @@
     <entries>
       <fileEntry mountPoint="73" file="./build/libs/launcher-${compiler:sys.version}-all.jar" />
       <dirEntry mountPoint="74" file="./web/release/win-unpacked" entryMode="subdir" subDirectory="bin" />
-      <dirEntry mountPoint="224" file="../java-frontend/web/release/mac" subDirectory="mac" />
+      <dirEntry mountPoint="224" file="./web/release/mac" subDirectory="mac" />
       <dirEntry mountPoint="225" file="./web/release/linux-unpacked" entryMode="subdir" subDirectory="bin" />
     </entries>
     <components>
