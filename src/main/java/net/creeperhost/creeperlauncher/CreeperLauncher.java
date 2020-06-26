@@ -18,9 +18,8 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -40,6 +39,8 @@ public class CreeperLauncher
     public static boolean defaultWebsocketPort = false;
     public static int websocketPort = WebSocketAPI.generateRandomPort();
     public static final String websocketSecret = WebSocketAPI.generateSecret();
+
+    private static boolean warnedDevelop = false;
 
     public CreeperLauncher() {}
 
@@ -77,6 +78,9 @@ public class CreeperLauncher
             }
         }
 
+        deleteDirectory(Path.of(Constants.WORKING_DIR, ".localCache"));
+        deleteDirectory(Path.of(Constants.OLD_CACHE_LOCATION));
+
         if (migrate)
         {
             move(Path.of(Constants.BIN_LOCATION_OURS, "launcher." + OSUtils.getExtension()), Path.of(Constants.MINECRAFT_LAUNCHER_LOCATION));
@@ -86,7 +90,6 @@ public class CreeperLauncher
             move(Path.of(Constants.BIN_LOCATION_OURS, "launcher_profiles.json"), Path.of(Constants.LAUNCHER_PROFILES_JSON));
             move(Path.of(Constants.BIN_LOCATION_OURS, "launcher_settings.json"), Path.of(Constants.LAUNCHER_PROFILES_JSON));
             move(Path.of(Constants.BIN_LOCATION_OURS, "libraries"), Path.of(Constants.LIBRARY_LOCATION));
-            move(Path.of(Constants.WORKING_DIR, ".localCache"), Path.of(Constants.CACHE_LOCATION));
             if (migrateInstances)
             {
                 if (!move(Path.of(Constants.WORKING_DIR, "instances"), Path.of(Constants.INSTANCES_FOLDER_LOC))) {
@@ -154,15 +157,27 @@ public class CreeperLauncher
 
 
         SettingsChangeUtil.registerListener("enablePreview", (key, value) -> {
-            OpenModalData.openModal("Update", "Do you wish to change to this branch now?", List.of(
+            if (Constants.BRANCH.equals("release") || Constants.BRANCH.equals("preview"))
+            {
+                OpenModalData.openModal("Update", "Do you wish to change to this branch now?", List.of(
                     new OpenModalData.ModalButton( "Yes", "green", () -> {
                         doUpdate(args);
                     }),
                     new OpenModalData.ModalButton( "No", "red", () -> {
                         Settings.webSocketAPI.sendMessage(new CloseModalData());
                     })
-            ));
-            return true;
+                ));
+                return true;
+            } else {
+                if (!warnedDevelop)
+                {
+                    warnedDevelop = true;
+                    OpenModalData.openModal("Update", "Unable to switch from branch " + Constants.BRANCH + " via this toggle.", List.of(
+                            new OpenModalData.ModalButton("Ok", "red", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
+                    ));
+                }
+                return false;
+            }
         });
 
         Instances.refreshInstances();
@@ -233,14 +248,46 @@ public class CreeperLauncher
         }
     }
 
-    private static void doUpdate(String[] args) {
-        String branch = Settings.settings.getOrDefault("enablePreview", "");
-        String[] updaterArgs = new String[]{};
-        if (branch.equals("true"))
-            updaterArgs = new String[] {"-VupdatesUrl=https://apps.modpacks.ch/FTBApp/preview.xml"};
-        else
-            updaterArgs = new String[] {"-VupdatesUrl=https://apps.modpacks.ch/FTBApp/release.xml"};
+    private static void deleteDirectory(Path directory)
+    {
 
+        if (Files.exists(directory))
+        {
+            try
+            {
+                Files.walkFileTree(directory, new SimpleFileVisitor<>()
+                {
+                    @Override
+                    public FileVisitResult visitFile(Path path, BasicFileAttributes basicFileAttributes) throws IOException
+                    {
+                        Files.delete(path);
+                        return FileVisitResult.CONTINUE;
+                    }
+
+                    @Override
+                    public FileVisitResult postVisitDirectory(Path directory, IOException ioException) throws IOException
+                    {
+                        Files.delete(directory);
+                        return FileVisitResult.CONTINUE;
+                    }
+                });
+            }
+            catch (Exception ignored)
+            {
+
+            }
+        }
+    }
+
+    private static void doUpdate(String[] args) {
+        String preview = Settings.settings.getOrDefault("enablePreview", "");
+        String[] updaterArgs = new String[]{};
+        if (Constants.BRANCH.equals("release") && preview.equals("true"))
+        {
+            updaterArgs = new String[] {"-VupdatesUrl=https://apps.modpacks.ch/FTBApp/preview.xml", "-VforceUpdate=true"};
+        } else if (Constants.BRANCH.equals("preview") && !preview.isEmpty() && !preview.equals("true")) {
+            updaterArgs = new String[] {"-VupdatesUrl=https://apps.modpacks.ch/FTBApp/release.xml", "-VforceUpdate=true"};
+        }
         //Auto update - will block, kill us and relaunch if necessary
         try
         {
