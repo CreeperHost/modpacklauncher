@@ -8,6 +8,7 @@ import net.creeperhost.creeperlauncher.util.MiscUtils;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
@@ -17,10 +18,11 @@ import java.util.UUID;
 public class LocalCache
 {
     private List<UUID> files = new ArrayList<UUID>();
+    private Path cacheLocation = Path.of(Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC), ".localCache");
 
     public LocalCache()
     {
-        File cache = new File(Constants.CACHE_LOCATION);
+        File cache = cacheLocation.toFile();
         if (!cache.exists()) cache.mkdirs();
         File[] cached = cache.listFiles();
         if (cached != null)
@@ -50,7 +52,7 @@ public class LocalCache
 
     public File get(String sha1Hash)
     {
-        return new File(Constants.CACHE_LOCATION + File.separator + UUID.nameUUIDFromBytes(sha1Hash.getBytes()).toString());
+        return new File(cacheLocation.toFile(), UUID.nameUUIDFromBytes(sha1Hash.getBytes()).toString());
     }
 
     public boolean put(File f, String sha1Hash)
@@ -74,10 +76,10 @@ public class LocalCache
 
     public void clean()
     {
-        File file = new File(Constants.CACHE_LOCATION);
+        File file = cacheLocation.toFile();
         File[] cached = file.listFiles();
         Long cacheLife = Long.valueOf(Settings.settings.getOrDefault("cacheLife", "5184000"));
-        if (cacheLife < 0) cacheLife = 900l;
+        if (cacheLife < 0) cacheLife = 900L;
         if (cached != null)
         {
             for (File f : cached)

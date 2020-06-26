@@ -40,7 +40,7 @@ public class Constants
     public static final String INSTANCES_FOLDER_LOC = DATA_DIR + File.separator + "instances";
     public static final String LAUNCHER_PROFILES_JSON = DATA_DIR + File.separator + "bin" + File.separator + "launcher_profiles.json";
     public static final String LIBRARY_LOCATION = DATA_DIR + File.separator + "bin" + File.separator + "libraries";
-    public static final String CACHE_LOCATION = DATA_DIR + File.separator + ".localCache";
+    public static final String OLD_CACHE_LOCATION = DATA_DIR + File.separator + ".localCache";
 
     //Other
     public static final int WEBSOCKET_PORT = 13377;
