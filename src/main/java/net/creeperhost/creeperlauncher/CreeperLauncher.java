@@ -113,41 +113,41 @@ public class CreeperLauncher
 
         SettingsChangeUtil.registerListener("instanceLocation", (key, value) -> {
             OpenModalData.openModal("Confirmation", "Are you sure you wish to move your instances to this location?", List.of(
-                new OpenModalData.ModalButton( "Yes", "green", () -> {
-                    Path currentInstanceLoc = Path.of(Settings.settings.getOrDefault(key, Constants.INSTANCES_FOLDER_LOC));
-                    File currentInstanceDir = currentInstanceLoc.toFile();
-                    File[] subFiles = currentInstanceDir.listFiles();
-                    Path newInstanceDir = Path.of(value);
-                    boolean failed = false;
-                    if (subFiles != null) {
-                        for (File file : subFiles) {
-                            if (!move(Path.of(file.getAbsolutePath()), Path.of(value, file.getName()))) {
-                                failed = true;
-                                break;
+                    new OpenModalData.ModalButton( "Yes", "green", () -> {
+                        Path currentInstanceLoc = Path.of(Settings.settings.getOrDefault(key, Constants.INSTANCES_FOLDER_LOC));
+                        File currentInstanceDir = currentInstanceLoc.toFile();
+                        File[] subFiles = currentInstanceDir.listFiles();
+                        Path newInstanceDir = Path.of(value);
+                        boolean failed = false;
+                        if (subFiles != null) {
+                            for (File file : subFiles) {
+                                if (!move(Path.of(file.getAbsolutePath()), Path.of(value, file.getName()))) {
+                                    failed = true;
+                                    break;
+                                }
                             }
                         }
-                    }
-                    if (failed) {
-                        File[] newInstanceDirFiles = newInstanceDir.toFile().listFiles();
-                        if (newInstanceDirFiles != null) {
-                            for (File file : newInstanceDirFiles) {
-                                move(Path.of(file.getAbsolutePath()), currentInstanceLoc.resolve(file.getName()));
+                        if (failed) {
+                            File[] newInstanceDirFiles = newInstanceDir.toFile().listFiles();
+                            if (newInstanceDirFiles != null) {
+                                for (File file : newInstanceDirFiles) {
+                                    move(Path.of(file.getAbsolutePath()), currentInstanceLoc.resolve(file.getName()));
+                                }
                             }
+                            OpenModalData.openModal("Error", "Unable to move instances. Please ensure you have permission to create files and folders in this location.", List.of(
+                                    new OpenModalData.ModalButton("Ok", "red", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
+                            ));
+                        } else {
+                            Settings.settings.remove("instanceLocation");
+                            Settings.settings.put("instanceLocation", value);
+                            Settings.saveSettings();
+                            Instances.refreshInstances();
+                            OpenModalData.openModal("Success", "Moved instance folder successfully", List.of(
+                                    new OpenModalData.ModalButton( "Yay!", "green", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
+                            ));
                         }
-                        OpenModalData.openModal("Error", "Unable to move instances. Please ensure you have permission to create files and folders in this location.", List.of(
-                            new OpenModalData.ModalButton("Ok", "red", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
-                        ));
-                    } else {
-                        Settings.settings.remove("instanceLocation");
-                        Settings.settings.put("instanceLocation", value);
-                        Settings.saveSettings();
-                        Instances.refreshInstances();
-                        OpenModalData.openModal("Success", "Moved instance folder successfully", List.of(
-                            new OpenModalData.ModalButton( "Yay!", "green", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
-                        ));
-                    }
-                }),
-                new OpenModalData.ModalButton("No", "red", () -> {})
+                    }),
+                    new OpenModalData.ModalButton("No", "red", () -> {})
             ));
             return false;
         });
@@ -238,6 +238,8 @@ public class CreeperLauncher
         String[] updaterArgs = new String[]{};
         if (branch.equals("true"))
             updaterArgs = new String[] {"-VupdatesUrl=https://apps.modpacks.ch/FTBApp/preview.xml"};
+        else
+            updaterArgs = new String[] {"-VupdatesUrl=https://apps.modpacks.ch/FTBApp/release.xml"};
 
         //Auto update - will block, kill us and relaunch if necessary
         try
