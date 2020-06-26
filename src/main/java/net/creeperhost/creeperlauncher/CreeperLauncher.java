@@ -82,7 +82,6 @@ public class CreeperLauncher
             if (!move(Path.of(Constants.WORKING_DIR, "instances"), Path.of(Constants.INSTANCES_FOLDER_LOC))) {
                 // Failed migration, not sure how to handle this right now
             }
-            Instances.refreshInstances();
         }
 
         Settings.loadSettings();
@@ -109,6 +108,7 @@ public class CreeperLauncher
             Files.newDirectoryStream(Paths.get("."), path -> (path.toString().endsWith(".jar") && !path.toString().contains(JARNAME))).forEach(path -> path.toFile().delete());
         } catch (IOException ignored) {}
 
+        Instances.refreshInstances();
 
         SettingsChangeUtil.registerListener("instanceLocation", (key, value) -> {
             OpenModalData.openModal("Confirmation", "Are you sure you wish to move your instances to this location?", List.of(
