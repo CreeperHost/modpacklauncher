@@ -332,7 +332,7 @@ import org.apache.tools.ant.filters.ReplaceTokens
 task processSource(type: Sync) {
     from sourceSets.main.java
     inputs.property 'version', version
-    filter(ReplaceTokens, tokens: [APPVERSION: version, WEBVERSION: getCheckedOutGitCommitHash("web")])
+    filter(ReplaceTokens, tokens: [APPVERSION: version, WEBVERSION: getCheckedOutGitCommitHash("web"), BRANCH: branch])
     into "$buildDir/src"
 }
 
