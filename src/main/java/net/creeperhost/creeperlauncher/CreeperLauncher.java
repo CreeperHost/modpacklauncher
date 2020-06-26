@@ -39,7 +39,7 @@ public class CreeperLauncher
     public static boolean defaultWebsocketPort = false;
     public static int websocketPort = WebSocketAPI.generateRandomPort();
     public static final String websocketSecret = WebSocketAPI.generateSecret();
-    public static final String JARNAME = "launcher.jar";
+    public static final String JARNAME = Constants.APPVERSION;
 
     public CreeperLauncher() {}
 
