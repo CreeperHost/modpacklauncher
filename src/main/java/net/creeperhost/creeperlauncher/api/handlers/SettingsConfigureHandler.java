@@ -11,24 +11,27 @@ public class SettingsConfigureHandler implements IMessageHandler<SettingsConfigu
     @Override
     public void handle(SettingsConfigureData data)
     {
+        boolean anyChanged = false;
         for (Map.Entry<String, String> setting : data.settingsInfo.entrySet())
         {
             try {
                 boolean changed = false;
-                if (Settings.settings.containsKey(setting.getKey()) && !Settings.settings.get(setting.getKey()).equals(setting.getValue()))
+                if (!Settings.settings.containsKey(setting.getKey()) || !Settings.settings.get(setting.getKey()).equals(setting.getValue()))
                     changed = true;
                 if (changed) {
                     if (SettingsChangeUtil.settingsChanged(setting.getKey(), setting.getValue())) {
                         Settings.settings.remove(setting.getKey());
                         Settings.settings.put(setting.getKey(), setting.getValue());
+                        anyChanged = true;
                     }
                 }
-
-
             } catch (Exception e) {
             }
         }
-        Settings.saveSettings();
+        if (anyChanged)
+        {
+            Settings.saveSettings();
+        }
         Settings.webSocketAPI.sendMessage(new SettingsConfigureData.Reply(data, "success"));
     }
 }
