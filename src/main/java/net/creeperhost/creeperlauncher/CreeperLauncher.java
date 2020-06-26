@@ -95,23 +95,7 @@ public class CreeperLauncher
             }
         }
 
-        String branch = Settings.settings.getOrDefault("enablePreview", "");
-        String[] updaterArgs = new String[]{};
-        if (branch.equals("true"))
-            updaterArgs = new String[] {"-VupdatesUrl=https://apps.modpacks.ch/FTBApp/preview.xml"};
-
-        //Auto update - will block, kill us and relaunch if necessary
-        try
-        {
-            ApplicationLauncher.launchApplicationInProcess("346", updaterArgs, null, null, null);
-
-            if (UpdateChecker.isUpdateScheduled())
-            {
-                UpdateChecker.executeScheduledUpdate(Arrays.asList("-q", "-splash", "\"Updating...\""), true, Arrays.asList(args), null);
-            }
-        } catch (Throwable ignored)
-        {
-        }
+        doUpdate(args);
 
         Path[] jarPath = new Path[] { null };
 
@@ -166,6 +150,19 @@ public class CreeperLauncher
                 new OpenModalData.ModalButton("No", "red", () -> {})
             ));
             return false;
+        });
+
+
+        SettingsChangeUtil.registerListener("enablePreview", (key, value) -> {
+            OpenModalData.openModal("Update", "Do you wish to change to this branch now?", List.of(
+                    new OpenModalData.ModalButton( "Yes", "green", () -> {
+                        doUpdate(args);
+                    }),
+                    new OpenModalData.ModalButton( "No", "red", () -> {
+                        Settings.webSocketAPI.sendMessage(new CloseModalData());
+                    })
+            ));
+            return true;
         });
 
         Instances.refreshInstances();
@@ -233,6 +230,26 @@ public class CreeperLauncher
 
         if (startProcess) {
             startElectron();
+        }
+    }
+
+    private static void doUpdate(String[] args) {
+        String branch = Settings.settings.getOrDefault("enablePreview", "");
+        String[] updaterArgs = new String[]{};
+        if (branch.equals("true"))
+            updaterArgs = new String[] {"-VupdatesUrl=https://apps.modpacks.ch/FTBApp/preview.xml"};
+
+        //Auto update - will block, kill us and relaunch if necessary
+        try
+        {
+            ApplicationLauncher.launchApplicationInProcess("346", updaterArgs, null, null, null);
+
+            if (UpdateChecker.isUpdateScheduled())
+            {
+                UpdateChecker.executeScheduledUpdate(Arrays.asList("-q", "-splash", "\"Updating...\""), true, Arrays.asList(args), null);
+            }
+        } catch (Throwable ignored)
+        {
         }
     }
 
