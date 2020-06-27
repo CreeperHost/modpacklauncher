@@ -100,16 +100,8 @@ public class CreeperLauncher
 
         doUpdate(args);
 
-        Path[] jarPath = new Path[] { null };
-
         try {
-            jarPath[0] = Path.of(CreeperLauncher.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getFileName(); // will be launcher.jar
-        } catch (URISyntaxException e) {
-            e.printStackTrace();
-        }
-
-        try {
-            Files.newDirectoryStream(Paths.get("."), path -> (path.toString().endsWith(".jar") && !path.equals(jarPath[0]))).forEach(path -> path.toFile().delete());
+            Files.newDirectoryStream(Paths.get("."), path -> (path.toString().endsWith(".jar") && !path.toString().contains(Constants.APPVERSION))).forEach(path -> path.toFile().delete());
         } catch (IOException ignored) {}
 
         Instances.refreshInstances();

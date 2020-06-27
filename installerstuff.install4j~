@@ -45,7 +45,7 @@
     <entries>
       <fileEntry mountPoint="73" file="./build/libs/launcher-${compiler:sys.version}-all.jar" />
       <dirEntry mountPoint="74" file="./web/release/win-unpacked" entryMode="subdir" subDirectory="bin" />
-      <dirEntry mountPoint="224" file="./web/release/mac" entryMode="subdir" subDirectory="bin" />
+      <dirEntry mountPoint="224" file="./web/release/mac" subDirectory="mac" />
       <dirEntry mountPoint="225" file="./web/release/linux-unpacked" entryMode="subdir" subDirectory="bin" />
     </entries>
     <components>
@@ -154,8 +154,7 @@ if (entry == null) {
                     <serializedBean>
                       <property name="script">
                         <object class="com.install4j.api.beans.ScriptProperty">
-                          <property name="value" type="string">((UpdateDescriptorEntry)context.getVariable("updateDescriptorEntry")).getURL().toExternalForm()</property>
-                        </object>
+                          <property name="value" type="string">((UpdateDescriptorEntry)context.getVariable("updateDescriptorEntry")).getURL().toExternalForm()</property>                        </object>
                       </property>
                       <property name="variableName" type="string">updaterDownloadUrl</property>
                     </serializedBean>
@@ -321,8 +320,7 @@ return console.askOkCancel(message, true);
                 </serializedBean>
                 <condition>!context.getBooleanVariable("sys.programGroupDisabled")</condition>
               </action>
-              <action id="19" beanClass="com.install4j.runtime.beans.actions.desktop.RegisterAddRemoveAction" actionElevationType="elevated" rollbackBarrierExitCode="0">
-                <serializedBean>
+              <action id="19" beanClass="com.install4j.runtime.beans.actions.desktop.RegisterAddRemoveAction" actionElevationType="elevated" rollbackBarrierExitCode="0">                <serializedBean>
                   <property name="itemName" type="string">${compiler:sys.fullName} ${compiler:sys.version}</property>
                 </serializedBean>
               </action>
@@ -557,8 +555,7 @@ if (entry == null) {
                     <serializedBean>
                       <property name="script">
                         <object class="com.install4j.api.beans.ScriptProperty">
-                          <property name="value" type="string">((UpdateDescriptorEntry)context.getVariable("updateDescriptorEntry")).getURL().toExternalForm()</property>
-                        </object>
+                          <property name="value" type="string">((UpdateDescriptorEntry)context.getVariable("updateDescriptorEntry")).getURL().toExternalForm()</property>                        </object>
                       </property>
                       <property name="variableName" type="string">updaterDownloadUrl</property>
                     </serializedBean>
