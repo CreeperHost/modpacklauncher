@@ -60,8 +60,8 @@ public class CreeperLauncher
                 } catch (Exception e) {
                     // shrug
                 }
+                migrate = true;
             }
-            migrate = true;
         }
 
         Settings.loadSettings();
@@ -153,12 +153,12 @@ public class CreeperLauncher
             if (Constants.BRANCH.equals("release") || Constants.BRANCH.equals("preview"))
             {
                 OpenModalData.openModal("Update", "Do you wish to change to this branch now?", List.of(
-                    new OpenModalData.ModalButton( "Yes", "green", () -> {
-                        doUpdate(args);
-                    }),
-                    new OpenModalData.ModalButton( "No", "red", () -> {
-                        Settings.webSocketAPI.sendMessage(new CloseModalData());
-                    })
+                        new OpenModalData.ModalButton( "Yes", "green", () -> {
+                            doUpdate(args);
+                        }),
+                        new OpenModalData.ModalButton( "No", "red", () -> {
+                            Settings.webSocketAPI.sendMessage(new CloseModalData());
+                        })
                 ));
                 return true;
             } else {
@@ -315,7 +315,7 @@ public class CreeperLauncher
             return true;
         } catch (Exception e) {
             System.out.println("Unable to move " + in);
-            e.printStackTrace();
+            //e.printStackTrace();
             return false;
         }
     }
