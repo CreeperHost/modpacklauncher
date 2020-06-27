@@ -31,3 +31,5 @@ launcher.log
 test/
 
 .DS_Store
+
+tempDMGExtract/
