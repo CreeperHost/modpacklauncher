@@ -79,15 +79,9 @@ public class LocalInstance implements IPack
         {
             this.jvmArgs = Settings.settings.get("jvmargs");
         }
-        if (Settings.settings.containsKey("memory"))
-        {
-            this.memory = Integer.parseInt(Settings.settings.get("memory"));
-        } else
-        {
-            this.memory = pack.getMinMemory();
-        }
         this.recMemory = pack.getRecMemory();
         this.minMemory = pack.getMinMemory();
+        this.memory = this.recMemory;
         this.lastPlayed = System.currentTimeMillis() / 1000L;
         Boolean dir = new File(this.path).mkdirs();
         String artPath = this.path + File.separator + "/art.png";
