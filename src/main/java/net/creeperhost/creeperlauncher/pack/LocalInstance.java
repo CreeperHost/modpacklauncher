@@ -85,6 +85,8 @@ public class LocalInstance implements IPack
         this.recMemory = pack.getRecMemory();
         this.minMemory = pack.getMinMemory();
         this.memory = this.recMemory;
+        SystemInfo si = new SystemInfo();
+        HardwareAbstractionLayer hal = si.getHardware();
         long totalMemory = hal.getMemory().getTotal() / 1024 / 1024;
         if(this.recMemory > (totalMemory-2048))
         {
