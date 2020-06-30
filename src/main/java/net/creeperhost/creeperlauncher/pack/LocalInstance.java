@@ -86,7 +86,7 @@ public class LocalInstance implements IPack
         this.minMemory = pack.getMinMemory();
         this.memory = this.recMemory;
         long totalMemory = hal.getMemory().getTotal() / 1024 / 1024;
-        if(this.recMemory > totalMemory)
+        if(this.recMemory > (totalMemory-2048))
         {
             this.memory = this.minMemory;
         }
