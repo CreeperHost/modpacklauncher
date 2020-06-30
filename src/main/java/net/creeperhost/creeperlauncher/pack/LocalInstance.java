@@ -2,6 +2,9 @@ package net.creeperhost.creeperlauncher.pack;
 
 import com.google.gson.*;
 import com.google.gson.stream.JsonReader;
+import oshi.SystemInfo;
+import oshi.hardware.HardwareAbstractionLayer;
+
 import net.creeperhost.creeperlauncher.*;
 import net.creeperhost.creeperlauncher.api.DownloadableFile;
 import net.creeperhost.creeperlauncher.install.tasks.FTBModPackInstallerTask;
@@ -82,6 +85,11 @@ public class LocalInstance implements IPack
         this.recMemory = pack.getRecMemory();
         this.minMemory = pack.getMinMemory();
         this.memory = this.recMemory;
+        long totalMemory = hal.getMemory().getTotal() / 1024 / 1024;
+        if(this.recMemory > totalMemory)
+        {
+            this.memory = this.minMemory;
+        }
         this.lastPlayed = System.currentTimeMillis() / 1000L;
         Boolean dir = new File(this.path).mkdirs();
         String artPath = this.path + File.separator + "/art.png";
