@@ -33,6 +33,7 @@ public class CreeperLauncher
     }
 
     public static Process elect = null;
+    public static boolean isDevMode = false;
     public static AtomicBoolean isInstalling = new AtomicBoolean(false);
     public static AtomicReference<FTBModPackInstallerTask> currentInstall = new AtomicReference<>();
     public static LocalCache localCache = null;
@@ -46,6 +47,7 @@ public class CreeperLauncher
 
     public static void main(String[] args)
     {
+        isDevMode = !System.getenv("FTB_DEV_MODE").isEmpty();
         File json = new File(Constants.BIN_LOCATION, "settings.json");
         boolean migrate = false;
         if (!json.exists())
@@ -182,7 +184,7 @@ public class CreeperLauncher
             localCache.clean();
         });
 
-        boolean startProcess = true;
+        boolean startProcess = !isDevMode;
 
         /*
         Borrowed from ModpackServerDownloader project
@@ -213,7 +215,7 @@ public class CreeperLauncher
         End
          */
 
-        if(Args.containsKey("pid"))
+        if(Args.containsKey("pid") && !isDevMode)
         {
             try {
                 long pid = Long.parseLong(Args.get("pid"));
@@ -233,7 +235,7 @@ public class CreeperLauncher
             CreeperLogger.INSTANCE.info("No PID args");
         }
 
-        Settings.webSocketAPI = new WebSocketAPI(new InetSocketAddress(InetAddress.getLoopbackAddress(), defaultWebsocketPort ? Constants.WEBSOCKET_PORT : websocketPort));
+        Settings.webSocketAPI = new WebSocketAPI(new InetSocketAddress(InetAddress.getLoopbackAddress(), defaultWebsocketPort || isDevMode ? Constants.WEBSOCKET_PORT : websocketPort));
         Settings.webSocketAPI.start();
 
         if (startProcess) {
