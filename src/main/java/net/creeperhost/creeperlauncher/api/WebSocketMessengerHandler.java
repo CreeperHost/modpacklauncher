@@ -73,7 +73,7 @@ public class WebSocketMessengerHandler
                 if (iMessageHandler != null)
                 {
                     BaseData parsedData = gson.fromJson(data, typeToken.getType());
-                    if (parsedData.secret != null && parsedData.secret.equals(CreeperLauncher.websocketSecret)) {
+                    if (CreeperLauncher.isDevMode || (parsedData.secret != null && parsedData.secret.equals(CreeperLauncher.websocketSecret))) {
                         CompletableFuture.runAsync(()->iMessageHandler.handle(parsedData));
                     }
                 }
