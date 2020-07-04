@@ -47,7 +47,6 @@ public class CreeperLauncher
 
     public static void main(String[] args)
     {
-        isDevMode = !System.getenv("FTB_DEV_MODE").isEmpty();
         File json = new File(Constants.BIN_LOCATION, "settings.json");
         boolean migrate = false;
         if (!json.exists())
@@ -215,6 +214,8 @@ public class CreeperLauncher
         End
          */
 
+        isDevMode = Args.containsKey("dev");
+
         if(Args.containsKey("pid") && !isDevMode)
         {
             try {
@@ -228,8 +229,8 @@ public class CreeperLauncher
                     handle.onExit().thenRun(CreeperLauncher::exit);
                     Runtime.getRuntime().addShutdownHook(new Thread(handle::destroy));
                 }
-            } catch (Exception ignored) {
-                CreeperLogger.INSTANCE.error("Error connecting to process", ignored);
+            } catch (Exception exception) {
+                CreeperLogger.INSTANCE.error("Error connecting to process", exception);
             }
         } else {
             CreeperLogger.INSTANCE.info("No PID args");
