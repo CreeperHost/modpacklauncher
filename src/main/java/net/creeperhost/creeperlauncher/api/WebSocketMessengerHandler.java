@@ -44,6 +44,8 @@ public class WebSocketMessengerHandler
         registerHandler(SettingsConfigureData.class, new SettingsConfigureHandler());
         registerDataMap("modalCallback", OpenModalData.ModalCallbackData.class);
         registerHandler(OpenModalData.ModalCallbackData.class, new ModalCallbackHandler());
+        registerDataMap("fileHash", FileHashData.class);
+        registerHandler(FileHashData.class, new FileHashHandler());
     }
 
     public static void registerHandler(Class<? extends BaseData> clazz, IMessageHandler<? extends BaseData> handler)
