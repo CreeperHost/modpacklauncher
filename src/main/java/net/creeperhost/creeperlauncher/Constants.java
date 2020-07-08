@@ -46,4 +46,17 @@ public class Constants
     public static final int WEBSOCKET_PORT = 13377;
     public static final String APPVERSION = "@APPVERSION@";
     public static final String BRANCH = "@BRANCH@";
+
+    //Auth
+    public static String KEY = "";
+    public static String SECRET = "";
+
+    public static String getCreeperhostModpackSearch2()
+    {
+        if(Constants.KEY.isEmpty() || Constants.SECRET.isEmpty())
+        {
+            return Constants.CREEPERHOST_MODPACK_SEARCH2;
+        }
+        return Constants.CREEPERHOST_MODPACK + "/" + Constants.KEY + "/modpack/";
+    }
 }
