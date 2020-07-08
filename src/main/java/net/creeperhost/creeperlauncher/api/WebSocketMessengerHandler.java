@@ -44,6 +44,8 @@ public class WebSocketMessengerHandler
         registerHandler(SettingsConfigureData.class, new SettingsConfigureHandler());
         registerDataMap("modalCallback", OpenModalData.ModalCallbackData.class);
         registerHandler(OpenModalData.ModalCallbackData.class, new ModalCallbackHandler());
+        registerDataMap("fileHash", FileHashData.class);
+        registerHandler(FileHashData.class, new FileHashHandler());
     }
 
     public static void registerHandler(Class<? extends BaseData> clazz, IMessageHandler<? extends BaseData> handler)
@@ -73,7 +75,7 @@ public class WebSocketMessengerHandler
                 if (iMessageHandler != null)
                 {
                     BaseData parsedData = gson.fromJson(data, typeToken.getType());
-                    if (parsedData.secret != null && parsedData.secret.equals(CreeperLauncher.websocketSecret)) {
+                    if (CreeperLauncher.isDevMode || (parsedData.secret != null && parsedData.secret.equals(CreeperLauncher.websocketSecret))) {
                         CompletableFuture.runAsync(()->iMessageHandler.handle(parsedData));
                     }
                 }

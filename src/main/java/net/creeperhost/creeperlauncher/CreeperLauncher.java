@@ -33,6 +33,7 @@ public class CreeperLauncher
     }
 
     public static Process elect = null;
+    public static boolean isDevMode = false;
     public static AtomicBoolean isInstalling = new AtomicBoolean(false);
     public static AtomicReference<FTBModPackInstallerTask> currentInstall = new AtomicReference<>();
     public static LocalCache localCache = null;
@@ -182,7 +183,7 @@ public class CreeperLauncher
             localCache.clean();
         });
 
-        boolean startProcess = true;
+        boolean startProcess = !isDevMode;
 
         /*
         Borrowed from ModpackServerDownloader project
@@ -213,7 +214,9 @@ public class CreeperLauncher
         End
          */
 
-        if(Args.containsKey("pid"))
+        isDevMode = Args.containsKey("dev");
+
+        if(Args.containsKey("pid") && !isDevMode)
         {
             try {
                 long pid = Long.parseLong(Args.get("pid"));
@@ -226,14 +229,14 @@ public class CreeperLauncher
                     handle.onExit().thenRun(CreeperLauncher::exit);
                     Runtime.getRuntime().addShutdownHook(new Thread(handle::destroy));
                 }
-            } catch (Exception ignored) {
-                CreeperLogger.INSTANCE.error("Error connecting to process", ignored);
+            } catch (Exception exception) {
+                CreeperLogger.INSTANCE.error("Error connecting to process", exception);
             }
         } else {
             CreeperLogger.INSTANCE.info("No PID args");
         }
 
-        Settings.webSocketAPI = new WebSocketAPI(new InetSocketAddress(InetAddress.getLoopbackAddress(), defaultWebsocketPort ? Constants.WEBSOCKET_PORT : websocketPort));
+        Settings.webSocketAPI = new WebSocketAPI(new InetSocketAddress(InetAddress.getLoopbackAddress(), defaultWebsocketPort || isDevMode ? Constants.WEBSOCKET_PORT : websocketPort));
         Settings.webSocketAPI.start();
 
         if (startProcess) {
