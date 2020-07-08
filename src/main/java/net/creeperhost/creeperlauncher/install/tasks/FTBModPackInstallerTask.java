@@ -123,7 +123,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
 
         File modpackJson = new File(instanceDir + File.separator + "modpack.json");
         if (modpackJson.exists()) modpackJson.delete(); //Need to remove and redownload this each time or updates will have old info
-        DownloadUtils.downloadFile(modpackJson, Constants.CREEPERHOST_MODPACK_SEARCH2 + instance.getId());
+        DownloadUtils.downloadFile(modpackJson, Constants.getCreeperhostModpackSearch2() + instance.getId());
 
         File versionJson = new File(instanceDir + File.separator + "version.json");
         if (versionJson.exists())
@@ -135,14 +135,14 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                 return false;
             }
         }
-        DownloadUtils.downloadFile(versionJson, Constants.CREEPERHOST_MODPACK_SEARCH2 + instance.getId() + "/" + instance.getVersionId());
+        DownloadUtils.downloadFile(versionJson, Constants.getCreeperhostModpackSearch2() + instance.getId() + "/" + instance.getVersionId());
 
         return (modpackJson.exists() && versionJson.exists());
     }
 
     public static FTBPack getPackFromAPI(long packId, long versionId)
     {
-        String modpackURL = Constants.CREEPERHOST_MODPACK_SEARCH2 + packId;
+        String modpackURL = Constants.getCreeperhostModpackSearch2() + packId;
         String versionURL = modpackURL + "/" + versionId;
         String name = "";
         String version = "";
@@ -155,7 +155,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
         int recMemory = 4096;
         long id = -1;
 
-        String resp = WebUtils.getWebResponse(modpackURL);
+        String resp = WebUtils.getAPIResponse(modpackURL);
         JsonElement jElement = new JsonParser().parse(resp);
 
         if (jElement.isJsonObject())
@@ -193,7 +193,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
             }
         }
 
-        String ver = WebUtils.getWebResponse(versionURL);
+        String ver = WebUtils.getAPIResponse(versionURL);
         JsonElement jElement2 = new JsonParser().parse(ver);
 
         if (jElement2.isJsonObject())

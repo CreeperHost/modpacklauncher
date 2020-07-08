@@ -14,6 +14,7 @@ import java.io.*;
 import java.nio.file.FileSystem;
 import java.nio.file.*;
 import java.nio.file.attribute.PosixFilePermissions;
+import java.security.MessageDigest;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
@@ -155,5 +156,43 @@ public class FileUtils
         {
             e.printStackTrace();
         }
+    }
+
+    public static String getHash(File file, String hashType)
+    {
+        try {
+            return hashToString(createChecksum(file, hashType));
+        } catch (Exception e) {
+            return "error - " + e.getMessage();
+        }
+    }
+
+    private static byte[] createChecksum(File file, String hashType) throws Exception {
+        InputStream fis =  new FileInputStream(file);
+
+        byte[] buffer = new byte[4096];
+        MessageDigest complete = MessageDigest.getInstance(hashType);
+        int numRead;
+
+        do {
+            numRead = fis.read(buffer);
+            if (numRead > 0) {
+                complete.update(buffer, 0, numRead);
+            }
+        } while (numRead != -1);
+
+        fis.close();
+        return complete.digest();
+    }
+
+    // see this How-to for a faster way to convert
+    // a byte array to a HEX string
+    private static String hashToString(byte[] b) throws Exception {
+        StringBuilder result = new StringBuilder();
+
+        for (byte value : b) {
+            result.append(Integer.toString((value & 0xff) + 0x100, 16).substring(1));
+        }
+        return result.toString();
     }
 }
