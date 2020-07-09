@@ -13,11 +13,13 @@ import org.apache.tika.parser.AutoDetectParser;
 import java.io.*;
 import java.nio.file.FileSystem;
 import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.security.MessageDigest;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.GZIPInputStream;
 
 public class FileUtils
@@ -76,6 +78,15 @@ public class FileUtils
         {
             Path fileToExtract = ((java.nio.file.FileSystem) fileSystem).getPath(fileName);
             Files.copy(fileToExtract, dest.toPath());
+        }
+    }
+
+    public static <FileSystem> void removeFileFromZip(File zip, String fileName) throws IOException
+    {
+        try (java.nio.file.FileSystem fileSystem = (java.nio.file.FileSystem) FileSystems.newFileSystem(zip.toPath(), null))
+        {
+            Path fileToRemove = ((java.nio.file.FileSystem) fileSystem).getPath(fileName);
+            deleteDirectory(fileToRemove.toFile());
         }
     }
 
@@ -194,5 +205,40 @@ public class FileUtils
             result.append(Integer.toString((value & 0xff) + 0x100, 16).substring(1));
         }
         return result.toString();
+    }
+
+    public static boolean mergeJars(File input, File output)
+    {
+        if(input == null || output == null) return false;
+        AtomicBoolean flag = new AtomicBoolean(true);
+
+        try (FileSystem fs = FileSystems.newFileSystem(output.toPath(), null))
+        {
+            FileSystem tempFS = FileSystems.newFileSystem(input.toPath(), null);
+            Path root = tempFS.getPath("/");
+            Files.walkFileTree(root, new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException
+                {
+                    try
+                    {
+                        //Make sure to create the parents as java is dumb...
+                        Files.createDirectories(fs.getPath(file.getParent().toString()));
+                        Files.copy(tempFS.getPath(file.toString()), fs.getPath(file.toString()), StandardCopyOption.REPLACE_EXISTING);
+                    }
+                    catch (Exception e)
+                    {
+                        flag.set(false);
+                        e.printStackTrace();
+                    }
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        } catch (Exception e)
+        {
+            flag.set(false);
+            e.printStackTrace();
+        }
+        return flag.get();
     }
 }
