@@ -237,7 +237,7 @@ public class CreeperLauncher
         }
 
         Settings.webSocketAPI = new WebSocketAPI(new InetSocketAddress(InetAddress.getLoopbackAddress(), defaultWebsocketPort || isDevMode ? Constants.WEBSOCKET_PORT : websocketPort));
-        //Settings.webSocketAPI.setConnectionLostTimeout(0);
+        Settings.webSocketAPI.setConnectionLostTimeout(0);
         Settings.webSocketAPI.start();
 
         if (startProcess) {
