@@ -43,7 +43,7 @@ public class LocalInstance implements IPack
     private String dir;
     private List<String> authors;
     private String description;
-    private String mcVersion;
+    public String mcVersion;
     public String jvmArgs = Settings.settings.getOrDefault("jvmArgs", "");
     public boolean embeddedJre = Boolean.parseBoolean(Settings.settings.getOrDefault("embeddedjre", "true"));
     public String jrePath = Settings.settings.getOrDefault("jrepath", "");
