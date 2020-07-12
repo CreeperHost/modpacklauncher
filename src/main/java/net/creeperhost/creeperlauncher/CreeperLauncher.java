@@ -10,6 +10,7 @@ import net.creeperhost.creeperlauncher.install.tasks.LocalCache;
 import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.os.OSUtils;
 import net.creeperhost.creeperlauncher.util.FileUtils;
+import net.creeperhost.creeperlauncher.util.Pair;
 import net.creeperhost.creeperlauncher.util.SettingsChangeUtil;
 import net.creeperhost.creeperlauncher.util.StreamGobblerLog;
 
@@ -26,6 +27,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class CreeperLauncher
 {
+    private static boolean failedInitialMigration; // Todo: Use this for showing a screen if failed
+
     static
     {
         System.setProperty("apple.awt.UIElement", "true");
@@ -120,6 +123,7 @@ public class CreeperLauncher
                         File[] subFiles = currentInstanceDir.listFiles();
                         Path newInstanceDir = Path.of(value);
                         boolean failed = false;
+                        HashMap<Pair<Path, Path>, IOException> lastError;
                         if (subFiles != null) {
                             for (File file : subFiles) {
                                 Path srcPath = Path.of(file.getAbsolutePath());
