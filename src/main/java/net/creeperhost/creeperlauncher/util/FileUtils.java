@@ -185,9 +185,7 @@ public class FileUtils
         return complete.digest();
     }
 
-    // see this How-to for a faster way to convert
-    // a byte array to a HEX string
-    private static String hashToString(byte[] b) throws Exception {
+    private static String hashToString(byte[] b) {
         StringBuilder result = new StringBuilder();
 
         for (byte value : b) {
