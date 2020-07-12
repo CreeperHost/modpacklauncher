@@ -50,6 +50,7 @@ public class CreeperLogger
     public void error(String input, Throwable ex)
     {
         logger.severe(input);
+        logger.severe(ex.getMessage());
         for(StackTraceElement el: ex.getStackTrace())
         {
             logger.severe(el.toString());
