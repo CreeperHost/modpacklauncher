@@ -116,7 +116,7 @@ public class CreeperLauncher
         Instances.refreshInstances();
 
         SettingsChangeUtil.registerListener("instanceLocation", (key, value) -> {
-            OpenModalData.openModal("Confirmation", "Are you sure you wish to move your instances to this location?", List.of(
+            OpenModalData.openModal("Confirmation", "Are you sure you wish to move your instances to this location? If folders exist in the destination location which match the name of folders in the current location, they will be replaced.", List.of(
                     new OpenModalData.ModalButton( "Yes", "green", () -> {
                         Path currentInstanceLoc = Path.of(Settings.settings.getOrDefault(key, Constants.INSTANCES_FOLDER_LOC));
                         File currentInstanceDir = currentInstanceLoc.toFile();
@@ -124,16 +124,17 @@ public class CreeperLauncher
                         Path newInstanceDir = Path.of(value);
                         boolean failed = false;
                         HashMap<Pair<Path, Path>, IOException> lastError = new HashMap<>();
-                        CreeperLogger.INSTANCE.info("Moving  instances from " + currentInstanceLoc + " to " + value);
+                        CreeperLogger.INSTANCE.info("Moving instances from " + currentInstanceLoc + " to " + value);
                         if (subFiles != null) {
                             for (File file : subFiles) {
                                 Path srcPath = Path.of(file.getAbsolutePath());
                                 Path dstPath = Path.of(value, file.getName());
+                                FileUtils.deleteDirectory(dstPath.toFile()); // if fails, shrug
                                 Optional<HashMap<Pair<Path, Path>, IOException>> moveResult = move(srcPath, dstPath);
                                 if (moveResult.isPresent()) {
                                     if (file.getName().equals(".localCache"))
                                     {
-                                        continue;
+                                        continue; // I don't really care do u
                                     }
                                     failed = true;
                                     lastError = moveResult.get();
