@@ -10,6 +10,7 @@ import net.creeperhost.creeperlauncher.install.tasks.LocalCache;
 import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.os.OSUtils;
 import net.creeperhost.creeperlauncher.util.FileUtils;
+import net.creeperhost.creeperlauncher.util.Pair;
 import net.creeperhost.creeperlauncher.util.SettingsChangeUtil;
 import net.creeperhost.creeperlauncher.util.StreamGobblerLog;
 
@@ -17,7 +18,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.URISyntaxException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
@@ -27,6 +27,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class CreeperLauncher
 {
+    private static boolean failedInitialMigration; // todo: use this to pop up stuff if failed
+
     static
     {
         System.setProperty("apple.awt.UIElement", "true");
@@ -93,8 +95,14 @@ public class CreeperLauncher
             move(Path.of(Constants.BIN_LOCATION_OURS, "libraries"), Path.of(Constants.LIBRARY_LOCATION));
             if (migrateInstances)
             {
-                if (!move(Path.of(Constants.WORKING_DIR, "instances"), Path.of(Constants.INSTANCES_FOLDER_LOC))) {
-                    // Failed migration, not sure how to handle this right now
+                Optional<HashMap<Pair<Path, Path>, IOException>> moveResult = move(Path.of(Constants.WORKING_DIR, "instances"), Path.of(Constants.INSTANCES_FOLDER_LOC));
+                if (moveResult.isPresent()) {
+                    CreeperLogger.INSTANCE.error("Error occurred whilst migrating instances to the new location. Errors follow.");
+                    HashMap<Pair<Path, Path>, IOException> moveResultReal = moveResult.get();
+                    moveResultReal.forEach((key, value) -> {
+                        CreeperLogger.INSTANCE.error("Moving " + key.getLeft() + " to " + key.getRight() + " failed:", value);
+                    });
+                    failedInitialMigration = true;
                 }
             }
         }
@@ -115,15 +123,27 @@ public class CreeperLauncher
                         File[] subFiles = currentInstanceDir.listFiles();
                         Path newInstanceDir = Path.of(value);
                         boolean failed = false;
+                        HashMap<Pair<Path, Path>, IOException> lastError = new HashMap<>();
+                        CreeperLogger.INSTANCE.info("Moving  instances from " + currentInstanceLoc + " to " + value);
                         if (subFiles != null) {
                             for (File file : subFiles) {
-                                if (!move(Path.of(file.getAbsolutePath()), Path.of(value, file.getName()))) {
+                                Path srcPath = Path.of(file.getAbsolutePath());
+                                Path dstPath = Path.of(value, file.getName());
+                                Optional<HashMap<Pair<Path, Path>, IOException>> moveResult = move(srcPath, dstPath);
+                                if (moveResult.isPresent()) {
                                     failed = true;
+                                    lastError = moveResult.get();
                                     break;
                                 }
+                                CreeperLogger.INSTANCE.info("Moved " + srcPath + " to " + dstPath + " successfully");
                             }
                         }
                         if (failed) {
+                            CreeperLogger.INSTANCE.error("Error occurred whilst migrating instances to the new location. Errors follow.");
+                            lastError.forEach((moveKey, moveValue) -> {
+                                CreeperLogger.INSTANCE.error("Moving " + moveKey.getLeft() + " to " + moveKey.getRight() + " failed:", moveValue);
+                            });
+                            CreeperLogger.INSTANCE.error("Moving any successful instance moves back");
                             File[] newInstanceDirFiles = newInstanceDir.toFile().listFiles();
                             if (newInstanceDirFiles != null) {
                                 for (File file : newInstanceDirFiles) {
@@ -298,10 +318,10 @@ public class CreeperLauncher
         }
     }
 
-    private static boolean move(Path in, Path out)
+    private static Optional<HashMap<Pair<Path, Path>, IOException>> move(Path in, Path out)
     {
-        try {
             File outFile = out.toFile();
+            HashMap<Pair<Path, Path>, IOException> errors = new HashMap<>();
             if (outFile.exists() && outFile.isDirectory())
             {
                 File[] files = outFile.listFiles();
@@ -309,18 +329,23 @@ public class CreeperLauncher
                     for (File file : files) {
                         Path path = file.toPath();
                         Path destPath = out.resolve(file.getName());
-                        Files.move(path, destPath);
+                        try {
+
+                            Files.move(path, destPath);
+                        } catch (IOException e) {
+                            errors.put(new Pair<>(path, destPath), e);
+                        }
                     }
                 }
-                return true;
+            } else {
+                try {
+                    Files.move(in, out);
+                } catch (IOException e) {
+                    errors.put(new Pair<>(in, out), e);
+                }
             }
-            Files.move(in, out);
-            return true;
-        } catch (Exception e) {
-            System.out.println("Unable to move " + in);
-            //e.printStackTrace();
-            return false;
-        }
+            if (errors.isEmpty()) return Optional.empty();
+            return Optional.of(errors);
     }
 
     private static void startElectron() {
