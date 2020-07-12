@@ -131,6 +131,10 @@ public class CreeperLauncher
                                 Path dstPath = Path.of(value, file.getName());
                                 Optional<HashMap<Pair<Path, Path>, IOException>> moveResult = move(srcPath, dstPath);
                                 if (moveResult.isPresent()) {
+                                    if (file.getName().equals(".localCache"))
+                                    {
+                                        continue;
+                                    }
                                     failed = true;
                                     lastError = moveResult.get();
                                     break;
@@ -154,10 +158,13 @@ public class CreeperLauncher
                                     new OpenModalData.ModalButton("Ok", "red", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
                             ));
                         } else {
+                            Path oldCache = Path.of(Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC), ".localCache");
+                            oldCache.toFile().deleteOnExit();
                             Settings.settings.remove("instanceLocation");
                             Settings.settings.put("instanceLocation", value);
                             Settings.saveSettings();
                             Instances.refreshInstances();
+                            localCache = new LocalCache();
                             OpenModalData.openModal("Success", "Moved instance folder successfully", List.of(
                                     new OpenModalData.ModalButton( "Yay!", "green", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
                             ));
