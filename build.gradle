@@ -249,8 +249,10 @@ project(":web") {
     }
 
     npm_run_build {
-        inputs.files fileTree("public")
-        inputs.files fileTree("src")
+        inputs.files(fileTree("public").matching {
+            exclude "version.json"
+        })
+        inputs.files(fileTree("src"))
         inputs.file "package-lock.json"
         inputs.file "package.json"
         outputs.dir "dist"
