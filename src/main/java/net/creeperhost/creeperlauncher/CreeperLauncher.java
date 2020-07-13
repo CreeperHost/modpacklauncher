@@ -9,10 +9,7 @@ import net.creeperhost.creeperlauncher.install.tasks.FTBModPackInstallerTask;
 import net.creeperhost.creeperlauncher.install.tasks.LocalCache;
 import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.os.OSUtils;
-import net.creeperhost.creeperlauncher.util.FileUtils;
-import net.creeperhost.creeperlauncher.util.Pair;
-import net.creeperhost.creeperlauncher.util.SettingsChangeUtil;
-import net.creeperhost.creeperlauncher.util.StreamGobblerLog;
+import net.creeperhost.creeperlauncher.util.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -27,7 +24,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class CreeperLauncher
 {
-    private static boolean failedInitialMigration; // Todo: Use this for showing a screen if failed
+    public static HashMap<String, String> javaVersions;
+    private static boolean failedInitialMigration; // todo: use this to pop up stuff if failed
 
     static
     {
@@ -255,6 +253,8 @@ public class CreeperLauncher
         if (startProcess) {
             startElectron();
         }
+
+        MiscUtils.updateJavaVersions();
     }
 
     @SuppressWarnings("ConstantConditions")
