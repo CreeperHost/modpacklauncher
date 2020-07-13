@@ -89,22 +89,17 @@ public class DownloadTask implements IInstallTask
                     {
                         ++tries;
                         file.download(destination, false, false);
-                        file.validate(false, true);
+                        file.validate(true, true);
                         try
                         {
                             CreeperLauncher.localCache.put(file.getLocalFile(), file.getSha1());
                         } catch (Exception err)
                         {
-                            CreeperLogger.INSTANCE.error(err.toString());
-                            err.printStackTrace();
+                            CreeperLogger.INSTANCE.error("Error whilst adding to cache: ", err);
                         }
                         complete = true;
                     } catch (Throwable e)
                     {
-                        if (e instanceof IntegrityCheckException)
-                        {
-                            throw (IntegrityCheckException) e;
-                        }
                         if (tries == 3)
                         {
                             if (e instanceof IntegrityCheckException)
