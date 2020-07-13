@@ -39,3 +39,5 @@ launcher.log.1
 launcher.log.1.lck
 
 tempDMGExtract/
+
+electron.log

@@ -115,7 +115,7 @@ public class CreeperLauncher
         Instances.refreshInstances();
 
         SettingsChangeUtil.registerListener("instanceLocation", (key, value) -> {
-            OpenModalData.openModal("Confirmation", "Are you sure you wish to move your instances to this location? All content in your current instance location will be moved.", List.of(
+            OpenModalData.openModal("Confirmation", "Are you sure you wish to move your instances to this location? <br tag='haha line break go brr'> All content in your current instance location will be moved, and if content exists with the same name in the destination it will be replaced.", List.of(
                     new OpenModalData.ModalButton( "Yes", "green", () -> {
                         OpenModalData.openModal("Please wait", "Your instances are now moving", List.of());
                         Path currentInstanceLoc = Path.of(Settings.settings.getOrDefault(key, Constants.INSTANCES_FOLDER_LOC));
@@ -128,8 +128,8 @@ public class CreeperLauncher
                             for (File file : subFiles) {
                                 Path srcPath = Path.of(file.getAbsolutePath());
                                 Path dstPath = Path.of(value, file.getName());
-                                lastError = FileUtils.move(srcPath, dstPath, true);
-                                failed = !lastError.isEmpty();
+                                lastError = FileUtils.move(srcPath, dstPath, true, true);
+                                failed = !lastError.isEmpty() && !srcPath.toFile().getName().equals(".localCache");
                                 if (failed) break;
                                 CreeperLogger.INSTANCE.info("Moved " + srcPath + " to " + dstPath + " successfully");
                             }
