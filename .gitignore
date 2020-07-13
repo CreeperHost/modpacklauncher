@@ -33,3 +33,5 @@ test/
 .DS_Store
 
 tempDMGExtract/
+
+electron.log

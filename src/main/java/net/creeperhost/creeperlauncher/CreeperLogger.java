@@ -49,11 +49,13 @@ public class CreeperLogger
 
     public void error(String input, Throwable ex)
     {
-        logger.severe(input);
-        logger.severe(ex.getMessage());
+        StringBuilder printStr = new StringBuilder();
+        printStr.append(input).append("\n");
+        printStr.append(ex.getClass().toString()).append(": ").append(ex.getMessage()).append("\n");
         for(StackTraceElement el: ex.getStackTrace())
         {
-            logger.severe(el.toString());
+            printStr.append(el.toString()).append("\n");
         }
+        error(printStr.toString());
     }
 }
