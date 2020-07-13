@@ -72,11 +72,11 @@ public class FileUtils
         outputStream.close();
     }
 
-    public static <FileSystem> void fileFromZip(File zip, File dest, String fileName) throws IOException
+    public static void fileFromZip(File zip, File dest, String fileName) throws IOException
     {
-        try (java.nio.file.FileSystem fileSystem = (java.nio.file.FileSystem) FileSystems.newFileSystem(zip.toPath(), null))
+        try (java.nio.file.FileSystem fileSystem = FileSystems.newFileSystem(zip.toPath(), null))
         {
-            Path fileToExtract = ((java.nio.file.FileSystem) fileSystem).getPath(fileName);
+            Path fileToExtract = fileSystem.getPath(fileName);
             Files.copy(fileToExtract, dest.toPath());
         }
     }
@@ -229,11 +229,25 @@ public class FileUtils
         }
     }
 
-    private static HashMap<Pair<Path, Path>, IOException> moveDirectory(Path in, Path out, boolean failFast) {
+    private static HashMap<Pair<Path, Path>, IOException> moveDirectory(Path in, Path out, boolean replaceExisting, boolean failFast) {
         HashMap<Pair<Path, Path>, IOException> errors = new HashMap<>();
         if (!in.toFile().getName().equals(out.toFile().getName()))
         {
             out = out.resolve(in.toFile().getName());
+        }
+        File outFile = out.toFile();
+        if (replaceExisting && outFile.exists())
+        {
+            if (outFile.isDirectory())
+            {
+                FileUtils.deleteDirectory(out.toFile());
+            } else {
+                try {
+                    Files.deleteIfExists(out);
+                } catch (IOException e) {
+                    // shrug
+                }
+            }
         }
         if (in.getFileSystem() == out.getFileSystem())
         {
@@ -275,14 +289,14 @@ public class FileUtils
 
     public static HashMap<Pair<Path, Path>, IOException> move(Path in, Path out)
     {
-        return move(in, out, true);
+        return move(in, out, false, true);
     }
 
-    public static HashMap<Pair<Path, Path>, IOException> move(Path in, Path out, boolean failFast)
+    public static HashMap<Pair<Path, Path>, IOException> move(Path in, Path out, boolean replaceExisting, boolean failFast)
     {
         if (in.toFile().isDirectory())
         {
-            return moveDirectory(in, out, failFast);
+            return moveDirectory(in, out, replaceExisting, failFast);
         }
         HashMap<Pair<Path, Path>, IOException> errors = new HashMap<>();
         try
@@ -292,7 +306,11 @@ public class FileUtils
             {
                 out = out.resolve(in.toFile().getName());
             }
-            Files.move(in, out);
+            if (replaceExisting) {
+                Files.move(in, out, StandardCopyOption.REPLACE_EXISTING);
+            } else {
+                Files.move(in, out);
+            }
         } catch (IOException e) {
             errors.put(new Pair<>(in, out), e);
         }
