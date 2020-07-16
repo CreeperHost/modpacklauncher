@@ -52,6 +52,11 @@ public class CreeperLauncher
         boolean migrate = false;
         if (!json.exists())
         {
+            try {
+                Files.createDirectories(Path.of(Constants.BIN_LOCATION));
+            } catch (IOException ignored) {
+                // shrug
+            }
             File jsonOld = new File(Constants.BIN_LOCATION_OURS, "settings.json");
 
             if (jsonOld.exists()) {
