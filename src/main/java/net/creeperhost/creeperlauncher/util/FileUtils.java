@@ -1,5 +1,6 @@
 package net.creeperhost.creeperlauncher.util;
 
+import net.creeperhost.creeperlauncher.CreeperLogger;
 import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.archivers.ArchiveStreamFactory;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
@@ -210,15 +211,14 @@ public class FileUtils
                 }
             }
         }
-        if (in.getFileSystem() == out.getFileSystem())
-        {
-            try {
-                Files.move(in, out);
-            } catch (IOException e) {
-                errors.put(new Pair<>(in, out), e);
-            }
-            return errors;
+
+        try {
+            Files.move(in, out);
+        } catch (IOException e) {
+            CreeperLogger.INSTANCE.warning("Could not move " + in + " to " + out + " - trying another method");
+            e.printStackTrace();
         }
+
         try {
             Path finalOut = out;
             Files.walkFileTree(in, new SimpleFileVisitor<>() {
