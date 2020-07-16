@@ -13,9 +13,11 @@ import org.apache.tika.parser.AutoDetectParser;
 import java.io.*;
 import java.nio.file.FileSystem;
 import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.security.MessageDigest;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
@@ -194,5 +196,106 @@ public class FileUtils
             result.append(Integer.toString((value & 0xff) + 0x100, 16).substring(1));
         }
         return result.toString();
+    }
+
+    public static void deleteDirectory(Path directory)
+    {
+
+        if (Files.exists(directory))
+        {
+            try
+            {
+                Files.walkFileTree(directory, new SimpleFileVisitor<>()
+                {
+                    @Override
+                    public FileVisitResult visitFile(Path path, BasicFileAttributes basicFileAttributes) throws IOException
+                    {
+                        Files.delete(path);
+                        return FileVisitResult.CONTINUE;
+                    }
+
+                    @Override
+                    public FileVisitResult postVisitDirectory(Path directory, IOException ioException) throws IOException
+                    {
+                        Files.delete(directory);
+                        return FileVisitResult.CONTINUE;
+                    }
+                });
+            }
+            catch (Exception ignored)
+            {
+
+            }
+        }
+    }
+
+    private static HashMap<Pair<Path, Path>, IOException> moveDirectory(Path in, Path out, boolean failFast) {
+        HashMap<Pair<Path, Path>, IOException> errors = new HashMap<>();
+        if (!in.toFile().getName().equals(out.toFile().getName()))
+        {
+            out = out.resolve(in.toFile().getName());
+        }
+        if (in.getFileSystem() == out.getFileSystem())
+        {
+            try {
+                Files.move(in, out);
+            } catch (IOException e) {
+                errors.put(new Pair<>(in, out), e);
+            }
+            return errors;
+        }
+        try {
+            Path finalOut = out;
+            Files.walkFileTree(in, new SimpleFileVisitor<>() {
+                @Override
+                public FileVisitResult visitFile(Path path, BasicFileAttributes basicFileAttributes) throws IOException {
+
+                    Path relative = in.getParent().relativize(path);
+                    if (in.toFile().getName().equals(finalOut.toFile().getName())) {
+                        relative = in.relativize(path);
+                    }
+                    Path outFile = finalOut.resolve(relative);
+                    Files.createDirectories(outFile.getParent());
+                    try {
+                        Files.move(path, outFile);
+                    } catch (IOException e) {
+                        errors.put(new Pair<>(path, outFile), e);
+                        if (failFast)
+                            return FileVisitResult.TERMINATE;
+                    }
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return errors;
+    }
+
+    public static HashMap<Pair<Path, Path>, IOException> move(Path in, Path out)
+    {
+        return move(in, out, true);
+    }
+
+    public static HashMap<Pair<Path, Path>, IOException> move(Path in, Path out, boolean failFast)
+    {
+        if (in.toFile().isDirectory())
+        {
+            return moveDirectory(in, out, failFast);
+        }
+        HashMap<Pair<Path, Path>, IOException> errors = new HashMap<>();
+        try
+        {
+            File outFile = out.toFile();
+            if (outFile.exists() && outFile.isDirectory())
+            {
+                out = out.resolve(in.toFile().getName());
+            }
+            Files.move(in, out);
+        } catch (IOException e) {
+            errors.put(new Pair<>(in, out), e);
+        }
+        return errors;
     }
 }
