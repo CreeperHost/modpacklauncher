@@ -37,9 +37,25 @@ public class CreeperLogger
         logger.info(input);
     }
 
+    private String throwableToString(Throwable ex)
+    {
+        StringBuilder printStr = new StringBuilder();
+        printStr.append(ex.getClass().toString()).append(": ").append(ex.getMessage()).append("\n");
+        for(StackTraceElement el: ex.getStackTrace())
+        {
+            printStr.append(el.toString()).append("\n");
+        }
+        return printStr.toString();
+    }
+
     public void warning(String input)
     {
         logger.warning(input);
+    }
+
+    public void warning(String input, Throwable ex)
+    {
+        warning(input + "\n" + throwableToString(ex));
     }
 
     public void error(String input)
@@ -49,13 +65,6 @@ public class CreeperLogger
 
     public void error(String input, Throwable ex)
     {
-        StringBuilder printStr = new StringBuilder();
-        printStr.append(input).append("\n");
-        printStr.append(ex.getClass().toString()).append(": ").append(ex.getMessage()).append("\n");
-        for(StackTraceElement el: ex.getStackTrace())
-        {
-            printStr.append(el.toString()).append("\n");
-        }
-        error(printStr.toString());
+        error(input + "\n" + throwableToString(ex));
     }
 }

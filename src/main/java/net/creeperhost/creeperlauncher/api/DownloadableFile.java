@@ -198,8 +198,7 @@ public class DownloadableFile
             {
                 if (FailOnChecksum)
                 {
-
-                    throw new IntegrityCheckException("SHA1 checksum does not match.");
+                    throw new IntegrityCheckException("SHA1 checksum does not match.", -1, sha1, expectedChecksums, destination.length(), size, downloadUrl, path);
                 } else
                 {
                     CreeperLogger.INSTANCE.warning(this.getName() + "'s SHA1 checksum failed.");
@@ -210,7 +209,7 @@ public class DownloadableFile
         {
             if (FailOnFileSize)
             {
-                throw new IntegrityCheckException("Downloaded file is not the same size.");
+                throw new IntegrityCheckException("Downloaded file is not the same size.", -1, sha1, expectedChecksums, destination.length(), size, downloadUrl, path);
             } else
             {
                 CreeperLogger.INSTANCE.warning(this.getName() + " size incorrect.");
