@@ -214,6 +214,7 @@ public class FileUtils
 
         try {
             Files.move(in, out);
+            return errors;
         } catch (IOException e) {
             CreeperLogger.INSTANCE.warning("Could not move " + in + " to " + out + " - trying another method");
             e.printStackTrace();
