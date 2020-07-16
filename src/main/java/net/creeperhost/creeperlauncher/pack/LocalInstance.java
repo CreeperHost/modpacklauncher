@@ -232,23 +232,6 @@ public class LocalInstance implements IPack
 
     public FTBModPackInstallerTask update(long versionId)
     {
-        /*File mods = new File(this.path, "mods/");
-        File coremods = new File(this.path, "coremods/");
-        File instmods = new File(this.path, "instmods/");
-
-        File config = new File(this.path, "config/");
-        File resources = new File(this.path, "resources/");
-        File scripts = new File(this.path, "scripts/");
-
-        FileUtils.deleteDirectory(mods);
-        FileUtils.deleteDirectory(coremods);
-        FileUtils.deleteDirectory(instmods);
-        FileUtils.deleteDirectory(config);
-        FileUtils.deleteDirectory(resources);
-        FileUtils.deleteDirectory(scripts);*/ // Commented out to add new cleanup code
-
-
-
         this.versionId = versionId;
 
         FTBModPackInstallerTask update = new FTBModPackInstallerTask(this);
