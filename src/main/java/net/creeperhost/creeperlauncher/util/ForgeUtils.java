@@ -35,6 +35,12 @@ public class ForgeUtils
                 url = new URI(repo + minecraftVersion + "-" + forgeVersion + "/" +
                         "forge-" + minecraftVersion + "-" + forgeVersion + "-universal.zip");
             }
+            if (!WebUtils.checkExist(url.toURL()))
+            {
+                CreeperLogger.INSTANCE.info("File does not exist on repo for " + url);
+                url = new URI(repo + minecraftVersion + "-" + forgeVersion + "/" +
+                        "forge-" + minecraftVersion + "-" + forgeVersion + "-client.jar");
+            }
         }
 
         CreeperLogger.INSTANCE.info("Downloading forge from: " + url.toString());
@@ -73,8 +79,6 @@ public class ForgeUtils
         if (sj.getJar() == null) sj.setJar(instance.getMcVersion());
         if (sj.getInheritsFrom() == null) sj.setInheritsFrom(instance.getMcVersion());
         if (!sj.getId().equalsIgnoreCase(instance.getModLoader())) sj.setId(instance.getModLoader());
-
-        //TODO rename forge lib url
 
         String jstring = GsonUtils.GSON.toJson(sj);
         try
