@@ -2,6 +2,9 @@ package net.creeperhost.creeperlauncher.pack;
 
 import com.google.gson.*;
 import com.google.gson.stream.JsonReader;
+import oshi.SystemInfo;
+import oshi.hardware.HardwareAbstractionLayer;
+
 import net.creeperhost.creeperlauncher.*;
 import net.creeperhost.creeperlauncher.api.DownloadableFile;
 import net.creeperhost.creeperlauncher.install.tasks.FTBModPackInstallerTask;
@@ -79,15 +82,16 @@ public class LocalInstance implements IPack
         {
             this.jvmArgs = Settings.settings.get("jvmargs");
         }
-        if (Settings.settings.containsKey("memory"))
-        {
-            this.memory = Integer.parseInt(Settings.settings.get("memory"));
-        } else
-        {
-            this.memory = pack.getMinMemory();
-        }
         this.recMemory = pack.getRecMemory();
         this.minMemory = pack.getMinMemory();
+        this.memory = this.recMemory;
+        SystemInfo si = new SystemInfo();
+        HardwareAbstractionLayer hal = si.getHardware();
+        long totalMemory = hal.getMemory().getTotal() / 1024 / 1024;
+        if(this.recMemory > (totalMemory-2048))
+        {
+            this.memory = this.minMemory;
+        }
         this.lastPlayed = System.currentTimeMillis() / 1000L;
         Boolean dir = new File(this.path).mkdirs();
         String artPath = this.path + File.separator + "/art.png";
@@ -228,23 +232,6 @@ public class LocalInstance implements IPack
 
     public FTBModPackInstallerTask update(long versionId)
     {
-        /*File mods = new File(this.path, "mods/");
-        File coremods = new File(this.path, "coremods/");
-        File instmods = new File(this.path, "instmods/");
-
-        File config = new File(this.path, "config/");
-        File resources = new File(this.path, "resources/");
-        File scripts = new File(this.path, "scripts/");
-
-        FileUtils.deleteDirectory(mods);
-        FileUtils.deleteDirectory(coremods);
-        FileUtils.deleteDirectory(instmods);
-        FileUtils.deleteDirectory(config);
-        FileUtils.deleteDirectory(resources);
-        FileUtils.deleteDirectory(scripts);*/ // Commented out to add new cleanup code
-
-
-
         this.versionId = versionId;
 
         FTBModPackInstallerTask update = new FTBModPackInstallerTask(this);

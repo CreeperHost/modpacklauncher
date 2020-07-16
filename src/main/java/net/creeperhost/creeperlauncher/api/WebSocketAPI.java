@@ -39,8 +39,8 @@ public class WebSocketAPI extends WebSocketServer
     @Override
     public void onOpen(WebSocket conn, ClientHandshake handshake)
     {
-        if (CreeperLauncher.defaultWebsocketPort)
-        { 
+        if (CreeperLauncher.defaultWebsocketPort && !CreeperLauncher.isDevMode)
+        {
             conn.send("{\"port\": \"" + CreeperLauncher.websocketPort + "\", \"secret\": \"" + CreeperLauncher.websocketSecret + "\"}");
             conn.close();
             CreeperLogger.INSTANCE.info("Front end connected: " + conn.getRemoteSocketAddress() + " - sending our socket and secret and relaunching websocket");

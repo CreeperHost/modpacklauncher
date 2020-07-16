@@ -10,6 +10,7 @@ import net.creeperhost.creeperlauncher.install.tasks.LocalCache;
 import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.os.OSUtils;
 import net.creeperhost.creeperlauncher.util.FileUtils;
+import net.creeperhost.creeperlauncher.util.Pair;
 import net.creeperhost.creeperlauncher.util.SettingsChangeUtil;
 import net.creeperhost.creeperlauncher.util.StreamGobblerLog;
 
@@ -17,9 +18,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.URISyntaxException;
 import java.nio.file.*;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -27,12 +26,15 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class CreeperLauncher
 {
+    private static boolean failedInitialMigration; // todo: use this to pop up stuff if failed
+
     static
     {
         System.setProperty("apple.awt.UIElement", "true");
     }
 
     public static Process elect = null;
+    public static boolean isDevMode = false;
     public static AtomicBoolean isInstalling = new AtomicBoolean(false);
     public static AtomicReference<FTBModPackInstallerTask> currentInstall = new AtomicReference<>();
     public static LocalCache localCache = null;
@@ -50,6 +52,11 @@ public class CreeperLauncher
         boolean migrate = false;
         if (!json.exists())
         {
+            try {
+                Files.createDirectories(Path.of(Constants.BIN_LOCATION));
+            } catch (IOException ignored) {
+                // shrug
+            }
             File jsonOld = new File(Constants.BIN_LOCATION_OURS, "settings.json");
 
             if (jsonOld.exists()) {
@@ -78,22 +85,27 @@ public class CreeperLauncher
             }
         }
 
-        deleteDirectory(Path.of(Constants.WORKING_DIR, ".localCache"));
-        deleteDirectory(Path.of(Constants.OLD_CACHE_LOCATION));
+        FileUtils.deleteDirectory(Path.of(Constants.WORKING_DIR, ".localCache"));
+        FileUtils.deleteDirectory(Path.of(Constants.OLD_CACHE_LOCATION));
 
         if (migrate)
         {
-            move(Path.of(Constants.BIN_LOCATION_OURS, "launcher." + OSUtils.getExtension()), Path.of(Constants.MINECRAFT_LAUNCHER_LOCATION));
-            move(Path.of(Constants.BIN_LOCATION_OURS, "Minecraft.app"), Path.of(Constants.BIN_LOCATION, "Minecraft.app"));
-            move(Path.of(Constants.BIN_LOCATION_OURS, "minecraft-launcher"), Path.of(Constants.BIN_LOCATION, "minecraft-launcher"));
-            move(Path.of(Constants.BIN_LOCATION_OURS, "versions"), Path.of(Constants.VERSIONS_FOLDER_LOC));
-            move(Path.of(Constants.BIN_LOCATION_OURS, "launcher_profiles.json"), Path.of(Constants.LAUNCHER_PROFILES_JSON));
-            move(Path.of(Constants.BIN_LOCATION_OURS, "launcher_settings.json"), Path.of(Constants.LAUNCHER_PROFILES_JSON));
-            move(Path.of(Constants.BIN_LOCATION_OURS, "libraries"), Path.of(Constants.LIBRARY_LOCATION));
+            FileUtils.move(Path.of(Constants.BIN_LOCATION_OURS, "launcher." + OSUtils.getExtension()), Path.of(Constants.MINECRAFT_LAUNCHER_LOCATION));
+            FileUtils.move(Path.of(Constants.BIN_LOCATION_OURS, "Minecraft.app"), Path.of(Constants.BIN_LOCATION, "Minecraft.app"));
+            FileUtils.move(Path.of(Constants.BIN_LOCATION_OURS, "minecraft-launcher"), Path.of(Constants.BIN_LOCATION, "minecraft-launcher"));
+            FileUtils.move(Path.of(Constants.BIN_LOCATION_OURS, "versions"), Path.of(Constants.VERSIONS_FOLDER_LOC));
+            FileUtils.move(Path.of(Constants.BIN_LOCATION_OURS, "launcher_profiles.json"), Path.of(Constants.LAUNCHER_PROFILES_JSON));
+            FileUtils.move(Path.of(Constants.BIN_LOCATION_OURS, "launcher_settings.json"), Path.of(Constants.LAUNCHER_PROFILES_JSON));
+            FileUtils.move(Path.of(Constants.BIN_LOCATION_OURS, "libraries"), Path.of(Constants.LIBRARY_LOCATION));
             if (migrateInstances)
             {
-                if (!move(Path.of(Constants.WORKING_DIR, "instances"), Path.of(Constants.INSTANCES_FOLDER_LOC))) {
-                    // Failed migration, not sure how to handle this right now
+                HashMap<Pair<Path, Path>, IOException> moveResult = FileUtils.move(Path.of(Constants.WORKING_DIR, "instances"), Path.of(Constants.INSTANCES_FOLDER_LOC));
+                if (!moveResult.isEmpty()) {
+                    CreeperLogger.INSTANCE.error("Error occurred whilst migrating instances to the new location. Errors follow.");
+                    moveResult.forEach((key, value) -> {
+                        CreeperLogger.INSTANCE.error("Moving " + key.getLeft() + " to " + key.getRight() + " failed:", value);
+                    });
+                    failedInitialMigration = true;
                 }
             }
         }
@@ -107,37 +119,50 @@ public class CreeperLauncher
         Instances.refreshInstances();
 
         SettingsChangeUtil.registerListener("instanceLocation", (key, value) -> {
-            OpenModalData.openModal("Confirmation", "Are you sure you wish to move your instances to this location?", List.of(
+            OpenModalData.openModal("Confirmation", "Are you sure you wish to move your instances to this location? <br tag='haha line break go brr'> All content in your current instance location will be moved, and if content exists with the same name in the destination it will be replaced.", List.of(
                     new OpenModalData.ModalButton( "Yes", "green", () -> {
+                        OpenModalData.openModal("Please wait", "Your instances are now moving", List.of());
                         Path currentInstanceLoc = Path.of(Settings.settings.getOrDefault(key, Constants.INSTANCES_FOLDER_LOC));
                         File currentInstanceDir = currentInstanceLoc.toFile();
                         File[] subFiles = currentInstanceDir.listFiles();
                         Path newInstanceDir = Path.of(value);
                         boolean failed = false;
+                        HashMap<Pair<Path, Path>, IOException> lastError = new HashMap<>();
+                        CreeperLogger.INSTANCE.info("Moving instances from " + currentInstanceLoc + " to " + value);
                         if (subFiles != null) {
                             for (File file : subFiles) {
-                                if (!move(Path.of(file.getAbsolutePath()), Path.of(value, file.getName()))) {
-                                    failed = true;
-                                    break;
-                                }
+                                Path srcPath = Path.of(file.getAbsolutePath());
+                                Path dstPath = Path.of(value, file.getName());
+                                lastError = FileUtils.move(srcPath, dstPath, true, true);
+                                failed = !lastError.isEmpty() && !srcPath.toFile().getName().equals(".localCache");
+                                if (failed) break;
+                                CreeperLogger.INSTANCE.info("Moved " + srcPath + " to " + dstPath + " successfully");
                             }
                         }
                         if (failed) {
+                            CreeperLogger.INSTANCE.error("Error occurred whilst migrating instances to the new location. Errors follow.");
+                            lastError.forEach((moveKey, moveValue) -> {
+                                CreeperLogger.INSTANCE.error("Moving " + moveKey.getLeft() + " to " + moveKey.getRight() + " failed:", moveValue);
+                            });
+                            CreeperLogger.INSTANCE.error("Moving any successful instance moves back");
                             File[] newInstanceDirFiles = newInstanceDir.toFile().listFiles();
                             if (newInstanceDirFiles != null) {
                                 for (File file : newInstanceDirFiles) {
-                                    move(Path.of(file.getAbsolutePath()), currentInstanceLoc.resolve(file.getName()));
+                                    FileUtils.move(Path.of(file.getAbsolutePath()), currentInstanceLoc.resolve(file.getName()));
                                 }
                             }
                             OpenModalData.openModal("Error", "Unable to move instances. Please ensure you have permission to create files and folders in this location.", List.of(
                                     new OpenModalData.ModalButton("Ok", "red", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
                             ));
                         } else {
+                            Path oldCache = Path.of(Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC), ".localCache");
+                            oldCache.toFile().deleteOnExit();
                             Settings.settings.remove("instanceLocation");
                             Settings.settings.put("instanceLocation", value);
                             Settings.saveSettings();
                             Instances.refreshInstances();
-                            OpenModalData.openModal("Success", "Moved instance folder successfully", List.of(
+                            localCache = new LocalCache();
+                            OpenModalData.openModal("Success", "Moved instance folder location successfully", List.of(
                                     new OpenModalData.ModalButton( "Yay!", "green", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
                             ));
                         }
@@ -182,7 +207,7 @@ public class CreeperLauncher
             localCache.clean();
         });
 
-        boolean startProcess = true;
+        boolean startProcess = !isDevMode;
 
         /*
         Borrowed from ModpackServerDownloader project
@@ -213,7 +238,9 @@ public class CreeperLauncher
         End
          */
 
-        if(Args.containsKey("pid"))
+        isDevMode = Args.containsKey("dev");
+
+        if(Args.containsKey("pid") && !isDevMode)
         {
             try {
                 long pid = Long.parseLong(Args.get("pid"));
@@ -226,14 +253,14 @@ public class CreeperLauncher
                     handle.onExit().thenRun(CreeperLauncher::exit);
                     Runtime.getRuntime().addShutdownHook(new Thread(handle::destroy));
                 }
-            } catch (Exception ignored) {
-                CreeperLogger.INSTANCE.error("Error connecting to process", ignored);
+            } catch (Exception exception) {
+                CreeperLogger.INSTANCE.error("Error connecting to process", exception);
             }
         } else {
             CreeperLogger.INSTANCE.info("No PID args");
         }
 
-        Settings.webSocketAPI = new WebSocketAPI(new InetSocketAddress(InetAddress.getLoopbackAddress(), defaultWebsocketPort ? Constants.WEBSOCKET_PORT : websocketPort));
+        Settings.webSocketAPI = new WebSocketAPI(new InetSocketAddress(InetAddress.getLoopbackAddress(), defaultWebsocketPort || isDevMode ? Constants.WEBSOCKET_PORT : websocketPort));
         Settings.webSocketAPI.start();
 
         if (startProcess) {
@@ -241,37 +268,7 @@ public class CreeperLauncher
         }
     }
 
-    private static void deleteDirectory(Path directory)
-    {
-
-        if (Files.exists(directory))
-        {
-            try
-            {
-                Files.walkFileTree(directory, new SimpleFileVisitor<>()
-                {
-                    @Override
-                    public FileVisitResult visitFile(Path path, BasicFileAttributes basicFileAttributes) throws IOException
-                    {
-                        Files.delete(path);
-                        return FileVisitResult.CONTINUE;
-                    }
-
-                    @Override
-                    public FileVisitResult postVisitDirectory(Path directory, IOException ioException) throws IOException
-                    {
-                        Files.delete(directory);
-                        return FileVisitResult.CONTINUE;
-                    }
-                });
-            }
-            catch (Exception ignored)
-            {
-
-            }
-        }
-    }
-
+    @SuppressWarnings("ConstantConditions")
     private static void doUpdate(String[] args) {
         String preview = Settings.settings.getOrDefault("enablePreview", "");
         String[] updaterArgs = new String[]{};
@@ -292,31 +289,6 @@ public class CreeperLauncher
             }
         } catch (Throwable ignored)
         {
-        }
-    }
-
-    private static boolean move(Path in, Path out)
-    {
-        try {
-            File outFile = out.toFile();
-            if (outFile.exists() && outFile.isDirectory())
-            {
-                File[] files = outFile.listFiles();
-                if (files != null) {
-                    for (File file : files) {
-                        Path path = file.toPath();
-                        Path destPath = out.resolve(file.getName());
-                        Files.move(path, destPath);
-                    }
-                }
-                return true;
-            }
-            Files.move(in, out);
-            return true;
-        } catch (Exception e) {
-            System.out.println("Unable to move " + in);
-            //e.printStackTrace();
-            return false;
         }
     }
 

@@ -28,7 +28,7 @@ public class McUtils
     public static String getMinecraftJsonForVersion(String version)
     {
         String url = Constants.MC_VERSION_MANIFEST;
-        String resp = WebUtils.getWebResponse(url);
+        String resp = WebUtils.getAPIResponse(url);
 
         JsonElement jElement = new JsonParser().parse(resp);
         if (jElement.isJsonObject())
