@@ -47,25 +47,28 @@ public class IntegrityCheckException extends RuntimeException
     @Override
     public void printStackTrace()
     {
+        StringBuilder errorStr = new StringBuilder();
         super.printStackTrace();
+        StringBuilder errorString = new StringBuilder();
         if (otherThrowable != null)
         {
-            CreeperLogger.INSTANCE.error("Caught throwable: ");
+            errorString.append("Caught throwable: " + "\n");
             otherThrowable.printStackTrace();
         }
-        CreeperLogger.INSTANCE.error("errorCode: " + errorCode);
-        CreeperLogger.INSTANCE.error("errorCode: " + errorCode);
-        CreeperLogger.INSTANCE.error("checksum: " + checksum);
+        errorString.append("errorCode: ").append(errorCode).append("\n");
+        errorString.append("checksum: ").append(checksum).append("\n");
         if (checksums != null)
         {
             for (String validChecksum : checksums)
             {
-                CreeperLogger.INSTANCE.error("validChecksum: " + validChecksum);
+                errorString.append("validChecksum: ").append(validChecksum).append("\n");
             }
         }
-        CreeperLogger.INSTANCE.error("size: " + size);
-        CreeperLogger.INSTANCE.error("expectedSize: " + expectedSize);
-        CreeperLogger.INSTANCE.error("source: " + source);
-        CreeperLogger.INSTANCE.error("destination: " + destination);
+        errorString.append("size: ").append(size).append("\n");
+        errorString.append("expectedSize: ").append(expectedSize).append("\n");
+        errorString.append("source: ").append(source).append("\n");
+        errorString.append("destination: ").append(destination).append("\n");
+
+        CreeperLogger.INSTANCE.error(errorString.toString());
     }
 }

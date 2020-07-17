@@ -1,5 +1,6 @@
 package net.creeperhost.creeperlauncher.util;
 
+import net.creeperhost.creeperlauncher.CreeperLogger;
 import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.archivers.ArchiveStreamFactory;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
@@ -170,125 +171,6 @@ public class FileUtils
         }
     }
 
-    public static void deleteDirectory(Path directory)
-    {
-
-        if (Files.exists(directory))
-        {
-            try
-            {
-                Files.walkFileTree(directory, new SimpleFileVisitor<>()
-                {
-                    @Override
-                    public FileVisitResult visitFile(Path path, BasicFileAttributes basicFileAttributes) throws IOException
-                    {
-                        Files.delete(path);
-                        return FileVisitResult.CONTINUE;
-                    }
-
-                    @Override
-                    public FileVisitResult postVisitDirectory(Path directory, IOException ioException) throws IOException
-                    {
-                        Files.delete(directory);
-                        return FileVisitResult.CONTINUE;
-                    }
-                });
-            }
-            catch (Exception ignored)
-            {
-
-            }
-        }
-    }
-
-    private static HashMap<Pair<Path, Path>, IOException> moveDirectory(Path in, Path out, boolean replaceExisting, boolean failFast) {
-        HashMap<Pair<Path, Path>, IOException> errors = new HashMap<>();
-        if (!in.toFile().getName().equals(out.toFile().getName()))
-        {
-            out = out.resolve(in.toFile().getName());
-        }
-        File outFile = out.toFile();
-        if (replaceExisting && outFile.exists())
-        {
-            if (outFile.isDirectory())
-            {
-                FileUtils.deleteDirectory(out.toFile());
-            } else {
-                try {
-                    Files.deleteIfExists(out);
-                } catch (IOException e) {
-                    // shrug
-                }
-            }
-        }
-        if (in.getFileSystem() == out.getFileSystem())
-        {
-            try {
-                Files.move(in, out);
-            } catch (IOException e) {
-                errors.put(new Pair<>(in, out), e);
-            }
-            return errors;
-        }
-        try {
-            Path finalOut = out;
-            Files.walkFileTree(in, new SimpleFileVisitor<>() {
-                @Override
-                public FileVisitResult visitFile(Path path, BasicFileAttributes basicFileAttributes) throws IOException {
-
-                    Path relative = in.getParent().relativize(path);
-                    if (in.toFile().getName().equals(finalOut.toFile().getName())) {
-                        relative = in.relativize(path);
-                    }
-                    Path outFile = finalOut.resolve(relative);
-                    Files.createDirectories(outFile.getParent());
-                    try {
-                        Files.move(path, outFile);
-                    } catch (IOException e) {
-                        errors.put(new Pair<>(path, outFile), e);
-                        if (failFast)
-                            return FileVisitResult.TERMINATE;
-                    }
-                    return FileVisitResult.CONTINUE;
-                }
-            });
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return errors;
-    }
-
-    public static HashMap<Pair<Path, Path>, IOException> move(Path in, Path out)
-    {
-        return move(in, out, false, true);
-    }
-
-    public static HashMap<Pair<Path, Path>, IOException> move(Path in, Path out, boolean replaceExisting, boolean failFast)
-    {
-        if (in.toFile().isDirectory())
-        {
-            return moveDirectory(in, out, replaceExisting, failFast);
-        }
-        HashMap<Pair<Path, Path>, IOException> errors = new HashMap<>();
-        try
-        {
-            File outFile = out.toFile();
-            if (outFile.exists() && outFile.isDirectory())
-            {
-                out = out.resolve(in.toFile().getName());
-            }
-            if (replaceExisting) {
-                Files.move(in, out, StandardCopyOption.REPLACE_EXISTING);
-            } else {
-                Files.move(in, out);
-            }
-        } catch (IOException e) {
-            errors.put(new Pair<>(in, out), e);
-        }
-        return errors;
-    }
-
     public static String getHash(File file, String hashType)
     {
         try {
@@ -358,5 +240,124 @@ public class FileUtils
             e.printStackTrace();
         }
         return flag.get();
+    }
+
+    public static void deleteDirectory(Path directory)
+    {
+
+        if (Files.exists(directory))
+        {
+            try
+            {
+                Files.walkFileTree(directory, new SimpleFileVisitor<>()
+                {
+                    @Override
+                    public FileVisitResult visitFile(Path path, BasicFileAttributes basicFileAttributes) throws IOException
+                    {
+                        Files.delete(path);
+                        return FileVisitResult.CONTINUE;
+                    }
+
+                    @Override
+                    public FileVisitResult postVisitDirectory(Path directory, IOException ioException) throws IOException
+                    {
+                        Files.delete(directory);
+                        return FileVisitResult.CONTINUE;
+                    }
+                });
+            }
+            catch (Exception ignored)
+            {
+
+            }
+        }
+    }
+
+    private static HashMap<Pair<Path, Path>, IOException> moveDirectory(Path in, Path out, boolean replaceExisting, boolean failFast) {
+        HashMap<Pair<Path, Path>, IOException> errors = new HashMap<>();
+        if (!in.toFile().getName().equals(out.toFile().getName()))
+        {
+            out = out.resolve(in.toFile().getName());
+        }
+        File outFile = out.toFile();
+        if (replaceExisting && outFile.exists())
+        {
+            if (outFile.isDirectory())
+            {
+                FileUtils.deleteDirectory(out.toFile());
+            } else {
+                try {
+                    Files.deleteIfExists(out);
+                } catch (IOException e) {
+                    // shrug
+                }
+            }
+        }
+
+        try {
+            Files.move(in, out);
+            return errors;
+        } catch (IOException e) {
+            CreeperLogger.INSTANCE.warning("Could not move " + in + " to " + out + " - trying another method");
+            e.printStackTrace();
+        }
+
+        try {
+            Path finalOut = out;
+            Files.walkFileTree(in, new SimpleFileVisitor<>() {
+                @Override
+                public FileVisitResult visitFile(Path path, BasicFileAttributes basicFileAttributes) throws IOException {
+
+                    Path relative = in.getParent().relativize(path);
+                    if (in.toFile().getName().equals(finalOut.toFile().getName())) {
+                        relative = in.relativize(path);
+                    }
+                    Path outFile = finalOut.resolve(relative);
+                    Files.createDirectories(outFile.getParent());
+                    try {
+                        Files.move(path, outFile);
+                    } catch (IOException e) {
+                        errors.put(new Pair<>(path, outFile), e);
+                        if (failFast)
+                            return FileVisitResult.TERMINATE;
+                    }
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return errors;
+    }
+
+    public static HashMap<Pair<Path, Path>, IOException> move(Path in, Path out)
+    {
+        return move(in, out, false, true);
+    }
+
+    public static HashMap<Pair<Path, Path>, IOException> move(Path in, Path out, boolean replaceExisting, boolean failFast)
+    {
+        if (in.toFile().isDirectory())
+        {
+            return moveDirectory(in, out, replaceExisting, failFast);
+        }
+        HashMap<Pair<Path, Path>, IOException> errors = new HashMap<>();
+        try
+        {
+            File outFile = out.toFile();
+            if (outFile.exists() && outFile.isDirectory())
+            {
+                out = out.resolve(in.toFile().getName());
+            }
+            if (replaceExisting) {
+                Files.move(in, out, StandardCopyOption.REPLACE_EXISTING);
+            } else {
+                Files.move(in, out);
+            }
+        } catch (IOException e) {
+            errors.put(new Pair<>(in, out), e);
+        }
+        return errors;
     }
 }

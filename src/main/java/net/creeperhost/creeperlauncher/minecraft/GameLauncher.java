@@ -4,6 +4,7 @@ import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.os.OSUtils;
+import net.creeperhost.creeperlauncher.util.StreamGobblerLog;
 
 import java.io.File;
 import java.io.IOException;
@@ -51,7 +52,11 @@ public class GameLauncher
             }
             try
             {
-                Process process = new ProcessBuilder(exe, "--workDir", Constants.BIN_LOCATION).start();
+                ProcessBuilder builder = new ProcessBuilder(exe, "--workDir", Constants.BIN_LOCATION);
+                CreeperLogger.INSTANCE.info("Launching Vanilla launcher and closing - path and args: " + exe + " --workDir " + Constants.BIN_LOCATION);
+                Process process = builder.start();
+                StreamGobblerLog.redirectToLogger(process.getErrorStream(), CreeperLogger.INSTANCE::error);
+                StreamGobblerLog.redirectToLogger(process.getInputStream(), CreeperLogger.INSTANCE::info);
                 File file = new File(Constants.LAUNCHER_PROFILES_JSON);
                 while (!file.exists())
                 {

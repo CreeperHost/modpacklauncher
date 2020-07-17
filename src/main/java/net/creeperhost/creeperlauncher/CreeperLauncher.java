@@ -15,7 +15,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.URISyntaxException;
 import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -45,12 +44,18 @@ public class CreeperLauncher
 
     public CreeperLauncher() {}
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     public static void main(String[] args)
     {
         File json = new File(Constants.BIN_LOCATION, "settings.json");
         boolean migrate = false;
         if (!json.exists())
         {
+            try {
+                Files.createDirectories(Path.of(Constants.BIN_LOCATION));
+            } catch (IOException ignored) {
+                // shrug
+            }
             File jsonOld = new File(Constants.BIN_LOCATION_OURS, "settings.json");
 
             if (jsonOld.exists()) {
@@ -121,9 +126,20 @@ public class CreeperLauncher
                         File[] subFiles = currentInstanceDir.listFiles();
                         Path newInstanceDir = Path.of(value);
                         boolean failed = false;
-                        HashMap<Pair<Path, Path>, IOException> lastError;
+                        HashMap<Pair<Path, Path>, IOException> lastError = new HashMap<>();
+                        CreeperLogger.INSTANCE.info("Moving instances from " + currentInstanceLoc + " to " + value);
                         if (subFiles != null) {
                             for (File file : subFiles) {
+                                String fileName = file.getName();
+                                if(fileName.length() == 36) {
+                                    try {
+                                        UUID.fromString(fileName);
+                                    } catch (Throwable ignored) {
+                                        continue;
+                                    }
+                                } else if (!fileName.equals(".localCache")) {
+                                    continue;
+                                }
                                 Path srcPath = Path.of(file.getAbsolutePath());
                                 Path dstPath = Path.of(value, file.getName());
                                 lastError = FileUtils.move(srcPath, dstPath, true, true);
@@ -133,6 +149,11 @@ public class CreeperLauncher
                             }
                         }
                         if (failed) {
+                            CreeperLogger.INSTANCE.error("Error occurred whilst migrating instances to the new location. Errors follow.");
+                            lastError.forEach((moveKey, moveValue) -> {
+                                CreeperLogger.INSTANCE.error("Moving " + moveKey.getLeft() + " to " + moveKey.getRight() + " failed:", moveValue);
+                            });
+                            CreeperLogger.INSTANCE.error("Moving any successful instance moves back");
                             File[] newInstanceDirFiles = newInstanceDir.toFile().listFiles();
                             if (newInstanceDirFiles != null) {
                                 for (File file : newInstanceDirFiles) {
@@ -143,6 +164,8 @@ public class CreeperLauncher
                                     new OpenModalData.ModalButton("Ok", "red", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
                             ));
                         } else {
+                            Path oldCache = Path.of(Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC), ".localCache");
+                            oldCache.toFile().deleteOnExit();
                             Settings.settings.remove("instanceLocation");
                             Settings.settings.put("instanceLocation", value);
                             Settings.saveSettings();
@@ -325,8 +348,8 @@ public class CreeperLauncher
             {
                 CreeperLogger.INSTANCE.info("Starting Electron: " + String.join(" ", args));
                 elect = app.start();
-                new StreamGobblerLog(elect.getErrorStream(), CreeperLogger.INSTANCE::error);
-                new StreamGobblerLog(elect.getInputStream(), CreeperLogger.INSTANCE::info);
+                StreamGobblerLog.redirectToLogger(elect.getErrorStream(), CreeperLogger.INSTANCE::error);
+                StreamGobblerLog.redirectToLogger(elect.getInputStream(), CreeperLogger.INSTANCE::info);
             } catch (IOException e)
             {
                 CreeperLogger.INSTANCE.error("Error starting Electron: ", e);
