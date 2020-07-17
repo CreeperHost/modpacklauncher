@@ -104,10 +104,10 @@ public class DownloadTask implements IInstallTask
                         {
                             if (e instanceof IntegrityCheckException)
                             {
-                                CreeperLogger.INSTANCE.warning("SHA1 does not match", e);
+                                CreeperLogger.INSTANCE.error("Integrity error whilst getting file: ", e);
                             } else
                             {
-                                CreeperLogger.INSTANCE.warning("Error while downloading", new IntegrityCheckException(e, -1, "", null, 0, 0, file.getUrl(), destination.toString())); // TODO: make this better
+                                CreeperLogger.INSTANCE.error("Unknown error whilst getting file: ", new IntegrityCheckException(e, -1, "", null, 0, 0, file.getUrl(), destination.toString())); // TODO: make this better
                             }
                         }
                     }
