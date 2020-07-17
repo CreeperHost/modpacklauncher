@@ -47,7 +47,6 @@ public class IntegrityCheckException extends RuntimeException
     @Override
     public void printStackTrace()
     {
-        StringBuilder errorStr = new StringBuilder();
         super.printStackTrace();
         StringBuilder errorString = new StringBuilder();
         if (otherThrowable != null)
