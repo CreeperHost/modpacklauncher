@@ -46,6 +46,7 @@ public class CreeperLauncher
 
     public CreeperLauncher() {}
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     public static void main(String[] args)
     {
         File json = new File(Constants.BIN_LOCATION, "settings.json");
@@ -131,7 +132,16 @@ public class CreeperLauncher
                         CreeperLogger.INSTANCE.info("Moving instances from " + currentInstanceLoc + " to " + value);
                         if (subFiles != null) {
                             for (File file : subFiles) {
-                                if(file.getName().length() != 36 && !file.getName().equals(".localCache")) continue;
+                                String fileName = file.getName();
+                                if(fileName.length() == 36) {
+                                    try {
+                                        UUID.fromString(fileName);
+                                    } catch (Throwable ignored) {
+                                        continue;
+                                    }
+                                } else if (!fileName.equals(".localCache")) {
+                                    continue;
+                                }
                                 Path srcPath = Path.of(file.getAbsolutePath());
                                 Path dstPath = Path.of(value, file.getName());
                                 lastError = FileUtils.move(srcPath, dstPath, true, true);
