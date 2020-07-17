@@ -198,7 +198,7 @@ public class DownloadableFile
             {
                 if (FailOnChecksum)
                 {
-                    throw new IntegrityCheckException("SHA1 checksum does not match.", -1, sha1, expectedChecksums, destination.length(), getSize(), downloadUrl, path);
+                    throw new IntegrityCheckException("SHA1 checksum does not match.", -1, sha1, expectedChecksums, destination.length(), size, downloadUrl, path);
                 } else
                 {
                     CreeperLogger.INSTANCE.warning(this.getName() + "'s SHA1 checksum failed.");
