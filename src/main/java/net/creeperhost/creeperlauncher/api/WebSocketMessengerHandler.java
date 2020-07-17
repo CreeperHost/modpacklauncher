@@ -6,6 +6,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 import net.creeperhost.creeperlauncher.CreeperLauncher;
+import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.api.data.*;
 import net.creeperhost.creeperlauncher.api.handlers.*;
 
@@ -74,7 +75,14 @@ public class WebSocketMessengerHandler
                 {
                     BaseData parsedData = gson.fromJson(data, typeToken.getType());
                     if (CreeperLauncher.isDevMode || (parsedData.secret != null && parsedData.secret.equals(CreeperLauncher.websocketSecret))) {
-                        CompletableFuture.runAsync(()->iMessageHandler.handle(parsedData));
+                        CompletableFuture.runAsync(()-> {
+                            try
+                            {
+                                iMessageHandler.handle(parsedData);
+                            } catch (Throwable t) {
+                                CreeperLogger.INSTANCE.error("Error occurred whilst handling websocket message of type " + parsedData.type, t);
+                            }
+                        });
                     }
                 }
             }
