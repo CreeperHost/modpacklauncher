@@ -131,6 +131,7 @@ public class CreeperLauncher
                         CreeperLogger.INSTANCE.info("Moving instances from " + currentInstanceLoc + " to " + value);
                         if (subFiles != null) {
                             for (File file : subFiles) {
+                                if(file.getName().length() != 36 && !file.getName().equals(".localCache")) continue;
                                 Path srcPath = Path.of(file.getAbsolutePath());
                                 Path dstPath = Path.of(value, file.getName());
                                 lastError = FileUtils.move(srcPath, dstPath, true, true);
