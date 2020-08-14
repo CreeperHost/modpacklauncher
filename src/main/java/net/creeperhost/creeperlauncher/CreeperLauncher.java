@@ -98,7 +98,7 @@ public class CreeperLauncher
             FileUtils.move(Path.of(Constants.BIN_LOCATION_OURS, "libraries"), Path.of(Constants.LIBRARY_LOCATION));
             if (migrateInstances)
             {
-                HashMap<Pair<Path, Path>, IOException> moveResult = FileUtils.move(Path.of(Constants.WORKING_DIR, "instances"), Path.of(Constants.INSTANCES_FOLDER_LOC));
+                HashMap<Pair<Path, Path>, IOException> moveResult = FileUtils.move(Path.of(Constants.WORKING_DIR, "instanceLocation"), Path.of(Constants.INSTANCES_FOLDER_LOC));
                 if (!moveResult.isEmpty()) {
                     CreeperLogger.INSTANCE.error("Error occurred whilst migrating instances to the new location. Errors follow.");
                     moveResult.forEach((key, value) -> {
