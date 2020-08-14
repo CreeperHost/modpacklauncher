@@ -20,6 +20,7 @@ import net.creeperhost.creeperlauncher.util.MiscUtils;
 import java.awt.*;
 import java.io.*;
 import java.net.MalformedURLException;
+import java.nio.channels.FileLock;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -60,6 +61,7 @@ public class LocalInstance implements IPack
     transient private boolean prePlayAsync;
     transient private Runnable preUninstall;
     transient private boolean preUninstallAsync;
+    transient private AtomicBoolean inUse = new AtomicBoolean(false);
 
     public LocalInstance(FTBPack pack, long versionId)
     {
@@ -516,5 +518,47 @@ public class LocalInstance implements IPack
             return false;
         }
         return true;
+    }
+
+    public boolean isInUse(boolean checkFiles)
+    {
+        if (inUse.get()) return true;
+        if (checkFiles)
+        {
+            String dir = getDir();
+            File file = new File(dir);
+            if (!file.exists()) return false;
+            File modsFile = new File(dir, "mods");
+            if (modsFile.exists() && modsFile.canWrite())
+            {
+                File[] files = modsFile.listFiles();
+                if (files != null) {
+                    try(FileLock ignored = new RandomAccessFile(files[files.length - 1], "rw").getChannel().tryLock()) {} catch (Throwable t) {
+                        return true;
+                    }
+                }
+            }
+
+            File savesFile = new File(dir, "saves");
+            if (savesFile.exists() && savesFile.isDirectory())
+            {
+                File[] files = savesFile.listFiles();
+                if (files != null) {
+                    for(File savesDirectory : files) {
+                        if (savesDirectory.isDirectory())
+                        {
+                            File lockFile = new File(savesDirectory, "session.lock");
+                            if (lockFile.exists()) return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    public void setInUse(boolean var)
+    {
+        inUse.set(var);
     }
 }
