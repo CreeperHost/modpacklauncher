@@ -51,6 +51,13 @@ public class Constants
     public static String KEY = "";
     public static String SECRET = "";
 
+    //S3 Auth
+    public static String S3_KEY = "";
+    public static String S3_SECRET = "";
+    public static String S3_BUCKET = "";
+    public static String S3_HOST = "";
+
+
     public static String getCreeperhostModpackSearch2()
     {
         if(Constants.KEY.isEmpty() || Constants.SECRET.isEmpty())

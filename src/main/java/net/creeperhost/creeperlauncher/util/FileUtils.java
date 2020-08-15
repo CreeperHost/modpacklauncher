@@ -171,6 +171,14 @@ public class FileUtils
         }
     }
 
+    public static Long getLastModified(File file)
+    {
+        if (file != null)
+            return file.lastModified();
+
+        return 0L;
+    }
+
     public static String getHash(File file, String hashType)
     {
         try {

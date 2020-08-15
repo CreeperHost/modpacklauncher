@@ -10,5 +10,9 @@ public class StoreAuthDetailsHandler implements IMessageHandler<StoreAuthDetails
     {
         Constants.SECRET = data.mpSecret;
         Constants.KEY = data.mpKey;
+        Constants.S3_BUCKET = data.s3Bucket;
+        Constants.S3_HOST = data.s3Host;
+        Constants.S3_KEY = data.s3Key;
+        Constants.S3_SECRET = data.s3Secret;
     }
 }

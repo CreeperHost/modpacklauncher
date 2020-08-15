@@ -2,6 +2,7 @@ package net.creeperhost.creeperlauncher.pack;
 
 import com.google.gson.*;
 import com.google.gson.stream.JsonReader;
+import net.creeperhost.creeperlauncher.cloudsaves.CloudSaveManager;
 import oshi.SystemInfo;
 import oshi.hardware.HardwareAbstractionLayer;
 
@@ -307,6 +308,13 @@ public class LocalInstance implements IPack
                 this.prePlay.run();
             }
         }
+        if(!Constants.S3_SECRET.isEmpty() && !Constants.S3_KEY.isEmpty() && !Constants.S3_HOST.isEmpty() && !Constants.S3_BUCKET.isEmpty()) {
+            CompletableFuture.runAsync(() ->
+            {
+                cloudSync();
+            }).join();
+        }
+
         this.lastPlayed = System.currentTimeMillis() / 1000L;
         Analytics.sendPlayRequest(this.getId(), this.getVersionId());
         McUtils.clearProfiles(new File(Constants.LAUNCHER_PROFILES_JSON));
@@ -317,6 +325,21 @@ public class LocalInstance implements IPack
         try {
             this.saveJson();
         } catch(Exception ignored) {}
+        if(!Constants.S3_SECRET.isEmpty() && !Constants.S3_KEY.isEmpty() && !Constants.S3_HOST.isEmpty() && !Constants.S3_BUCKET.isEmpty())
+        {
+            CompletableFuture.runAsync(() ->
+            {
+                try
+                {
+                    Thread.sleep(300000);
+                    while (isInUse(true))
+                    {
+                        Thread.sleep(5000);
+                    }
+                    cloudSync();
+                } catch (InterruptedException e) { e.printStackTrace(); }
+            });
+        }
         GameLauncher launcher = new GameLauncher();
         launcher.launchGame();
         return launcher;
@@ -560,5 +583,43 @@ public class LocalInstance implements IPack
     public void setInUse(boolean var)
     {
         inUse.set(var);
+    }
+
+    public void cloudSync()
+    {
+        final String host = Constants.S3_HOST;
+        final int port = 8080;
+        final String accessKeyId = Constants.S3_KEY;
+        final String secretAccessKey = Constants.S3_SECRET;
+        final String bucketName = Constants.S3_BUCKET;
+        File file = new File(path);
+
+        if(isInUse(true)) return;
+        setInUse(true);
+        CloudSaveManager.setup(host, port, accessKeyId, secretAccessKey, bucketName);
+
+        if (file.isDirectory())
+        {
+            String dirLocation = file.getAbsolutePath();
+            if (dirLocation.endsWith("/") || dirLocation.isEmpty()) dirLocation += file.getName();
+            dirLocation += "/";
+            File[] fileList = file.listFiles();
+            if (fileList != null) {
+                for (File innerFile : fileList) {
+                    try {
+                        CloudSaveManager.syncFile(innerFile, dirLocation, true);
+                    } catch (Exception e) { e.printStackTrace(); }
+                }
+            }
+        } else {
+            String fileLocation = file.getAbsolutePath();
+            if (fileLocation.endsWith("/") || fileLocation.isEmpty())
+                fileLocation += file.getName();
+            try {
+                CloudSaveManager.syncFile(file, fileLocation, true);
+            } catch (Exception e) { e.printStackTrace(); }
+        }
+
+        setInUse(false);
     }
 }

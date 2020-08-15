@@ -149,6 +149,7 @@ public class CloudSaveManager {
         long fileSize = file.length();
         ObjectMetadata meta = new ObjectMetadata();
         meta.addUserMetadata("ourhash", fileHash);
+        meta.addUserMetadata("ourlastmodified", String.valueOf(file.lastModified()));
         meta.setContentLength(fileSize);
         Upload upload = transferManager.upload(bucket, location, bufferedStream, meta);
         if (blocking) {
@@ -163,6 +164,37 @@ public class CloudSaveManager {
                     System.out.println("Removed " + upload.getDescription() + " due to " + type.toString());
                 }
             });
+        }
+    }
+
+    public static void syncFile(File file, String location, boolean blocking) throws Exception
+    {
+        CreeperLogger.INSTANCE.error("Uploading " + file.getPath());
+        ObjectMetadata objectMetadata = null;
+        try {
+            //System.out.println("Getting metadata for " + location);
+            objectMetadata = s3.getObjectMetadata(bucket, location);
+        } catch (AmazonS3Exception ignored) {}
+
+        String fileHash = FileUtils.getHash(file, "SHA-256");
+        if (objectMetadata != null) {
+            if (fileHash.equals(objectMetadata.getUserMetaDataOf("ourhash"))) {
+                CreeperLogger.INSTANCE.info("Not uploading " + file.getPath() + " as object exists on server");
+                return;
+            } else
+            {
+                long ourModifiedClient = FileUtils.getLastModified(file);
+                long ourModifiedServer = Long.parseLong(objectMetadata.getUserMetaDataOf("ourlastmodified"));
+
+                if(ourModifiedClient > ourModifiedServer)
+                {
+                    uploadFile(file, location, blocking);
+                }
+                else if(ourModifiedClient < ourModifiedServer)
+                {
+                    downloadFile(location, file, blocking);
+                }
+            }
         }
     }
 

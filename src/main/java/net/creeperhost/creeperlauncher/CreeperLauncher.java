@@ -39,6 +39,7 @@ public class CreeperLauncher
     public static boolean defaultWebsocketPort = false;
     public static int websocketPort = WebSocketAPI.generateRandomPort();
     public static final String websocketSecret = WebSocketAPI.generateSecret();
+    public static AtomicBoolean isSyncing = new AtomicBoolean(false);
 
     private static boolean warnedDevelop = false;
 
@@ -259,7 +260,15 @@ public class CreeperLauncher
                     startProcess = false;
                     defaultWebsocketPort = true;
                     ProcessHandle handle = electronProc.get();
-                    handle.onExit().thenRun(CreeperLauncher::exit);
+                    handle.onExit().thenRun(() ->
+                    {
+                        while (isSyncing.get()) {
+                            try {
+                                Thread.sleep(1000);
+                            } catch (InterruptedException e) { e.printStackTrace(); }
+                        }
+                        CreeperLauncher.exit();
+                    });
                     Runtime.getRuntime().addShutdownHook(new Thread(handle::destroy));
                 }
             } catch (Exception exception) {
