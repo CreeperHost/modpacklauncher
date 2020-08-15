@@ -52,10 +52,10 @@ public class Constants
     public static String SECRET = "";
 
     //S3 Auth
-    public static String S3_KEY = "";
-    public static String S3_SECRET = "";
-    public static String S3_BUCKET = "";
-    public static String S3_HOST = "";
+    public static String S3_KEY = "85fe11e9860190626582";
+    public static String S3_SECRET = "51cb56aa1c916767cba0671cdba59f344734ad3c";
+    public static String S3_BUCKET = "ec8f5c66b35b4404f7fdefa964e1bb58";
+    public static String S3_HOST = "ghm1.minetogether-cloud-saves.ch.tools";
 
 
     public static String getCreeperhostModpackSearch2()

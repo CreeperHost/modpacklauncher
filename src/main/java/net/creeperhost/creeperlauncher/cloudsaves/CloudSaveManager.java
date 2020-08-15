@@ -34,34 +34,8 @@ public class CloudSaveManager {
     private static AmazonS3 s3 = null;
     private static String bucket = "";
     private static TransferManager transferManager = null;
-    private static List<Upload> currentUploads = Collections.synchronizedList(new ArrayList<>());
-    private static List<Download> currentDownloads = Collections.synchronizedList(new ArrayList<>());
-
-    /*
-        Temporary for test purposes
-    */
-    public static void main(String[] args) throws InterruptedException {
-        final String host = args[0];
-        final int port = Integer.parseInt(args[1]);
-        final String accessKeyId = args[2];
-        final String secretAccessKey = args[3];
-        final String bucketName = args[4];
-        setup(host, port, accessKeyId, secretAccessKey, bucketName);
-        CompletableFuture<Void> upload = upload(Path.of(Settings.settings.getOrDefault("instances", Constants.INSTANCES_FOLDER_LOC), "2df67372-8ac9-4fd4-b70c-8dd773cd954b"), "", false);
-        upload.exceptionally(e -> {
-            System.out.println("oops");
-            return null;
-        });
-        upload.thenRun(() -> System.out.println("lol"));
-        upload.join();
-        download("2df67372-8ac9-4fd4-b70c-8dd773cd954b", Path.of(Settings.settings.getOrDefault("instances", Constants.INSTANCES_FOLDER_LOC)), false)
-        .join();
-        while(downloadsInProgress())
-            Thread.sleep(100);
-    }
-    /*
-        End temporary
-    */
+    public static List<Upload> currentUploads = Collections.synchronizedList(new ArrayList<>());
+    public static List<Download> currentDownloads = Collections.synchronizedList(new ArrayList<>());
 
     public static void setup(String host, int port, String accessKeyId, String secretAccessKey, String bucketName) {
         bucket = bucketName;
@@ -109,6 +83,13 @@ public class CloudSaveManager {
         return CompletableFuture.runAsync(func);
     }
 
+    public static List<S3ObjectSummary> listObjects()
+    {
+        CloudSaveManager.setup(Constants.S3_HOST, 8080, Constants.S3_KEY, Constants.S3_SECRET, Constants.S3_BUCKET);
+
+        return s3.listObjects(bucket).getObjectSummaries();
+    }
+
     private static void actuallyUpload(File file, String location, boolean blocking) throws Exception {
         if (file.isDirectory())
         {
@@ -145,7 +126,18 @@ public class CloudSaveManager {
             }
         }
 
-        BufferedInputStream bufferedStream = new BufferedInputStream(new FileInputStream(file));
+        BufferedInputStream bufferedStream; //= new BufferedInputStream(new FileInputStream(file));
+
+
+        if(file.isDirectory() && file.listFiles().length == 0)
+        {
+            bufferedStream = new BufferedInputStream(new ByteArrayInputStream(new byte[0]));
+        }
+        else
+            {
+                bufferedStream = new BufferedInputStream(new FileInputStream(file));
+            }
+
         long fileSize = file.length();
         ObjectMetadata meta = new ObjectMetadata();
         meta.addUserMetadata("ourhash", fileHash);
@@ -167,6 +159,40 @@ public class CloudSaveManager {
         }
     }
 
+    public static void syncManual(File file, String location, boolean blocking, boolean client) throws Exception
+    {
+        CreeperLogger.INSTANCE.error("Uploading " + file.getPath());
+        ObjectMetadata objectMetadata = null;
+        try {
+            //System.out.println("Getting metadata for " + location);
+            objectMetadata = s3.getObjectMetadata(bucket, location);
+        } catch (AmazonS3Exception ignored) {}
+
+        String fileHash = FileUtils.getHash(file, "SHA-256");
+        if (objectMetadata != null) {
+            System.out.println("Client " + fileHash + " Server " + objectMetadata.getUserMetaDataOf("ourhash"));
+
+            if (fileHash.equals(objectMetadata.getUserMetaDataOf("ourhash"))) {
+                CreeperLogger.INSTANCE.info("Not uploading " + file.getPath() + " as object exists on server");
+                return;
+            } else
+            {
+                if(client)
+                {
+                    uploadFile(file, location, blocking);
+                }
+                else
+                {
+                    downloadFile(location, file, blocking);
+                }
+            }
+        }
+        else
+        {
+            uploadFile(file, location, blocking);
+        }
+    }
+
     public static void syncFile(File file, String location, boolean blocking) throws Exception
     {
         CreeperLogger.INSTANCE.error("Uploading " + file.getPath());
@@ -178,6 +204,8 @@ public class CloudSaveManager {
 
         String fileHash = FileUtils.getHash(file, "SHA-256");
         if (objectMetadata != null) {
+            System.out.println("Client " + fileHash + " Server " + objectMetadata.getUserMetaDataOf("ourhash"));
+
             if (fileHash.equals(objectMetadata.getUserMetaDataOf("ourhash"))) {
                 CreeperLogger.INSTANCE.info("Not uploading " + file.getPath() + " as object exists on server");
                 return;
@@ -188,13 +216,19 @@ public class CloudSaveManager {
 
                 if(ourModifiedClient > ourModifiedServer)
                 {
+                    System.out.println("Client " + ourModifiedClient + " Server " + ourModifiedServer);
                     uploadFile(file, location, blocking);
                 }
                 else if(ourModifiedClient < ourModifiedServer)
                 {
+                    System.out.println("Client " + ourModifiedClient + " Server " + ourModifiedServer);
                     downloadFile(location, file, blocking);
                 }
             }
+        }
+        else
+        {
+            uploadFile(file, location, blocking);
         }
     }
 
@@ -246,7 +280,18 @@ public class CloudSaveManager {
         downloadFile(location, file, blocking);
     }
 
-    private static void downloadFile(String location, File file, boolean blocking) throws Exception {
+    public static void deleteFile(String location)
+    {
+        try {
+            System.out.println("deleting file " + location);
+            s3.deleteObject(bucket, location);
+        } catch (Throwable e)
+        {
+            e.printStackTrace();
+        }
+    }
+
+    public static void downloadFile(String location, File file, boolean blocking) throws Exception {
         System.out.println("Downloading " + location);
 
         if (file.exists() && !file.isDirectory())

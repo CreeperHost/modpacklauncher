@@ -1,8 +1,13 @@
 package net.creeperhost.creeperlauncher.pack;
 
+import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.google.gson.*;
 import com.google.gson.stream.JsonReader;
+import net.creeperhost.creeperlauncher.api.data.CloseModalData;
+import net.creeperhost.creeperlauncher.api.data.OpenModalData;
 import net.creeperhost.creeperlauncher.cloudsaves.CloudSaveManager;
+import net.creeperhost.creeperlauncher.cloudsaves.CloudSyncType;
+import net.creeperhost.creeperlauncher.install.tasks.DownloadTask;
 import oshi.SystemInfo;
 import oshi.hardware.HardwareAbstractionLayer;
 
@@ -22,13 +27,12 @@ import java.awt.*;
 import java.io.*;
 import java.net.MalformedURLException;
 import java.nio.channels.FileLock;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.*;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class LocalInstance implements IPack
 {
@@ -56,6 +60,7 @@ public class LocalInstance implements IPack
     public String modLoader = "";
     private long lastPlayed;
     private boolean isImport = false;
+    private boolean cloudSaves = false;
     transient private Runnable postInstall;
     transient private boolean postInstallAsync;
     transient private Runnable prePlay;
@@ -298,6 +303,8 @@ public class LocalInstance implements IPack
 
     public GameLauncher play()
     {
+        cloudSaves = true;
+
         if (this.prePlay != null)
         {
             if (this.prePlayAsync)
@@ -325,7 +332,7 @@ public class LocalInstance implements IPack
         try {
             this.saveJson();
         } catch(Exception ignored) {}
-        if(!Constants.S3_SECRET.isEmpty() && !Constants.S3_KEY.isEmpty() && !Constants.S3_HOST.isEmpty() && !Constants.S3_BUCKET.isEmpty())
+        if(cloudSaves && !Constants.S3_SECRET.isEmpty() && !Constants.S3_KEY.isEmpty() && !Constants.S3_HOST.isEmpty() && !Constants.S3_BUCKET.isEmpty())
         {
             CompletableFuture.runAsync(() ->
             {
@@ -336,7 +343,7 @@ public class LocalInstance implements IPack
                     {
                         Thread.sleep(5000);
                     }
-                    cloudSync();
+//                    cloudSync();
                 } catch (InterruptedException e) { e.printStackTrace(); }
             });
         }
@@ -587,41 +594,196 @@ public class LocalInstance implements IPack
 
     public void cloudSync()
     {
+        if(!cloudSaves) return;
+
+        if(isInUse(true)) return;
+
+        AtomicInteger progress = new AtomicInteger(0);
+
+        setInUse(true);
+        CreeperLauncher.isSyncing.set(true);
+
+        List<S3ObjectSummary> s3ObjectSummaries = CloudSaveManager.listObjects();
+        AtomicBoolean syncConflict = new AtomicBoolean(false);
+
+        for(S3ObjectSummary s3ObjectSummary : s3ObjectSummaries)
+        {
+            if(!s3ObjectSummary.getKey().contains(this.uuid.toString())) continue;
+
+            File file = new File(Constants.INSTANCES_FOLDER_LOC + File.separator + s3ObjectSummary.getKey());
+            System.out.println(s3ObjectSummary.getKey() + " " + file.getAbsolutePath());
+
+            if(s3ObjectSummary.getKey().contains("/saves/"))
+            {
+                try
+                {
+                    CloudSaveManager.downloadFile(s3ObjectSummary.getKey(), file, true);
+                } catch (Exception e)
+                {
+                    syncConflict.set(true);
+                    e.printStackTrace();
+                    break;
+                }
+                continue;
+            }
+
+            if(!file.exists())
+            {
+                syncConflict.set(true);
+                break;
+            }
+        }
+
+        if(syncConflict.get())
+        {
+            //Open UI
+            OpenModalData.openModal("Cloud Sync Conflict", "We have detected a synchronization error between your saves, How would you like to resolve?", List.of
+            ( new OpenModalData.ModalButton("Use Cloud", "green", () ->
+            {
+                OpenModalData.openModal("Please wait", "Resolving synchronization conflict", List.of());
+
+                s3ObjectSummaries.forEach(s3ObjectSummary ->
+                {
+                    OpenModalData.openModal("Please wait", "Resolving synchronization conflict <br>" + (progress.addAndGet(1) / s3ObjectSummaries.size()) * 100 + "%", List.of());
+
+                    if(s3ObjectSummary.getKey().contains(this.uuid.toString()))
+                    {
+                        File file = new File(Constants.INSTANCES_FOLDER_LOC + File.separator + s3ObjectSummary.getKey());
+                        if(!file.exists())
+                        {
+                            try
+                            {
+                                CloudSaveManager.downloadFile(s3ObjectSummary.getKey(), file, true);
+                            } catch (Exception e) { e.printStackTrace(); }
+                        }
+                }});
+                cloudSyncLoop(this.path, false, CloudSyncType.SYNC_MANUAL_SERVER);
+                syncConflict.set(false);
+                Settings.webSocketAPI.sendMessage(new CloseModalData());
+            }), new OpenModalData.ModalButton("Use Local", "red", () ->
+            {
+                OpenModalData.openModal("Please wait", "Resolving synchronization conflict", List.of());
+
+                s3ObjectSummaries.forEach(s3ObjectSummary ->
+                {
+                    OpenModalData.openModal("Please wait", "Resolving synchronization conflict <br>" + (progress.addAndGet(1) / s3ObjectSummaries.size()) * 100 + "%", List.of());
+
+                    if(s3ObjectSummary.getKey().contains(this.uuid.toString()))
+                    {
+                        File file = new File(Constants.INSTANCES_FOLDER_LOC + File.separator + s3ObjectSummary.getKey());
+                        if(!file.exists())
+                        {
+                            try
+                            {
+                                CloudSaveManager.deleteFile(s3ObjectSummary.getKey());
+                            } catch (Exception e) { e.printStackTrace(); }
+                        }
+                }});
+                cloudSyncLoop(this.path, false, CloudSyncType.SYNC_MANUAL_CLIENT);
+                syncConflict.set(false);
+                Settings.webSocketAPI.sendMessage(new CloseModalData());
+            }), new OpenModalData.ModalButton("Ignore", "orange", () ->
+            {
+                cloudSaves = false;
+                try {
+                    saveJson();
+                } catch (IOException e) { e.printStackTrace(); }
+                syncConflict.set(false);
+                Settings.webSocketAPI.sendMessage(new CloseModalData());
+            })));
+            while (syncConflict.get())
+            {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) { e.printStackTrace(); }
+            }
+        }
+        else
+            {
+                OpenModalData.openModal("Please wait", "Checking cloud save synchronization <br>", List.of());
+                cloudSyncLoop(this.path, false, CloudSyncType.SYNC_NORMAL);
+                Settings.webSocketAPI.sendMessage(new CloseModalData());
+            }
+        setInUse(false);
+        CreeperLauncher.isSyncing.set(false);
+    }
+
+    public void cloudSyncLoop(String path, boolean ignoreInUse, CloudSyncType cloudSyncType)
+    {
         final String host = Constants.S3_HOST;
         final int port = 8080;
         final String accessKeyId = Constants.S3_KEY;
         final String secretAccessKey = Constants.S3_SECRET;
         final String bucketName = Constants.S3_BUCKET;
+
         File file = new File(path);
-
-        if(isInUse(true)) return;
-        setInUse(true);
-        CreeperLauncher.isSyncing.set(true);
         CloudSaveManager.setup(host, port, accessKeyId, secretAccessKey, bucketName);
-
-        if (file.isDirectory())
+        if(file.isDirectory())
         {
-            String dirLocation = file.getAbsolutePath();
-            if (dirLocation.endsWith("/") || dirLocation.isEmpty()) dirLocation += file.getName();
-            dirLocation += "/";
-            File[] fileList = file.listFiles();
-            if (fileList != null) {
-                for (File innerFile : fileList) {
-                    try {
-                        CloudSaveManager.syncFile(innerFile, dirLocation, true);
-                    } catch (Exception e) { e.printStackTrace(); }
+            File[] dirContents = file.listFiles();
+            if(dirContents != null && dirContents.length > 0) {
+                for (File innerFile : dirContents) {
+                    System.out.println(innerFile);
+                    cloudSyncLoop(innerFile.getAbsolutePath(), true, cloudSyncType);
                 }
+            } else {
+                try {
+                    //Add a / to allow upload of empty directories
+                    File file1 = new File(file.getAbsoluteFile() + File.separator);
+                    CloudSaveManager.syncFile(file1, (file.getAbsolutePath() + File.separator).replace(Constants.INSTANCES_FOLDER_LOC, ""), true);
+                } catch (Exception e) { e.printStackTrace(); }
             }
-        } else {
-            String fileLocation = file.getAbsolutePath();
-            if (fileLocation.endsWith("/") || fileLocation.isEmpty())
-                fileLocation += file.getName();
-            try {
-                CloudSaveManager.syncFile(file, fileLocation, true);
+        }
+        else
+        {
+            try
+            {
+                System.out.println("Uploading file " + file.getAbsolutePath());
+                switch (cloudSyncType)
+                {
+                    case SYNC_NORMAL:
+                        try
+                        {
+                            List<CompletableFuture> futures = new ArrayList<>();
+                            futures.add(CompletableFuture.runAsync(() ->
+                            {
+                                try
+                                {
+                                    CloudSaveManager.syncFile(file, file.getAbsolutePath().replace(Constants.INSTANCES_FOLDER_LOC, ""), true);
+                                } catch (Exception e) { e.printStackTrace(); }
+                            }, DownloadTask.threadPool));
+
+                            CompletableFuture<Void> combinedFuture = CompletableFuture.allOf(
+                                    futures.toArray(new CompletableFuture[0])).exceptionally((t) ->
+                                    {
+                                        t.printStackTrace();
+                                        return null;
+                                    }
+                            );
+
+                            futures.forEach((blah) ->
+                            {
+                                ((CompletableFuture<Void>) blah).exceptionally((t) ->
+                                {
+                                    combinedFuture.completeExceptionally(t);
+                                    return null;
+                                });
+                            });
+
+                            combinedFuture.join();
+                        } catch (Throwable t)
+                        {
+                            t.printStackTrace();
+                        }
+                        break;
+                    case SYNC_MANUAL_CLIENT:
+                        CloudSaveManager.syncManual(file, file.getAbsolutePath().replace(Constants.INSTANCES_FOLDER_LOC, ""), true, true);
+                        break;
+                    case SYNC_MANUAL_SERVER:
+                        CloudSaveManager.syncManual(file, file.getAbsolutePath().replace(Constants.INSTANCES_FOLDER_LOC, ""), true, false);
+                        break;
+                }
             } catch (Exception e) { e.printStackTrace(); }
         }
-
-        setInUse(false);
-        CreeperLauncher.isSyncing.set(false);
     }
 }

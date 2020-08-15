@@ -20,7 +20,7 @@ public class DownloadTask implements IInstallTask
     private boolean checksumComplete;
     private String sha1;
     static int nThreads = Integer.parseInt(Settings.settings.computeIfAbsent("threadLimit", Settings::getDefaultThreadLimit));
-    private static final Executor threadPool = new ThreadPoolExecutor(nThreads, nThreads, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
+    public static final Executor threadPool = new ThreadPoolExecutor(nThreads, nThreads, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
     private int tries = 0;
     private final DownloadableFile file;
 
