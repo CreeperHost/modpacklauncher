@@ -596,6 +596,7 @@ public class LocalInstance implements IPack
 
         if(isInUse(true)) return;
         setInUse(true);
+        CreeperLauncher.isSyncing.set(true);
         CloudSaveManager.setup(host, port, accessKeyId, secretAccessKey, bucketName);
 
         if (file.isDirectory())
@@ -621,5 +622,6 @@ public class LocalInstance implements IPack
         }
 
         setInUse(false);
+        CreeperLauncher.isSyncing.set(false);
     }
 }
