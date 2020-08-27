@@ -41,14 +41,11 @@ public class IntegrityCheckException extends RuntimeException
     }
 
     @Override
-    public void printStackTrace()
-    {
-        super.printStackTrace();
+    public String getMessage() {
         StringBuilder errorString = new StringBuilder();
         if (otherThrowable != null)
         {
-            errorString.append("Caught throwable: " + "\n");
-            otherThrowable.printStackTrace();
+            errorString.append("Caught throwable: ").append(otherThrowable.getMessage()).append("\n");
         }
         errorString.append("errorCode: ").append(errorCode).append("\n");
         errorString.append("checksum: ").append(checksum).append("\n");
@@ -63,7 +60,6 @@ public class IntegrityCheckException extends RuntimeException
         errorString.append("expectedSize: ").append(expectedSize).append("\n");
         errorString.append("source: ").append(source).append("\n");
         errorString.append("destination: ").append(destination).append("\n");
-
-        CreeperLogger.INSTANCE.error(errorString.toString());
+        return super.getMessage() + "\n" + errorString.toString();
     }
 }

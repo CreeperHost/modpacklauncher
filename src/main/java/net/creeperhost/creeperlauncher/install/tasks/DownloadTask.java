@@ -101,18 +101,21 @@ public class DownloadTask implements IInstallTask
                         complete = true;
                     } catch (Throwable e)
                     {
-                        if (tries == 3 && Settings.settings.getOrDefault("unforgiving", "false").equals("true"))
+                        if (tries == 3)
                         {
-                            IntegrityCheckException thrown = null;
+                            IntegrityCheckException thrown;
                             if (e instanceof IntegrityCheckException)
                             {
-                                CreeperLogger.INSTANCE.error("Integrity error whilst getting file: ", e);
+                                CreeperLogger.INSTANCE.debug("Integrity error whilst getting file: ", e);
                                 thrown = (IntegrityCheckException)e;
                             } else
                             {
-                                CreeperLogger.INSTANCE.error("Unknown error whilst getting file: ", thrown = new IntegrityCheckException(e, -1, "", null, 0, 0, file.getUrl(), destination.toString())); // TODO: make this better
+                                CreeperLogger.INSTANCE.debug("Unknown error whilst getting file: ", thrown = new IntegrityCheckException(e, -1, "", null, 0, 0, file.getUrl(), destination.toString())); // TODO: make this better
                             }
-                            throw thrown;
+                            if(Settings.settings.getOrDefault("unforgiving", "false").equals("true"))
+                            {
+                                throw thrown;
+                            }
                         }
                     }
                 }

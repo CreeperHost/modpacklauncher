@@ -61,7 +61,8 @@ public class CreeperLogger
 
     public void error(String input)
     {
-        logger.severe(input);
+        String caller = getCaller("error");
+        logger.severe(caller + (caller.isEmpty() ? "" : "\n") + input);
     }
 
     public void error(String input, Throwable ex)
@@ -76,5 +77,15 @@ public class CreeperLogger
     public void debug(String input)
     {
         if (CreeperLauncher.verbose) logger.log(Level.INFO, input);
+    }
+
+    private String getCaller(String exclude) {
+        for(StackTraceElement el: Thread.currentThread().getStackTrace())
+        {
+            String methodName = el.getMethodName();
+            if (methodName.contains(exclude) || methodName.contains("getStackTrace") || methodName.contains("getCaller")) continue;
+            return el.toString();
+        }
+        return "";
     }
 }

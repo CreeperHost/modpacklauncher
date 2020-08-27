@@ -449,7 +449,6 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
 
         } catch (Throwable err)
         {
-            CreeperLogger.INSTANCE.error(err.getMessage());
             for (CompletableFuture ftr : futures)
             {
                 ftr.cancel(true);
