@@ -5,6 +5,7 @@ import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.IntegrityCheckException;
 import net.creeperhost.creeperlauncher.api.DownloadableFile;
+import net.creeperhost.creeperlauncher.api.handlers.InstallInstanceHandler;
 
 import java.io.File;
 import java.io.IOException;
@@ -100,21 +101,23 @@ public class DownloadTask implements IInstallTask
                         complete = true;
                     } catch (Throwable e)
                     {
-                        if (tries == 3)
+                        if (tries == 3 && Settings.settings.getOrDefault("unforgiving", "false").equals("true"))
                         {
+                            IntegrityCheckException thrown = null;
                             if (e instanceof IntegrityCheckException)
                             {
                                 CreeperLogger.INSTANCE.error("Integrity error whilst getting file: ", e);
+                                thrown = (IntegrityCheckException)e;
                             } else
                             {
-                                CreeperLogger.INSTANCE.error("Unknown error whilst getting file: ", new IntegrityCheckException(e, -1, "", null, 0, 0, file.getUrl(), destination.toString())); // TODO: make this better
+                                CreeperLogger.INSTANCE.error("Unknown error whilst getting file: ", thrown = new IntegrityCheckException(e, -1, "", null, 0, 0, file.getUrl(), destination.toString())); // TODO: make this better
                             }
+                            throw thrown;
                         }
                     }
                 }
             }
         }, threadPool);
-
     }
 
     @Override

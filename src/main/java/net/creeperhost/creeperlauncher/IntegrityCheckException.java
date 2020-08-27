@@ -38,10 +38,6 @@ public class IntegrityCheckException extends RuntimeException
         this.expectedSize = expectedSize;
         this.source = source;
         this.destination = destination;
-        //TODO: Remove these once exceptions work properly again
-        InstallInstanceHandler.hasError.set(true);
-        InstallInstanceHandler.lastError.set(detailMessage);
-        this.printStackTrace();
     }
 
     @Override

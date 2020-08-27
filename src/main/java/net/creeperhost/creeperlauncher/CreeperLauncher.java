@@ -43,6 +43,8 @@ public class CreeperLauncher
 
     private static boolean warnedDevelop = false;
 
+    public static boolean verbose = false;
+
     public CreeperLauncher() {}
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
@@ -72,6 +74,8 @@ public class CreeperLauncher
         }
 
         Settings.loadSettings();
+
+        verbose = Settings.settings.getOrDefault("verbose", "false").equals("true");
 
         File oldInstances = new File(Constants.WORKING_DIR, "instances");
 
@@ -206,6 +210,11 @@ public class CreeperLauncher
                 }
                 return false;
             }
+        });
+
+        SettingsChangeUtil.registerListener("verbose", (key, value) -> {
+            verbose = value.equals("true");
+            return true;
         });
 
         Instances.refreshInstances();

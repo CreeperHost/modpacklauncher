@@ -5,6 +5,7 @@ import com.sun.jna.platform.win32.Win32Exception;
 import com.sun.jna.platform.win32.WinNT;
 import com.sun.jna.platform.win32.WinReg;
 import net.creeperhost.creeperlauncher.CreeperLauncher;
+import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.os.OSUtils;
 
@@ -67,7 +68,6 @@ public class MiscUtils
                             WinReg.HKEYByReference key = Advapi32Util.registryGetKey(WinReg.HKEY_LOCAL_MACHINE, fullPath, WinNT.KEY_READ);
                             String[] children = Advapi32Util.registryGetKeys(key.getValue());
                             for (String child : children) {
-                                System.out.println(fullPath + "\\" + child + "\\JavaHome");
                                 String javaHome = null;
                                 try {
                                     javaHome = Advapi32Util.registryGetStringValue(WinReg.HKEY_LOCAL_MACHINE, fullPath + "\\" + child, "JavaHome");

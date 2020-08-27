@@ -415,7 +415,6 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
             if (!f.exists()) f.mkdir();
             try
             {
-                URI url = new URI(file.getUrl());
                 Path path = Paths.get(file.getPath());
                 if (!path.toFile().exists())
                 {

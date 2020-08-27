@@ -3,6 +3,7 @@ package net.creeperhost.creeperlauncher;
 import java.io.File;
 import java.util.Arrays;
 import java.util.logging.FileHandler;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
@@ -66,5 +67,14 @@ public class CreeperLogger
     public void error(String input, Throwable ex)
     {
         error(input + "\n" + throwableToString(ex));
+    }
+
+    public void debug(String input, Throwable ex) {
+        debug(input + "\n" + throwableToString(ex));
+    }
+
+    public void debug(String input)
+    {
+        if (CreeperLauncher.verbose) logger.log(Level.INFO, input);
     }
 }
