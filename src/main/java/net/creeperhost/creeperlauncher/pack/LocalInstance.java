@@ -60,7 +60,7 @@ public class LocalInstance implements IPack
     public String modLoader = "";
     private long lastPlayed;
     private boolean isImport = false;
-    private boolean cloudSaves = false;
+    public boolean cloudSaves = false;
     transient private Runnable postInstall;
     transient private boolean postInstallAsync;
     transient private Runnable prePlay;
@@ -77,6 +77,7 @@ public class LocalInstance implements IPack
         this.uuid = uuid;
         this.versionId = versionId;
         this.path = Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC) + File.separator + this.uuid;
+        this.cloudSaves = Boolean.getBoolean(Settings.settings.getOrDefault("cloudSaves", "false"));
         this.name = pack.getName();
         this.version = pack.getVersion();
         this.dir = this.path;
@@ -174,6 +175,7 @@ public class LocalInstance implements IPack
         this.jvmArgs = jsonOutput.jvmArgs;
         this.modLoader = jsonOutput.modLoader;
         this.dir = this.path;
+        this.cloudSaves = jsonOutput.cloudSaves;
         try
         {
             jr.close();
@@ -303,7 +305,6 @@ public class LocalInstance implements IPack
 
     public GameLauncher play()
     {
-        cloudSaves = true;
 
         if (this.prePlay != null)
         {
@@ -585,7 +586,7 @@ public class LocalInstance implements IPack
 
     public void cloudSync()
     {
-        if(!cloudSaves) return;
+        if(!cloudSaves || !Boolean.parseBoolean(Settings.settings.getOrDefault("cloudSaves", "false"))) return;
         OpenModalData.openModal("Please wait", "Checking cloud save synchronization <br>", List.of());
 
         if(isInUse(true)) return;
