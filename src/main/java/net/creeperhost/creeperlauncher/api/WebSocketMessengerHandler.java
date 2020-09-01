@@ -49,6 +49,8 @@ public class WebSocketMessengerHandler
         registerHandler(FileHashData.class, new FileHashHandler());
         registerDataMap("storeAuthDetails", StoreAuthDetailsData.class);
         registerHandler(StoreAuthDetailsData.class, new StoreAuthDetailsHandler());
+        registerDataMap("syncInstance", SyncInstanceData.class);
+        registerHandler(SyncInstanceData.class, new SyncInstanceHandler());
     }
 
     public static void registerHandler(Class<? extends BaseData> clazz, IMessageHandler<? extends BaseData> handler)

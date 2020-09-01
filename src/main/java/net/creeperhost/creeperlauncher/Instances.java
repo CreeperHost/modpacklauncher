@@ -1,9 +1,14 @@
 package net.creeperhost.creeperlauncher;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import net.creeperhost.creeperlauncher.cloudsaves.CloudSaveManager;
 import net.creeperhost.creeperlauncher.pack.LocalInstance;
+import net.creeperhost.creeperlauncher.util.GsonUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
@@ -12,6 +17,7 @@ import java.util.stream.Collectors;
 public class Instances
 {
     private static HashMap<UUID, LocalInstance> instances = new HashMap<UUID, LocalInstance>();
+    private static HashMap<UUID, JsonObject> cloudInstances = new HashMap<UUID, JsonObject>();
 
     public static boolean addInstance(UUID uuid, LocalInstance instance)
     {
@@ -32,6 +38,11 @@ public class Instances
     public static List<LocalInstance> allInstances()
     {
         return Instances.instances.values().stream().collect(Collectors.toList());
+    }
+
+    public static List<JsonObject> cloudInstances()
+    {
+        return Instances.cloudInstances.values().stream().collect(Collectors.toList());
     }
 
     public static void refreshInstances()
@@ -60,6 +71,7 @@ public class Instances
             }
         }
         CreeperLogger.INSTANCE.info("Loaded "+l+" out of "+t+" instances.");
+        cloudInstances = loadCloudInstances();
     }
 
     private static void loadInstance(String _uuid) throws FileNotFoundException
@@ -69,5 +81,27 @@ public class Instances
         UUID uuid = UUID.fromString(_uuid);
         LocalInstance loadedInstance = new LocalInstance(uuid);
         Instances.addInstance(uuid, loadedInstance);
+    }
+
+    private static HashMap<UUID, JsonObject> loadCloudInstances()
+    {
+        List<UUID> uuidList = CloudSaveManager.getPrefixes();
+        HashMap<UUID, JsonObject> hashMap = new HashMap<>();
+
+        for (UUID uuid : uuidList)
+        {
+            try
+            {
+                String jsonResp = CloudSaveManager.getFile(uuid.toString() + "/instance.json");
+                Gson gson = new Gson();
+                JsonObject object = gson.fromJson(jsonResp, JsonObject.class);
+                hashMap.put(uuid, object);
+
+            } catch (Exception e)
+            {
+                CreeperLogger.INSTANCE.error("Invalid cloudsave found with UUID of " + uuid.toString());
+            }
+        }
+        return hashMap;
     }
 }

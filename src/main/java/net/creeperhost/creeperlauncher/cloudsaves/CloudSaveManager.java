@@ -11,6 +11,7 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.*;
 import com.amazonaws.services.s3.transfer.*;
+import com.install4j.runtime.beans.KeyValuePair;
 import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.util.FileUtils;
@@ -23,7 +24,11 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.regex.MatchResult;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class CloudSaveManager {
     private static boolean isSetup = false;
@@ -63,8 +68,11 @@ public class CloudSaveManager {
         isSetup = true;
     }
 
-    public static void main(String args[]) {
-        listObjects(null);
+    public static void main(String args[])
+    {
+        CloudSaveManager.setup(Constants.S3_HOST, 8080, Constants.S3_KEY, Constants.S3_SECRET, Constants.S3_BUCKET);
+        String out = s3.getObjectAsString(bucket, "e8d3ea26-2b7b-4f80-8120-7e788392618a/instance.jsonnfoidsnfios");
+        System.out.println(out);
     }
 
     public static HashMap<String,S3ObjectSummary> listObjects()
@@ -75,8 +83,6 @@ public class CloudSaveManager {
     public static HashMap<String, S3ObjectSummary> listObjects(String prefix)
     {
         CloudSaveManager.setup(Constants.S3_HOST, 8080, Constants.S3_KEY, Constants.S3_SECRET, Constants.S3_BUCKET);
-
-
 
         HashMap<String, S3ObjectSummary> tempList = new HashMap<>();
 
@@ -145,6 +151,43 @@ public class CloudSaveManager {
                 }
             });
         }
+    }
+
+    public static List<UUID> getPrefixes()
+    {
+        Pattern pattern = Pattern.compile(".*([a-z0-9A-Z]{8}-[a-z0-9A-Z]{4}-[a-z0-9A-Z]{4}-[a-z0-9A-Z]{4}-[a-z0-9A-Z]{12}).*");
+        List<UUID> uuidList = new ArrayList<>();
+
+        for(Map.Entry<String, S3ObjectSummary> map : listObjects().entrySet())
+        {
+            String sub = map.getKey().substring(0, 38);
+            Matcher matcher = pattern.matcher(sub);
+
+            if (matcher.find())
+            {
+//                System.out.println(matcher.group(1));
+                try
+                {
+                    UUID uuid = UUID.fromString(matcher.group(1));
+                    boolean exists = false;
+
+                    for (UUID uuid1 : uuidList)
+                    {
+                        if (uuid1.toString().equals(uuid.toString()))
+                        {
+                            exists = true;
+                            break;
+                        }
+                    }
+                    if (exists)
+                    {
+                        continue;
+                    }
+                    uuidList.add(uuid);
+                } catch (Exception ignored) {}
+            }
+        }
+        return uuidList;
     }
 
     public static void syncManual(File file, String location, boolean blocking, boolean client, HashMap<String, S3ObjectSummary> existing) throws Exception
@@ -232,6 +275,12 @@ public class CloudSaveManager {
         {
             uploadFile(file, location, blocking, null);
         }
+    }
+
+    public static String getFile(String path) throws AmazonS3Exception
+    {
+        CloudSaveManager.setup(Constants.S3_HOST, 8080, Constants.S3_KEY, Constants.S3_SECRET, Constants.S3_BUCKET);
+        return s3.getObjectAsString(bucket, path);
     }
 
     public static void deleteFile(String location)

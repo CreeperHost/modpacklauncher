@@ -1,5 +1,6 @@
 package net.creeperhost.creeperlauncher.api.handlers;
 
+import com.google.gson.JsonObject;
 import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.Instances;
 import net.creeperhost.creeperlauncher.api.data.InstalledInstancesData;
@@ -16,7 +17,8 @@ public class InstalledInstancesHandler implements IMessageHandler<InstalledInsta
         int id = data.requestId;
         Instances.refreshInstances();
         List<LocalInstance> installedInstances = Instances.allInstances();
-        InstalledInstancesData.Reply reply = new InstalledInstancesData.Reply(id, installedInstances);
+        List<JsonObject> cloudInstances = Instances.cloudInstances();
+        InstalledInstancesData.Reply reply = new InstalledInstancesData.Reply(id, installedInstances, cloudInstances);
         Settings.webSocketAPI.sendMessage(reply);
     }
 }
