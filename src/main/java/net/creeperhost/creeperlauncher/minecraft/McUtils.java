@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.stream.JsonReader;
 import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.api.DownloadableFile;
@@ -12,6 +13,7 @@ import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.os.OSUtils;
 import net.creeperhost.creeperlauncher.util.FileUtils;
 import net.creeperhost.creeperlauncher.util.GsonUtils;
+import net.creeperhost.creeperlauncher.util.LoaderTarget;
 import net.creeperhost.creeperlauncher.util.WebUtils;
 import org.apache.commons.compress.archivers.ArchiveException;
 
@@ -23,28 +25,22 @@ import java.nio.file.attribute.PosixFilePermissions;
 import java.util.ArrayList;
 import java.util.List;
 
-public class McUtils
-{
-    public static String getMinecraftJsonForVersion(String version)
-    {
+public class McUtils {
+    public static String getMinecraftJsonForVersion(String version) {
         String url = Constants.MC_VERSION_MANIFEST;
         String resp = WebUtils.getAPIResponse(url);
 
         JsonElement jElement = new JsonParser().parse(resp);
-        if (jElement.isJsonObject())
-        {
+        if (jElement.isJsonObject()) {
             JsonArray jsonArray = jElement.getAsJsonObject().getAsJsonArray("versions");
 
-            if (jsonArray != null)
-            {
-                for (JsonElement serverEl : jsonArray)
-                {
+            if (jsonArray != null) {
+                for (JsonElement serverEl : jsonArray) {
                     JsonObject server = (JsonObject) serverEl;
                     String name = server.get("id").getAsString();
                     String url1 = server.get("url").getAsString();
 
-                    if (name.equalsIgnoreCase(version))
-                    {
+                    if (name.equalsIgnoreCase(version)) {
                         return url1;
                     }
                 }
@@ -53,14 +49,12 @@ public class McUtils
         return null;
     }
 
-    public static DownloadableFile getMinecraftDownload(String version, String downloadLoc)
-    {
+    public static DownloadableFile getMinecraftDownload(String version, String downloadLoc) {
         String jsonURL = getMinecraftJsonForVersion(version);
         String resp = WebUtils.getWebResponse(jsonURL);
 
         JsonElement jElement = new JsonParser().parse(resp);
-        if (jElement.isJsonObject())
-        {
+        if (jElement.isJsonObject()) {
             JsonObject jsonObject = jElement.getAsJsonObject().getAsJsonObject("downloads").getAsJsonObject("client");
             String sha1 = jsonObject.get("sha1").getAsString();
             long size = jsonObject.get("size").getAsLong();
@@ -74,56 +68,45 @@ public class McUtils
         return null;
     }
 
-    public static boolean removeProfile(File target, String profileID)
-    {
+    public static boolean removeProfile(File target, String profileID) {
         CreeperLogger.INSTANCE.info("Attempting to remove" + profileID);
-        try
-        {
+        try {
             JsonObject json = null;
-            try (InputStream stream = new FileInputStream(target))
-            {
+            try (InputStream stream = new FileInputStream(target)) {
                 json = new JsonParser().parse(new InputStreamReader(stream, StandardCharsets.UTF_8)).getAsJsonObject();
-            } catch (IOException e)
-            {
+            } catch (IOException e) {
                 CreeperLogger.INSTANCE.error("Failed to read " + target);
                 e.printStackTrace();
                 return false;
             }
 
             JsonObject _profiles = json.getAsJsonObject("profiles");
-            if (_profiles == null)
-            {
+            if (_profiles == null) {
                 _profiles = new JsonObject();
                 json.add("profiles", _profiles);
             }
 
             JsonObject _profile = _profiles.getAsJsonObject(profileID);
-            if (_profile != null)
-            {
+            if (_profile != null) {
                 _profiles.remove(profileID);
                 String jstring = GsonUtils.GSON.toJson(json);
                 Files.write(target.toPath(), jstring.getBytes(StandardCharsets.UTF_8));
                 CreeperLogger.INSTANCE.info("Removed profile " + profileID);
                 return true;
             }
-        } catch (IOException e)
-        {
+        } catch (IOException e) {
             CreeperLogger.INSTANCE.error("There was a problem writing the launch profile, is it write protected?");
             return false;
         }
         return false;
     }
 
-    public static boolean clearProfiles(File target)
-    {
-        try
-        {
+    public static boolean clearProfiles(File target) {
+        try {
             JsonObject json = null;
-            try (InputStream stream = new FileInputStream(target))
-            {
+            try (InputStream stream = new FileInputStream(target)) {
                 json = new JsonParser().parse(new InputStreamReader(stream, StandardCharsets.UTF_8)).getAsJsonObject();
-            } catch (IOException e)
-            {
+            } catch (IOException e) {
                 CreeperLogger.INSTANCE.error("Failed to read " + target);
                 e.printStackTrace();
                 return false;
@@ -133,8 +116,7 @@ public class McUtils
             json.add("profiles", _profiles);
             String jstring = GsonUtils.GSON.toJson(json);
             Files.write(target.toPath(), jstring.getBytes(StandardCharsets.UTF_8));
-        } catch (IOException e)
-        {
+        } catch (IOException e) {
             CreeperLogger.INSTANCE.error("There was a problem writing the launch profile, is it write protected?");
             return false;
         }
@@ -142,32 +124,26 @@ public class McUtils
     }
 
     @Deprecated
-    public static boolean updateProfileLastPlayed(File target, String profileID, String time)
-    {
+    public static boolean updateProfileLastPlayed(File target, String profileID, String time) {
         CreeperLogger.INSTANCE.info("Attempting to remove default forge profile");
-        try
-        {
+        try {
             JsonObject json = null;
-            try (InputStream stream = new FileInputStream(target))
-            {
+            try (InputStream stream = new FileInputStream(target)) {
                 json = new JsonParser().parse(new InputStreamReader(stream, StandardCharsets.UTF_8)).getAsJsonObject();
-            } catch (IOException e)
-            {
+            } catch (IOException e) {
                 CreeperLogger.INSTANCE.error("Failed to read " + target);
                 e.printStackTrace();
                 return false;
             }
 
             JsonObject _profiles = json.getAsJsonObject("profiles");
-            if (_profiles == null)
-            {
+            if (_profiles == null) {
                 _profiles = new JsonObject();
                 json.add("profiles", _profiles);
             }
 
             JsonObject _profile = _profiles.getAsJsonObject(profileID);
-            if (_profile != null)
-            {
+            if (_profile != null) {
                 _profile = new JsonObject();
 
                 _profile.remove("lastUsed");
@@ -177,129 +153,105 @@ public class McUtils
                 CreeperLogger.INSTANCE.info("Updated lastPlayed time for " + profileID);
                 return true;
             }
-        } catch (IOException e)
-        {
+        } catch (IOException e) {
             CreeperLogger.INSTANCE.error("There was a problem writing the launch profile, is it write protected?");
             return false;
         }
         return false;
     }
 
-    public static boolean injectProfile(File target, Profile profile, String jrePath)
-    {
-        try
-        {
+    public static boolean injectProfile(File target, Profile profile, String jrePath) {
+        try {
             JsonObject json = null;
-            try (InputStream stream = new FileInputStream(target))
-            {
+            try (InputStream stream = new FileInputStream(target)) {
                 json = new JsonParser().parse(new InputStreamReader(stream, StandardCharsets.UTF_8)).getAsJsonObject();
-            } catch (IOException e)
-            {
+            } catch (IOException e) {
                 CreeperLogger.INSTANCE.error("Failed to read " + target);
                 e.printStackTrace();
                 return false;
             }
 
             JsonObject _profiles = json.getAsJsonObject("profiles");
-            if (_profiles == null)
-            {
+            if (_profiles == null) {
                 _profiles = new JsonObject();
                 json.add("profiles", _profiles);
             }
 
-            if (_profiles.getAsJsonObject(profile.getID()) == null)
-            {
+            if (_profiles.getAsJsonObject(profile.getID()) == null) {
                 JsonObject jsonProfile = profile.toJsonObject();
-                if (jrePath != null && jrePath.length() > 0)
-                {
+                if (jrePath != null && jrePath.length() > 0) {
                     jsonProfile.addProperty("javaDir", jrePath);
                 }
                 _profiles.add(profile.getID(), jsonProfile);
             }
             String jstring = GsonUtils.GSON.toJson(json);
             Files.write(target.toPath(), jstring.getBytes(StandardCharsets.UTF_8));
-        } catch (IOException e)
-        {
+        } catch (IOException e) {
             CreeperLogger.INSTANCE.error("There was a problem writing the launch profile, is it write protected?");
             return false;
         }
         return true;
     }
 
-    public static void downloadVanillaLauncher()
-    {
+    public static void downloadVanillaLauncher() {
         String downloadurl = OSUtils.getMinecraftLauncherURL();
         File binfolder = new File(Constants.BIN_LOCATION);
         binfolder.mkdir();
         File file = new File(Constants.MINECRAFT_LAUNCHER_LOCATION);
         OS os = OSUtils.getOs();
-        if (os == OS.MAC)
-        {
+        if (os == OS.MAC) {
             file = new File(Constants.MINECRAFT_MAC_LAUNCHER_EXECUTABLE);
         }
-        if (!file.exists())
-        {
+        if (!file.exists()) {
             CreeperLogger.INSTANCE.info("Starting download of the vanilla launcher");
             DownloadableFile remoteFile = new DownloadableFile("official", "/", downloadurl, new ArrayList<>(), 0, false, false, 0, "Vanilla", "vanilla", String.valueOf(System.currentTimeMillis() / 1000L));
             DownloadTask task = new DownloadTask(remoteFile, (new File(Constants.MINECRAFT_LAUNCHER_LOCATION)).toPath());
             task.execute().join();
             boolean osConfig = false;
-            try
-            {
+            try {
                 osConfig = McUtils.prepareVanillaLauncher();
-            } catch (Exception err)
-            {
+            } catch (Exception err) {
                 err.printStackTrace();
             }
             if (!osConfig) CreeperLogger.INSTANCE.error("Failed to configure Vanilla launcher for this OS!");
         }
     }
 
-    public static boolean prepareVanillaLauncher() throws IOException, InterruptedException
-    {
+    public static boolean prepareVanillaLauncher() throws IOException, InterruptedException {
         OS os = OSUtils.getOs();
         //All OS's are not equal, sometimes we need to unpackage the launcher.
         boolean success = false;
-        switch (os)
-        {
+        switch (os) {
             case MAC:
                 File installer = new File(Constants.MINECRAFT_LAUNCHER_LOCATION);
                 String[] mcommand = {"/usr/bin/hdiutil", "attach", Constants.MINECRAFT_LAUNCHER_LOCATION};
                 Process mount = Runtime.getRuntime().exec(mcommand);
                 OutputStream stdout = mount.getOutputStream();
-                while (mount.isAlive())
-                {
+                while (mount.isAlive()) {
                     Thread.sleep(500);
                 }
-                if (mount.exitValue() == 0)
-                {
+                if (mount.exitValue() == 0) {
                     String[] ccommand = {"/bin/cp", "-R", Constants.MINECRAFT_MAC_LAUNCHER_VOLUME + File.separator + "/Minecraft.app", Constants.BIN_LOCATION + File.separator};
                     Process copy = Runtime.getRuntime().exec(ccommand);
-                    while (copy.isAlive())
-                    {
+                    while (copy.isAlive()) {
                         Thread.sleep(500);
                     }
-                    if (copy.exitValue() == 0)
-                    {
+                    if (copy.exitValue() == 0) {
                         success = true;
                     }
-                } else
-                {
+                } else {
                     System.out.print(stdout);
                     CreeperLogger.INSTANCE.error("Failed to mount the Vanilla installer on MacOS.");
                     success = false;
                 }
                 String[] ucommand = {"/usr/bin/hdiutil", "unmount", Constants.MINECRAFT_MAC_LAUNCHER_VOLUME};
                 Process unmount = Runtime.getRuntime().exec(ucommand);
-                while (unmount.isAlive())
-                {
+                while (unmount.isAlive()) {
                     Thread.sleep(500);
                 }
-                if (unmount.exitValue() != 0)
-                {
+                if (unmount.exitValue() != 0) {
                     CreeperLogger.INSTANCE.error("Somehow failed to clean up after sorting the Vanilla launcher on MacOS.");
-                } else
-                {
+                } else {
                     installer.delete();
                 }
                 break;
@@ -307,16 +259,13 @@ public class McUtils
                 File installergzip = new File(Constants.MINECRAFT_LAUNCHER_LOCATION);
                 File tar = new File(Constants.BIN_LOCATION + File.separator + "launcher.tar");
                 FileUtils.unGzip(installergzip, tar);
-                if (tar.exists())
-                {
-                    try
-                    {
+                if (tar.exists()) {
+                    try {
                         FileUtils.unTar(tar, new File(Constants.BIN_LOCATION));
                         FileUtils.setFilePermissions(new File(Constants.MINECRAFT_LINUX_LAUNCHER_EXECUTABLE));
                         installergzip.delete();
                         success = true;
-                    } catch (ArchiveException e)
-                    {
+                    } catch (ArchiveException e) {
                         e.printStackTrace();
                         success = false;
                     }
@@ -336,4 +285,33 @@ public class McUtils
         return -1;
     }
 
+    //Could be any modloader
+    public static List<LoaderTarget> getTargets(String instanceDir) {
+        List<LoaderTarget> targetList = new ArrayList<>();
+        JsonReader versionReader = null;
+        try {
+            versionReader = new JsonReader(new FileReader(new File(instanceDir + File.separator + "version.json")));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        JsonElement jElement = new JsonParser().parse(versionReader);
+        if (jElement.isJsonObject()) {
+            JsonArray targets = jElement.getAsJsonObject().getAsJsonArray("targets");
+            if (targets != null) {
+                for (JsonElement serverEl : targets) {
+                    JsonObject server = (JsonObject) serverEl;
+                    String targetVersion = server.get("version").getAsString();
+                    long targetId = server.get("id").getAsLong();
+                    String targetName = server.get("name").getAsString();
+                    String targetType = server.get("type").getAsString();
+
+                    targetList.add(new LoaderTarget(targetName, targetVersion, targetId, targetType));
+                }
+            }
+        }
+        return targetList;
+    }
 }
+
+

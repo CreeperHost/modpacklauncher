@@ -155,7 +155,9 @@ public class LocalInstance implements IPack
         Gson gson = new Gson();
 
         //This won't work, but my intent is clear so hopefully someone else can show me how?
-        JsonReader jr = new JsonReader(new BufferedReader(new FileReader(json.getAbsoluteFile())));
+        FileReader fileReader = new FileReader(json.getAbsoluteFile());
+        BufferedReader bufferedReader = new BufferedReader(fileReader);
+        JsonReader jr = new JsonReader(bufferedReader);
         LocalInstance jsonOutput = (LocalInstance) gson.fromJson(jr, LocalInstance.class);
         this.id = jsonOutput.id;
         this.name = jsonOutput.name;
@@ -179,6 +181,8 @@ public class LocalInstance implements IPack
         try
         {
             jr.close();
+            bufferedReader.close();
+            fileReader.close();
         } catch (IOException ignored)
         {
         }
@@ -319,7 +323,7 @@ public class LocalInstance implements IPack
         }
         if(!Constants.S3_SECRET.isEmpty() && !Constants.S3_KEY.isEmpty() && !Constants.S3_HOST.isEmpty() && !Constants.S3_BUCKET.isEmpty()) {
             CreeperLogger.INSTANCE.debug("Doing cloud sync");
-            CompletableFuture.runAsync(this::cloudSync).join();
+            CompletableFuture.runAsync(() -> this.cloudSync(false)).join();
         }
 
         this.lastPlayed = System.currentTimeMillis() / 1000L;
@@ -341,6 +345,7 @@ public class LocalInstance implements IPack
 
         GameLauncher launcher = new GameLauncher();
         launcher.launchGame();
+
         return launcher;
     }
 
@@ -584,7 +589,7 @@ public class LocalInstance implements IPack
         inUse.set(var);
     }
 
-    public void cloudSync()
+    public void cloudSync(boolean forceCloud)
     {
         if(!cloudSaves || !Boolean.parseBoolean(Settings.settings.getOrDefault("cloudSaves", "false"))) return;
         OpenModalData.openModal("Please wait", "Checking cloud save synchronization <br>", List.of());
@@ -625,39 +630,58 @@ public class LocalInstance implements IPack
             }
         }
 
-        if(syncConflict.get())
+        Runnable fromCloud = () ->
+        {
+            OpenModalData.openModal("Please wait", "Synchronizing", List.of());
+
+            int localProgress = 0;
+            int localTotal = s3ObjectSummaries.size();
+
+            for(S3ObjectSummary s3ObjectSummary : s3ObjectSummaries.values())
+            {
+                localProgress++;
+
+                float percent = Math.round(((float)((float)localProgress / (float)localTotal) * 100) * 100F) / 100F;
+
+                OpenModalData.openModal("Please wait", "Synchronizing <br>" + percent + "%", List.of());
+
+                if(s3ObjectSummary.getKey().contains(this.uuid.toString()))
+                {
+                    File file = new File(Constants.INSTANCES_FOLDER_LOC + File.separator + s3ObjectSummary.getKey());
+                    if(!file.exists())
+                    {
+                        try
+                        {
+                            CloudSaveManager.downloadFile(s3ObjectSummary.getKey(), file, true, null);
+                        } catch (Exception e) { e.printStackTrace(); }
+                    }
+                }}
+            cloudSyncLoop(this.path, false, CloudSyncType.SYNC_MANUAL_SERVER, s3ObjectSummaries);
+            syncConflict.set(false);
+            Settings.webSocketAPI.sendMessage(new CloseModalData());
+        };
+        if(forceCloud)
+        {
+            fromCloud.run();
+        }
+        else if(syncConflict.get())
         {
             //Open UI
             OpenModalData.openModal("Cloud Sync Conflict", "We have detected a synchronization error between your saves, How would you like to resolve?", List.of
-            ( new OpenModalData.ModalButton("Use Cloud", "green", () ->
+            ( new OpenModalData.ModalButton("Use Cloud", "green", fromCloud), new OpenModalData.ModalButton("Use Local", "red", () ->
             {
-                OpenModalData.openModal("Please wait", "Resolving synchronization conflict", List.of());
+                OpenModalData.openModal("Please wait", "Synchronizing", List.of());
 
-                s3ObjectSummaries.values().forEach(s3ObjectSummary ->
+                int localProgress = 0;
+                int localTotal = s3ObjectSummaries.size();
+
+                for(S3ObjectSummary s3ObjectSummary : s3ObjectSummaries.values())
                 {
-                    OpenModalData.openModal("Please wait", "Resolving synchronization conflict <br>" + (progress.addAndGet(1) / s3ObjectSummaries.size()) * 100 + "%", List.of());
+                    localProgress++;
 
-                    if(s3ObjectSummary.getKey().contains(this.uuid.toString()))
-                    {
-                        File file = new File(Constants.INSTANCES_FOLDER_LOC + File.separator + s3ObjectSummary.getKey());
-                        if(!file.exists())
-                        {
-                            try
-                            {
-                                CloudSaveManager.downloadFile(s3ObjectSummary.getKey(), file, true, null);
-                            } catch (Exception e) { e.printStackTrace(); }
-                        }
-                }});
-                cloudSyncLoop(this.path, false, CloudSyncType.SYNC_MANUAL_SERVER, s3ObjectSummaries);
-                syncConflict.set(false);
-                Settings.webSocketAPI.sendMessage(new CloseModalData());
-            }), new OpenModalData.ModalButton("Use Local", "red", () ->
-            {
-                OpenModalData.openModal("Please wait", "Resolving synchronization conflict", List.of());
+                    float percent = Math.round(((float)((float)localProgress / (float)localTotal) * 100) * 100F) / 100F;
 
-                s3ObjectSummaries.values().forEach(s3ObjectSummary ->
-                {
-                    OpenModalData.openModal("Please wait", "Resolving synchronization conflict <br>" + (progress.addAndGet(1) / s3ObjectSummaries.size()) * 100 + "%", List.of());
+                    OpenModalData.openModal("Please wait", "Synchronizing <br>" + percent + "%", List.of());
 
                     File file = new File(Constants.INSTANCES_FOLDER_LOC + File.separator + s3ObjectSummary.getKey());
                     if(!file.exists())
@@ -667,7 +691,7 @@ public class LocalInstance implements IPack
                             CloudSaveManager.deleteFile(s3ObjectSummary.getKey());
                         } catch (Exception e) { e.printStackTrace(); }
                     }
-                });
+                }
                 cloudSyncLoop(this.path, false, CloudSyncType.SYNC_MANUAL_CLIENT, s3ObjectSummaries);
                 syncConflict.set(false);
                 Settings.webSocketAPI.sendMessage(new CloseModalData());

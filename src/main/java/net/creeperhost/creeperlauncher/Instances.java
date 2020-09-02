@@ -71,7 +71,10 @@ public class Instances
             }
         }
         CreeperLogger.INSTANCE.info("Loaded "+l+" out of "+t+" instances.");
+        CreeperLogger.INSTANCE.info("Loading cloud instances");
+
         cloudInstances = loadCloudInstances();
+        CreeperLogger.INSTANCE.info("Loaded " + cloudInstances().size() + " cloud instances.");
     }
 
     private static void loadInstance(String _uuid) throws FileNotFoundException
@@ -92,15 +95,18 @@ public class Instances
         {
             try
             {
-                String jsonResp = CloudSaveManager.getFile(uuid.toString() + "/instance.json");
-                Gson gson = new Gson();
-                JsonObject object = gson.fromJson(jsonResp, JsonObject.class);
-                hashMap.put(uuid, object);
-
+                if(Instances.getInstance(uuid) == null)
+                {
+                    String jsonResp = CloudSaveManager.getFile(uuid.toString() + "/instance.json");
+                    Gson gson = new Gson();
+                    JsonObject object = gson.fromJson(jsonResp, JsonObject.class);
+                    hashMap.put(uuid, object);
+                }
             } catch (Exception e)
             {
                 CreeperLogger.INSTANCE.error("Invalid cloudsave found with UUID of " + uuid.toString());
             }
+
         }
         return hashMap;
     }
