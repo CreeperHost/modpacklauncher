@@ -71,10 +71,14 @@ public class Instances
             }
         }
         CreeperLogger.INSTANCE.info("Loaded "+l+" out of "+t+" instances.");
-        CreeperLogger.INSTANCE.info("Loading cloud instances");
 
-        cloudInstances = loadCloudInstances();
-        CreeperLogger.INSTANCE.info("Loaded " + cloudInstances().size() + " cloud instances.");
+        if(!Constants.S3_HOST.isEmpty() && !Constants.S3_BUCKET.isEmpty() && !Constants.S3_KEY.isEmpty() && !Constants.S3_SECRET.isEmpty())
+        {
+            CreeperLogger.INSTANCE.info("Loading cloud instances");
+
+            cloudInstances = loadCloudInstances();
+            CreeperLogger.INSTANCE.info("Loaded " + cloudInstances().size() + " cloud instances.");
+        }
     }
 
     private static void loadInstance(String _uuid) throws FileNotFoundException
