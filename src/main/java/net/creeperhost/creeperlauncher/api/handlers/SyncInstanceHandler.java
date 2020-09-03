@@ -35,7 +35,7 @@ public class SyncInstanceHandler implements IMessageHandler<InstallInstanceData>
                 Settings.webSocketAPI.sendMessage(new InstallInstanceData.Reply(data, "error", "Install in progress.", CreeperLauncher.currentInstall.get().currentUUID));
                 return;
             }
-            Settings.webSocketAPI.sendMessage(new InstallInstanceData.Reply(data, "init", "Install started.", ""));
+            Settings.webSocketAPI.sendMessage(new InstallInstanceData.Reply(data, "init", "Install started.", data.uuid));
             //Create the folder
             File instanceDir = new File(Constants.INSTANCES_FOLDER_LOC + File.separator + data.uuid);
             File instanceJson = new File(instanceDir + File.separator + "instance.json");
@@ -72,7 +72,7 @@ public class SyncInstanceHandler implements IMessageHandler<InstallInstanceData>
                         }
                     }).thenRun(() ->
                     {
-                        Settings.webSocketAPI.sendMessage(new InstallInstanceData.Reply(data, "success", "Install complete.", instance.getUuid().toString()));
+                        Settings.webSocketAPI.sendMessage(new InstallInstanceData.Reply(data, "success", "Install complete.", data.uuid));
                         Settings.webSocketAPI.sendMessage(new CloseModalData());
                     });
                 }
