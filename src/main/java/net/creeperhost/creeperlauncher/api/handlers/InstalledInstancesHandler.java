@@ -15,7 +15,7 @@ public class InstalledInstancesHandler implements IMessageHandler<InstalledInsta
     public void handle(InstalledInstancesData data)
     {
         int id = data.requestId;
-        Instances.refreshInstances();
+        if(data.refresh) Instances.refreshInstances();
         List<LocalInstance> installedInstances = Instances.allInstances();
         List<JsonObject> cloudInstances = Instances.cloudInstances();
         InstalledInstancesData.Reply reply = new InstalledInstancesData.Reply(id, installedInstances, cloudInstances);
