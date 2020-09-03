@@ -44,8 +44,7 @@ public class SyncInstanceHandler implements IMessageHandler<InstallInstanceData>
             //Download the instance.json from the s3Bucket
             try {
                 CloudSaveManager.downloadFile(data.uuid + "/instance.json", instanceJson, true, null);
-            } catch (Exception e) {
-            }
+            } catch (Exception ignored) {}
 
             LocalInstance instance;
             try {
@@ -73,13 +72,14 @@ public class SyncInstanceHandler implements IMessageHandler<InstallInstanceData>
                         }
                     }).thenRun(() ->
                     {
+                        Settings.webSocketAPI.sendMessage(new InstallInstanceData.Reply(data, "success", "Install complete.", instance.getUuid().toString()));
                         Settings.webSocketAPI.sendMessage(new CloseModalData());
                     });
                 }
             } catch (FileNotFoundException e) {
+                Settings.webSocketAPI.sendMessage(new InstallInstanceData.Reply(data, "error", lastError.get(), data.uuid));
                 e.printStackTrace();
             }
-            Settings.webSocketAPI.sendMessage(new InstallInstanceData.Reply(data, "error", lastError.get(), data.uuid));
         }
     }
 }
