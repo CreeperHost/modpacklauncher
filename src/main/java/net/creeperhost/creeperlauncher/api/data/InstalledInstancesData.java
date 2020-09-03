@@ -7,6 +7,7 @@ import java.util.List;
 
 public class InstalledInstancesData extends BaseData
 {
+    public boolean refresh = false;
     public static class Reply extends BaseData
     {
         List<LocalInstance> instances;
