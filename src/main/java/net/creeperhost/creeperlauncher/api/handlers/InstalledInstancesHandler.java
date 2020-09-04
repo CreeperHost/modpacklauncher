@@ -7,6 +7,7 @@ import net.creeperhost.creeperlauncher.api.data.InstalledInstancesData;
 import net.creeperhost.creeperlauncher.pack.LocalInstance;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 public class InstalledInstancesHandler implements IMessageHandler<InstalledInstancesData>
 {
@@ -15,10 +16,13 @@ public class InstalledInstancesHandler implements IMessageHandler<InstalledInsta
     public void handle(InstalledInstancesData data)
     {
         int id = data.requestId;
-        if(data.refresh) Instances.refreshInstances();
-        List<LocalInstance> installedInstances = Instances.allInstances();
-        List<JsonObject> cloudInstances = Instances.cloudInstances();
-        InstalledInstancesData.Reply reply = new InstalledInstancesData.Reply(id, installedInstances, cloudInstances);
-        Settings.webSocketAPI.sendMessage(reply);
+        boolean refresh = data.refresh;
+        CompletableFuture.runAsync(() -> {
+            if(refresh) Instances.refreshInstances();
+            List<LocalInstance> installedInstances = Instances.allInstances();
+            List<JsonObject> cloudInstances = Instances.cloudInstances();
+            InstalledInstancesData.Reply reply = new InstalledInstancesData.Reply(id, installedInstances, cloudInstances);
+            Settings.webSocketAPI.sendMessage(reply);
+        });
     }
 }
