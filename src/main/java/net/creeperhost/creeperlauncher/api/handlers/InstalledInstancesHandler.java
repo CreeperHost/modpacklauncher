@@ -19,8 +19,19 @@ public class InstalledInstancesHandler implements IMessageHandler<InstalledInsta
         boolean refresh = data.refresh;
         CompletableFuture.runAsync(() -> {
             if(refresh) Instances.refreshInstances();
-            List<LocalInstance> installedInstances = Instances.allInstances();
-            List<JsonObject> cloudInstances = Instances.cloudInstances();
+            List<LocalInstance> installedInstances;
+            List<JsonObject> cloudInstances;
+            try {
+                Instances.allInstances();
+                Instances.cloudInstances();
+            } catch(Throwable t)
+            {
+                Instances.refreshInstances();
+            } finally
+            {
+                installedInstances = Instances.allInstances();
+                cloudInstances = Instances.cloudInstances();
+            }
             InstalledInstancesData.Reply reply = new InstalledInstancesData.Reply(id, installedInstances, cloudInstances);
             Settings.webSocketAPI.sendMessage(reply);
         });
