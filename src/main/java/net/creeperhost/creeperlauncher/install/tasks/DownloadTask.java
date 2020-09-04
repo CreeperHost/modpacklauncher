@@ -5,6 +5,7 @@ import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.IntegrityCheckException;
 import net.creeperhost.creeperlauncher.api.DownloadableFile;
+import net.creeperhost.creeperlauncher.api.handlers.InstallInstanceHandler;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,7 +21,7 @@ public class DownloadTask implements IInstallTask
     private boolean checksumComplete;
     private String sha1;
     static int nThreads = Integer.parseInt(Settings.settings.computeIfAbsent("threadLimit", Settings::getDefaultThreadLimit));
-    private static final Executor threadPool = new ThreadPoolExecutor(nThreads, nThreads, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
+    public static final Executor threadPool = new ThreadPoolExecutor(nThreads, nThreads, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
     private int tries = 0;
     private final DownloadableFile file;
 
@@ -102,19 +103,24 @@ public class DownloadTask implements IInstallTask
                     {
                         if (tries == 3)
                         {
+                            IntegrityCheckException thrown;
                             if (e instanceof IntegrityCheckException)
                             {
-                                CreeperLogger.INSTANCE.error("Integrity error whilst getting file: ", e);
+                                CreeperLogger.INSTANCE.debug("Integrity error whilst getting file: ", e);
+                                thrown = (IntegrityCheckException)e;
                             } else
                             {
-                                CreeperLogger.INSTANCE.error("Unknown error whilst getting file: ", new IntegrityCheckException(e, -1, "", null, 0, 0, file.getUrl(), destination.toString())); // TODO: make this better
+                                CreeperLogger.INSTANCE.debug("Unknown error whilst getting file: ", thrown = new IntegrityCheckException(e, -1, "", null, 0, 0, file.getUrl(), destination.toString())); // TODO: make this better
+                            }
+                            if(Settings.settings.getOrDefault("unforgiving", "false").equals("true"))
+                            {
+                                throw thrown;
                             }
                         }
                     }
                 }
             }
         }, threadPool);
-
     }
 
     @Override

@@ -38,22 +38,14 @@ public class IntegrityCheckException extends RuntimeException
         this.expectedSize = expectedSize;
         this.source = source;
         this.destination = destination;
-        //TODO: Remove these once exceptions work properly again
-        InstallInstanceHandler.hasError.set(true);
-        InstallInstanceHandler.lastError.set(detailMessage);
-        this.printStackTrace();
     }
 
     @Override
-    public void printStackTrace()
-    {
-        StringBuilder errorStr = new StringBuilder();
-        super.printStackTrace();
+    public String getMessage() {
         StringBuilder errorString = new StringBuilder();
         if (otherThrowable != null)
         {
-            errorString.append("Caught throwable: " + "\n");
-            otherThrowable.printStackTrace();
+            errorString.append("Caught throwable: ").append(otherThrowable.getMessage()).append("\n");
         }
         errorString.append("errorCode: ").append(errorCode).append("\n");
         errorString.append("checksum: ").append(checksum).append("\n");
@@ -68,7 +60,6 @@ public class IntegrityCheckException extends RuntimeException
         errorString.append("expectedSize: ").append(expectedSize).append("\n");
         errorString.append("source: ").append(source).append("\n");
         errorString.append("destination: ").append(destination).append("\n");
-
-        CreeperLogger.INSTANCE.error(errorString.toString());
+        return super.getMessage() + "\n" + errorString.toString();
     }
 }

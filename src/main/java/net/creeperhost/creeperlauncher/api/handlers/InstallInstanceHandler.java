@@ -1,6 +1,7 @@
 package net.creeperhost.creeperlauncher.api.handlers;
 
 import net.creeperhost.creeperlauncher.CreeperLauncher;
+import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.Instances;
 import net.creeperhost.creeperlauncher.api.data.InstallInstanceData;
@@ -11,6 +12,7 @@ import net.creeperhost.creeperlauncher.util.MiscUtils;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -55,8 +57,18 @@ public class InstallInstanceHandler implements IMessageHandler<InstallInstanceDa
         {
             if (t != null)
             {
-                t.printStackTrace();
-                lastError.set(t.getMessage().substring(t.getMessage().indexOf(":") + 2));
+                if (t instanceof CompletionException) t = t.getCause();
+                String msg = t.getMessage();
+                String[] split = msg.split("\n");
+                if (split.length > 0)
+                    msg = split[0];
+
+                int indexOf = msg.indexOf(":");
+                if (indexOf != -1)
+                    msg = msg.substring(indexOf + 2);
+
+                CreeperLogger.INSTANCE.error("Error occurred whilst downloading pack:", t);
+                lastError.set(msg);
                 hasError.set(true);
                 CreeperLauncher.currentInstall.get().cancel();
             }

@@ -6,6 +6,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 import net.creeperhost.creeperlauncher.CreeperLauncher;
+import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.api.data.*;
 import net.creeperhost.creeperlauncher.api.handlers.*;
 
@@ -44,6 +45,12 @@ public class WebSocketMessengerHandler
         registerHandler(SettingsConfigureData.class, new SettingsConfigureHandler());
         registerDataMap("modalCallback", OpenModalData.ModalCallbackData.class);
         registerHandler(OpenModalData.ModalCallbackData.class, new ModalCallbackHandler());
+        registerDataMap("fileHash", FileHashData.class);
+        registerHandler(FileHashData.class, new FileHashHandler());
+        registerDataMap("storeAuthDetails", StoreAuthDetailsData.class);
+        registerHandler(StoreAuthDetailsData.class, new StoreAuthDetailsHandler());
+        registerDataMap("syncInstance", SyncInstanceData.class);
+        registerHandler(SyncInstanceData.class, new SyncInstanceHandler());
     }
 
     public static void registerHandler(Class<? extends BaseData> clazz, IMessageHandler<? extends BaseData> handler)
@@ -74,7 +81,10 @@ public class WebSocketMessengerHandler
                 {
                     BaseData parsedData = gson.fromJson(data, typeToken.getType());
                     if (CreeperLauncher.isDevMode || (parsedData.secret != null && parsedData.secret.equals(CreeperLauncher.websocketSecret))) {
-                        CompletableFuture.runAsync(()->iMessageHandler.handle(parsedData));
+                        CompletableFuture.runAsync(()->iMessageHandler.handle(parsedData)).exceptionally((t) -> {
+                            CreeperLogger.INSTANCE.debug("Error handling message", t);
+                            return null;
+                        });
                     }
                 }
             }

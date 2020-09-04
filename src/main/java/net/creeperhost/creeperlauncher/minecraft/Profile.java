@@ -26,7 +26,7 @@ public class Profile
         this.type = type;
         this.gameDir = gameDir;
         this.ID = ID;
-        this.javaArgs = ("-Xmx" + ram + "M " + args).trim();
+        this.javaArgs = ("-Xmx" + ram + "M " + args.trim()).trim();
         this.icon = icon;
         this.resolution = new McResolution(width, height);
     }

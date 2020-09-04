@@ -9,10 +9,7 @@ import net.creeperhost.creeperlauncher.install.tasks.FTBModPackInstallerTask;
 import net.creeperhost.creeperlauncher.install.tasks.LocalCache;
 import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.os.OSUtils;
-import net.creeperhost.creeperlauncher.util.FileUtils;
-import net.creeperhost.creeperlauncher.util.Pair;
-import net.creeperhost.creeperlauncher.util.SettingsChangeUtil;
-import net.creeperhost.creeperlauncher.util.StreamGobblerLog;
+import net.creeperhost.creeperlauncher.util.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -26,6 +23,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class CreeperLauncher
 {
+    public static HashMap<String, String> javaVersions;
     private static boolean failedInitialMigration; // todo: use this to pop up stuff if failed
 
     static
@@ -41,8 +39,11 @@ public class CreeperLauncher
     public static boolean defaultWebsocketPort = false;
     public static int websocketPort = WebSocketAPI.generateRandomPort();
     public static final String websocketSecret = WebSocketAPI.generateSecret();
+    public static AtomicBoolean isSyncing = new AtomicBoolean(false);
 
     private static boolean warnedDevelop = false;
+
+    public static boolean verbose = false;
 
     public CreeperLauncher() {}
 
@@ -74,6 +75,8 @@ public class CreeperLauncher
 
         Settings.loadSettings();
 
+        verbose = Settings.settings.getOrDefault("verbose", "false").equals("true");
+
         File oldInstances = new File(Constants.WORKING_DIR, "instances");
 
         boolean migrateInstances = false;
@@ -100,7 +103,7 @@ public class CreeperLauncher
             FileUtils.move(Path.of(Constants.BIN_LOCATION_OURS, "libraries"), Path.of(Constants.LIBRARY_LOCATION));
             if (migrateInstances)
             {
-                HashMap<Pair<Path, Path>, IOException> moveResult = FileUtils.move(Path.of(Constants.WORKING_DIR, "instances"), Path.of(Constants.INSTANCES_FOLDER_LOC));
+                HashMap<Pair<Path, Path>, IOException> moveResult = FileUtils.move(Path.of(Constants.WORKING_DIR, "instanceLocation"), Path.of(Constants.INSTANCES_FOLDER_LOC));
                 if (!moveResult.isEmpty()) {
                     CreeperLogger.INSTANCE.error("Error occurred whilst migrating instances to the new location. Errors follow.");
                     moveResult.forEach((key, value) -> {
@@ -209,6 +212,11 @@ public class CreeperLauncher
             }
         });
 
+        SettingsChangeUtil.registerListener("verbose", (key, value) -> {
+            verbose = value.equals("true");
+            return true;
+        });
+
         Instances.refreshInstances();
 
         localCache = new LocalCache(); // moved to here so that it doesn't exist prior to migrating
@@ -261,7 +269,15 @@ public class CreeperLauncher
                     startProcess = false;
                     defaultWebsocketPort = true;
                     ProcessHandle handle = electronProc.get();
-                    handle.onExit().thenRun(CreeperLauncher::exit);
+                    handle.onExit().thenRun(() ->
+                    {
+                        while (isSyncing.get()) {
+                            try {
+                                Thread.sleep(1000);
+                            } catch (InterruptedException e) { e.printStackTrace(); }
+                        }
+                        CreeperLauncher.exit();
+                    });
                     Runtime.getRuntime().addShutdownHook(new Thread(handle::destroy));
                 }
             } catch (Exception exception) {
@@ -272,11 +288,14 @@ public class CreeperLauncher
         }
 
         Settings.webSocketAPI = new WebSocketAPI(new InetSocketAddress(InetAddress.getLoopbackAddress(), defaultWebsocketPort || isDevMode ? Constants.WEBSOCKET_PORT : websocketPort));
+        Settings.webSocketAPI.setConnectionLostTimeout(0);
         Settings.webSocketAPI.start();
 
         if (startProcess) {
             startElectron();
         }
+
+        MiscUtils.updateJavaVersions();
     }
 
     @SuppressWarnings("ConstantConditions")

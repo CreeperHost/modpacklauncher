@@ -42,6 +42,9 @@ public class InstanceConfigureHandler implements IMessageHandler<InstanceConfigu
                             instance.embeddedJre = (!instance.setJre(true, ""));
                         }
                         break;
+                    case "cloudsaves":
+                        instance.cloudSaves = Boolean.parseBoolean(setting.getValue());
+                        break;
                 }
             }
             instance.saveJson();

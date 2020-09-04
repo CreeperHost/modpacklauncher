@@ -223,6 +223,10 @@ dependencies {
     compile group: "com.github.oshi", name: "oshi-core", version: "4.1.1"
     compile group: "com.squareup.okhttp3", name: "okhttp", version: "4.2.2"
     compile group: "org.apache.commons", name: "commons-compress", version: "1.2"
+    compile group: 'net.java.dev.jna', name: 'jna', version: '5.5.0'
+    compile group: 'net.java.dev.jna', name: 'jna-platform', version: '5.5.0'
+    compile group: 'com.amazonaws', name: 'aws-java-sdk-s3', version: '1.11.839'
+
 
     compileOnly group: "org.apache.ant", name: "ant-commons-net", version: "1.10.7"
 }

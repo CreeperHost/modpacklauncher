@@ -3,6 +3,7 @@ package net.creeperhost.creeperlauncher;
 import java.io.File;
 import java.util.Arrays;
 import java.util.logging.FileHandler;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
@@ -60,11 +61,31 @@ public class CreeperLogger
 
     public void error(String input)
     {
-        logger.severe(input);
+        String caller = getCaller("error");
+        logger.severe(caller + (caller.isEmpty() ? "" : "\n") + input);
     }
 
     public void error(String input, Throwable ex)
     {
         error(input + "\n" + throwableToString(ex));
+    }
+
+    public void debug(String input, Throwable ex) {
+        debug(input + "\n" + throwableToString(ex));
+    }
+
+    public void debug(String input)
+    {
+        if (CreeperLauncher.verbose) logger.log(Level.INFO, input);
+    }
+
+    private String getCaller(String exclude) {
+        for(StackTraceElement el: Thread.currentThread().getStackTrace())
+        {
+            String methodName = el.getMethodName();
+            if (methodName.contains(exclude) || methodName.contains("getStackTrace") || methodName.contains("getCaller")) continue;
+            return el.toString();
+        }
+        return "";
     }
 }
