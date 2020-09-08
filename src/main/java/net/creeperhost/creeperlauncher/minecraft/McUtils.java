@@ -205,15 +205,21 @@ public class McUtils {
         if (!file.exists()) {
             CreeperLogger.INSTANCE.info("Starting download of the vanilla launcher");
             DownloadableFile remoteFile = new DownloadableFile("official", "/", downloadurl, new ArrayList<>(), 0, false, false, 0, "Vanilla", "vanilla", String.valueOf(System.currentTimeMillis() / 1000L));
-            DownloadTask task = new DownloadTask(remoteFile, (new File(Constants.MINECRAFT_LAUNCHER_LOCATION)).toPath());
-            task.execute().join();
-            boolean osConfig = false;
-            try {
-                osConfig = McUtils.prepareVanillaLauncher();
-            } catch (Exception err) {
-                err.printStackTrace();
+            File destinationFile = new File(Constants.MINECRAFT_LAUNCHER_LOCATION);
+            if(!destinationFile.canWrite())
+            {
+                CreeperLogger.INSTANCE.error("Cannot write to data directory "+Constants.DATA_DIR+"?");
+            } else {
+                DownloadTask task = new DownloadTask(remoteFile, destinationFile.toPath());
+                task.execute().join();
+                boolean osConfig = false;
+                try {
+                    osConfig = McUtils.prepareVanillaLauncher();
+                } catch (Exception err) {
+                    err.printStackTrace();
+                }
+                if (!osConfig) CreeperLogger.INSTANCE.error("Failed to configure Vanilla launcher for this OS!");
             }
-            if (!osConfig) CreeperLogger.INSTANCE.error("Failed to configure Vanilla launcher for this OS!");
         }
     }
 
