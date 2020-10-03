@@ -1,11 +1,13 @@
 package net.creeperhost.creeperlauncher.api.handlers;
 
+import com.google.gson.JsonObject;
 import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.Instances;
 import net.creeperhost.creeperlauncher.api.data.InstalledInstancesData;
 import net.creeperhost.creeperlauncher.pack.LocalInstance;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 public class InstalledInstancesHandler implements IMessageHandler<InstalledInstancesData>
 {
@@ -14,9 +16,24 @@ public class InstalledInstancesHandler implements IMessageHandler<InstalledInsta
     public void handle(InstalledInstancesData data)
     {
         int id = data.requestId;
-        Instances.refreshInstances();
-        List<LocalInstance> installedInstances = Instances.allInstances();
-        InstalledInstancesData.Reply reply = new InstalledInstancesData.Reply(id, installedInstances);
-        Settings.webSocketAPI.sendMessage(reply);
+        boolean refresh = data.refresh;
+        CompletableFuture.runAsync(() -> {
+            if(refresh) Instances.refreshInstances();
+            List<LocalInstance> installedInstances;
+            List<JsonObject> cloudInstances;
+            try {
+                Instances.allInstances();
+                Instances.cloudInstances();
+            } catch(Throwable t)
+            {
+                Instances.refreshInstances();
+            } finally
+            {
+                installedInstances = Instances.allInstances();
+                cloudInstances = Instances.cloudInstances();
+            }
+            InstalledInstancesData.Reply reply = new InstalledInstancesData.Reply(id, installedInstances, cloudInstances);
+            Settings.webSocketAPI.sendMessage(reply);
+        });
     }
 }

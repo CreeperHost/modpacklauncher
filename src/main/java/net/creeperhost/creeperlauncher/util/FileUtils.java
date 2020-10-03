@@ -1,5 +1,6 @@
 package net.creeperhost.creeperlauncher.util;
 
+import net.creeperhost.creeperlauncher.CreeperLogger;
 import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.archivers.ArchiveStreamFactory;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
@@ -20,6 +21,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.GZIPInputStream;
 
 public class FileUtils
@@ -78,6 +80,15 @@ public class FileUtils
         {
             Path fileToExtract = fileSystem.getPath(fileName);
             Files.copy(fileToExtract, dest.toPath());
+        }
+    }
+
+    public static <FileSystem> void removeFileFromZip(File zip, String fileName) throws IOException
+    {
+        try (java.nio.file.FileSystem fileSystem = (java.nio.file.FileSystem) FileSystems.newFileSystem(zip.toPath(), null))
+        {
+            Path fileToRemove = ((java.nio.file.FileSystem) fileSystem).getPath(fileName);
+            deleteDirectory(fileToRemove.toFile());
         }
     }
 
@@ -160,6 +171,14 @@ public class FileUtils
         }
     }
 
+    public static Long getLastModified(File file)
+    {
+        if (file != null)
+            return file.lastModified();
+
+        return 0L;
+    }
+
     public static String getHash(File file, String hashType)
     {
         try {
@@ -187,15 +206,48 @@ public class FileUtils
         return complete.digest();
     }
 
-    // see this How-to for a faster way to convert
-    // a byte array to a HEX string
-    private static String hashToString(byte[] b) throws Exception {
+    private static String hashToString(byte[] b) {
         StringBuilder result = new StringBuilder();
 
         for (byte value : b) {
             result.append(Integer.toString((value & 0xff) + 0x100, 16).substring(1));
         }
         return result.toString();
+    }
+
+    public static boolean mergeJars(File input, File output)
+    {
+        if(input == null || output == null) return false;
+        AtomicBoolean flag = new AtomicBoolean(true);
+
+        try (FileSystem fs = FileSystems.newFileSystem(output.toPath(), null))
+        {
+            FileSystem tempFS = FileSystems.newFileSystem(input.toPath(), null);
+            Path root = tempFS.getPath("/");
+            Files.walkFileTree(root, new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException
+                {
+                    try
+                    {
+                        //Make sure to create the parents as java is dumb...
+                        Files.createDirectories(fs.getPath(file.getParent().toString()));
+                        Files.copy(tempFS.getPath(file.toString()), fs.getPath(file.toString()), StandardCopyOption.REPLACE_EXISTING);
+                    }
+                    catch (Exception e)
+                    {
+                        flag.set(false);
+                        e.printStackTrace();
+                    }
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        } catch (Exception e)
+        {
+            flag.set(false);
+            e.printStackTrace();
+        }
+        return flag.get();
     }
 
     public static void deleteDirectory(Path directory)
@@ -249,15 +301,15 @@ public class FileUtils
                 }
             }
         }
-        if (in.getFileSystem() == out.getFileSystem())
-        {
-            try {
-                Files.move(in, out);
-            } catch (IOException e) {
-                errors.put(new Pair<>(in, out), e);
-            }
+
+        try {
+            Files.move(in, out);
             return errors;
+        } catch (IOException e) {
+            CreeperLogger.INSTANCE.warning("Could not move " + in + " to " + out + " - trying another method");
+            e.printStackTrace();
         }
+
         try {
             Path finalOut = out;
             Files.walkFileTree(in, new SimpleFileVisitor<>() {

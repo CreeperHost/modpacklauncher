@@ -3,6 +3,7 @@ package net.creeperhost.creeperlauncher;
 import java.io.File;
 import java.util.Arrays;
 import java.util.logging.FileHandler;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
@@ -37,25 +38,54 @@ public class CreeperLogger
         logger.info(input);
     }
 
-    public void warning(String input)
-    {
-        logger.warning(input);
-    }
-
-    public void error(String input)
-    {
-        logger.severe(input);
-    }
-
-    public void error(String input, Throwable ex)
+    private String throwableToString(Throwable ex)
     {
         StringBuilder printStr = new StringBuilder();
-        printStr.append(input).append("\n");
         printStr.append(ex.getClass().toString()).append(": ").append(ex.getMessage()).append("\n");
         for(StackTraceElement el: ex.getStackTrace())
         {
             printStr.append(el.toString()).append("\n");
         }
-        error(printStr.toString());
+        return printStr.toString();
+    }
+
+    public void warning(String input)
+    {
+        logger.warning(input);
+    }
+
+    public void warning(String input, Throwable ex)
+    {
+        warning(input + "\n" + throwableToString(ex));
+    }
+
+    public void error(String input)
+    {
+        String caller = getCaller("error");
+        logger.severe(caller + (caller.isEmpty() ? "" : "\n") + input);
+    }
+
+    public void error(String input, Throwable ex)
+    {
+        error(input + "\n" + throwableToString(ex));
+    }
+
+    public void debug(String input, Throwable ex) {
+        debug(input + "\n" + throwableToString(ex));
+    }
+
+    public void debug(String input)
+    {
+        if (CreeperLauncher.verbose) logger.log(Level.INFO, input);
+    }
+
+    private String getCaller(String exclude) {
+        for(StackTraceElement el: Thread.currentThread().getStackTrace())
+        {
+            String methodName = el.getMethodName();
+            if (methodName.contains(exclude) || methodName.contains("getStackTrace") || methodName.contains("getCaller")) continue;
+            return el.toString();
+        }
+        return "";
     }
 }

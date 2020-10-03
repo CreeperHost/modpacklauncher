@@ -9,7 +9,6 @@ public class Constants
     //CWD
     public static final String WORKING_DIR = System.getProperty("user.dir");
     public static final String DATA_DIR = System.getProperty("user.home") + File.separator + ".ftba";
-    //public static final String DATA_DIR = WORKING_DIR;
 
     //Launcher titles
     public static final String windowTitle = "Modpack Launcher";
@@ -50,6 +49,13 @@ public class Constants
     //Auth
     public static String KEY = "";
     public static String SECRET = "";
+
+    //S3 Auth
+    public static String S3_KEY = "";
+    public static String S3_SECRET = "";
+    public static String S3_BUCKET = "";
+    public static String S3_HOST = "";
+
 
     public static String getCreeperhostModpackSearch2()
     {

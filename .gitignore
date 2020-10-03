@@ -32,6 +32,12 @@ test/
 
 .DS_Store
 
+src/main/java/net/creeperhost/creeperlauncher/VersionTest.java
+
+launcher.log.1
+
+launcher.log.1.lck
+
 tempDMGExtract/
 
 electron.log

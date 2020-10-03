@@ -38,34 +38,28 @@ public class IntegrityCheckException extends RuntimeException
         this.expectedSize = expectedSize;
         this.source = source;
         this.destination = destination;
-        //TODO: Remove these once exceptions work properly again
-        InstallInstanceHandler.hasError.set(true);
-        InstallInstanceHandler.lastError.set(detailMessage);
-        this.printStackTrace();
     }
 
     @Override
-    public void printStackTrace()
-    {
-        super.printStackTrace();
+    public String getMessage() {
+        StringBuilder errorString = new StringBuilder();
         if (otherThrowable != null)
         {
-            CreeperLogger.INSTANCE.error("Caught throwable: ");
-            otherThrowable.printStackTrace();
+            errorString.append("Caught throwable: ").append(otherThrowable.getMessage()).append("\n");
         }
-        CreeperLogger.INSTANCE.error("errorCode: " + errorCode);
-        CreeperLogger.INSTANCE.error("errorCode: " + errorCode);
-        CreeperLogger.INSTANCE.error("checksum: " + checksum);
+        errorString.append("errorCode: ").append(errorCode).append("\n");
+        errorString.append("checksum: ").append(checksum).append("\n");
         if (checksums != null)
         {
             for (String validChecksum : checksums)
             {
-                CreeperLogger.INSTANCE.error("validChecksum: " + validChecksum);
+                errorString.append("validChecksum: ").append(validChecksum).append("\n");
             }
         }
-        CreeperLogger.INSTANCE.error("size: " + size);
-        CreeperLogger.INSTANCE.error("expectedSize: " + expectedSize);
-        CreeperLogger.INSTANCE.error("source: " + source);
-        CreeperLogger.INSTANCE.error("destination: " + destination);
+        errorString.append("size: ").append(size).append("\n");
+        errorString.append("expectedSize: ").append(expectedSize).append("\n");
+        errorString.append("source: ").append(source).append("\n");
+        errorString.append("destination: ").append(destination).append("\n");
+        return super.getMessage() + "\n" + errorString.toString();
     }
 }
