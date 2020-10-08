@@ -51,6 +51,8 @@ public class WebSocketMessengerHandler
         registerHandler(StoreAuthDetailsData.class, new StoreAuthDetailsHandler());
         registerDataMap("syncInstance", SyncInstanceData.class);
         registerHandler(SyncInstanceData.class, new SyncInstanceHandler());
+        registerDataMap("ircConnect", IRCConnectData.class);
+        registerHandler(IRCConnectData.class, new IRCConnectHandler());
     }
 
     public static void registerHandler(Class<? extends BaseData> clazz, IMessageHandler<? extends BaseData> handler)

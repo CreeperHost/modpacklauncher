@@ -29,6 +29,7 @@ apply plugin: "eclipse"
 repositories {
     mavenCentral()
     gradlePluginPortal()
+    maven { url 'https://jitpack.io' }
 }
 
 import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
@@ -226,9 +227,9 @@ dependencies {
     compile group: 'net.java.dev.jna', name: 'jna', version: '5.5.0'
     compile group: 'net.java.dev.jna', name: 'jna-platform', version: '5.5.0'
     compile group: 'com.amazonaws', name: 'aws-java-sdk-s3', version: '1.11.839'
+    compile 'com.github.pircbotx:pircbotx:2.2'
 
-
-    compileOnly group: "org.apache.ant", name: "ant-commons-net", version: "1.10.7"
+    implementation group: "org.apache.ant", name: "ant-commons-net", version: "1.10.7"
 }
 
 project(":web") {
