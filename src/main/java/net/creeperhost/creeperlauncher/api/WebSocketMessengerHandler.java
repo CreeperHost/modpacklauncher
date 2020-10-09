@@ -53,6 +53,14 @@ public class WebSocketMessengerHandler
         registerHandler(SyncInstanceData.class, new SyncInstanceHandler());
         registerDataMap("ircConnect", IRCConnectData.class);
         registerHandler(IRCConnectData.class, new IRCConnectHandler());
+        registerDataMap("ircWhoisRequest", IRCWhoisRequestData.class);
+        registerHandler(IRCWhoisRequestData.class, new IRCWhoisRequestHandler());
+        registerDataMap("ircSendMessage", IRCSendMessageData.class);
+        registerHandler(IRCSendMessageData.class, new IRCSendMessageHandler()); //
+        registerDataMap("ircCtcpRequest", IRCCtcpRequestData.class);
+        registerHandler(IRCCtcpRequestData.class, new IRCCtcpRequestHandler()); //
+        registerDataMap("ircQuitRequest", IRCQuitRequestData.class);
+        registerHandler(IRCQuitRequestData.class, new IRCQuitRequestHandler()); //
     }
 
     public static void registerHandler(Class<? extends BaseData> clazz, IMessageHandler<? extends BaseData> handler)
