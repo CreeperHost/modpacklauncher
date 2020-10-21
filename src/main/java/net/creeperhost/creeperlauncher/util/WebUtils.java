@@ -152,10 +152,13 @@ public class WebUtils
 
     public static String methodWebResponse(String urlString, String postDataString, String method, boolean isJson, boolean silent)
     {
+        return methodWebResponse(urlString, postDataString, method, isJson ? "application/json" : "application/x-www-form-urlencoded", isJson, silent);
+    }
+
+    public static String methodWebResponse(String urlString, String postDataString, String method, String contentType, boolean isJson, boolean silent)
+    {
         try
         {
-            postDataString.substring(0, postDataString.length() - 1);
-
             byte[] postData = postDataString.getBytes(Charset.forName("UTF-8"));
             int postDataLength = postData.length;
 
@@ -171,7 +174,7 @@ public class WebUtils
                     conn.addRequestProperty("Cookie", cookie.split(";", 2)[0]);
                 }
             }
-            conn.setRequestProperty("Content-Type", isJson ? "application/json" : "application/x-www-form-urlencoded");
+            conn.setRequestProperty("Content-Type", contentType);
             conn.setRequestProperty("charset", "utf-8");
             conn.setRequestProperty("Content-Length", Integer.toString(postDataLength));
             conn.setConnectTimeout(5000);
@@ -222,6 +225,11 @@ public class WebUtils
     public static String postWebResponse(String urlString, String postDataString)
     {
         return methodWebResponse(urlString, postDataString, "POST", false, false);
+    }
+
+    public static String postWebResponse(String urlString, String postDataString, String contentType)
+    {
+        return methodWebResponse(urlString, postDataString, "POST", contentType, false, false);
     }
 
     public static String putWebResponse(String urlString, String body, boolean isJson, boolean isSilent)
