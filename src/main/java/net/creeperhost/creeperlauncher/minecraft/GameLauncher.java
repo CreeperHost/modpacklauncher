@@ -8,6 +8,7 @@ import net.creeperhost.creeperlauncher.util.StreamGobblerLog;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public class GameLauncher
@@ -53,6 +54,11 @@ public class GameLauncher
             try
             {
                 ProcessBuilder builder = new ProcessBuilder(exe, "--workDir", Constants.BIN_LOCATION);
+                Map<String, String> environment = builder.environment();
+                environment.remove("_JAVA_OPTIONS");
+                environment.remove("JAVA_TOOL_OPTIONS");
+                environment.remove("JAVA_OPTIONS");
+                // clear JAVA_OPTIONS so that they don't interfere
                 CreeperLogger.INSTANCE.info("Launching Vanilla launcher and closing - path and args: " + exe + " --workDir " + Constants.BIN_LOCATION);
                 Process process = builder.start();
                 StreamGobblerLog.redirectToLogger(process.getErrorStream(), CreeperLogger.INSTANCE::error);
