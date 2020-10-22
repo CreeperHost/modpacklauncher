@@ -1,10 +1,11 @@
 package net.creeperhost.creeperlauncher.api.handlers;
 
+import com.google.gson.JsonParser;
 import net.creeperhost.creeperlauncher.Constants;
+import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.data.UploadLogsData;
 import net.creeperhost.creeperlauncher.util.WebUtils;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -12,10 +13,10 @@ import java.nio.file.Path;
 public class UploadLogsHandler implements IMessageHandler<UploadLogsData> {
     @Override
     public void handle(UploadLogsData data) {
-        uploadLogs(data.uiVersion, data.frontendLogs);
+        uploadLogs(data.uiVersion, data.frontendLogs, data.requestId);
     }
 
-    public static void uploadLogs(String uiVersion, String frontendLogs)
+    public static void uploadLogs(String uiVersion, String frontendLogs, int requestId)
     {
         Path logFile = Path.of("./launcher.log");
         Path errorLogFile = Path.of("./error.log");
@@ -41,20 +42,31 @@ public class UploadLogsHandler implements IMessageHandler<UploadLogsData> {
         }
 
         String uploadData = "UI Version:" + (uiVersion != null ? uiVersion : "Unknown") + "\n" +
-                "App Version: " + Constants.APPVERSION + "\n" +
-                "\n" +
-                "\n" +
-                padString("launcher.log") + "\n" +
-                (launcherLog == null ? "Not available" : launcherLog) + "\n" +
-                "\n" +
-                "\n" +
-                padString("error.log") + "\n" +
-                (errorLog == null ? "Not available" : errorLog) + "\n" +
-                "\n" +
-                "\n" +
-                padString("main.log") + "\n" +
-                (frontendLogs == null ? "Not available" : frontendLogs);
-        System.out.println(WebUtils.postWebResponse("https://pste.ch/documents", uploadData, "text/plain; charset=UTF-8"));
+            "App Version: " + Constants.APPVERSION + "\n" +
+            "\n" +
+            "\n" +
+            padString("launcher.log") + "\n" +
+            (launcherLog == null ? "Not available" : launcherLog) + "\n" +
+            "\n" +
+            "\n" +
+            padString("error.log") + "\n" +
+            (errorLog == null ? "Not available" : errorLog) + "\n" +
+            "\n" +
+            "\n" +
+            padString("main.log") + "\n" +
+            (frontendLogs == null ? "Not available" : frontendLogs);
+
+        String s = WebUtils.postWebResponse("https://pste.ch/documents", uploadData, "text/plain; charset=UTF-8");
+        JsonParser jsonParser = new JsonParser();
+        String code = "";
+        try {
+            code = jsonParser.parse(s).getAsJsonObject().get("key").getAsString();
+        } catch (Throwable t) {
+            Settings.webSocketAPI.sendMessage(new UploadLogsData.Reply(requestId)); // error
+        }
+
+        Settings.webSocketAPI.sendMessage(new UploadLogsData.Reply(requestId, code));
+
     }
 
     private static String padString(String stringToPad) {
