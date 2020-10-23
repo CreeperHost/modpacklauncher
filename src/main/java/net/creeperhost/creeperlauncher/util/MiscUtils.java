@@ -49,10 +49,6 @@ public class MiscUtils
     }
 
     private static String[] javaRegLocations = new String[] {"Java Development Kit", "Java Runtime Environment"};
-    private static HashMap<Integer, String> archLocations = new HashMap<>() {{
-        put(64, "SOFTWARE\\JavaSoft\\");
-        put(32, "SOFTWARE\\Wow6432Node\\JavaSoft\\");
-    }};
 
     public static void updateJavaVersions()
     {
@@ -60,9 +56,8 @@ public class MiscUtils
         switch(OSUtils.getOs()) {
             case WIN:
                 versions.put("Mojang Built-in", "");
-                for(Map.Entry<Integer, String> arch: archLocations.entrySet()) {
                     for (String location : javaRegLocations) {
-                        String fullPath = arch.getValue() + location;
+                        String fullPath = "SOFTWARE\\JavaSoft\\" + location;
                         if (Advapi32Util.registryKeyExists(WinReg.HKEY_LOCAL_MACHINE, fullPath))
                         {
                             WinReg.HKEYByReference key = Advapi32Util.registryGetKey(WinReg.HKEY_LOCAL_MACHINE, fullPath, WinNT.KEY_READ);
@@ -74,12 +69,11 @@ public class MiscUtils
                                 } catch (Win32Exception ignored) {
                                 }
                                 if (javaHome != null) {
-                                    versions.put(child + " (" + arch.getKey() + "bit)", Path.of(javaHome, "bin" + File.separator + "java.exe").toString());
+                                    versions.put(child + " (64bit)", Path.of(javaHome, "bin" + File.separator + "java.exe").toString());
                                 }
                             }
                         }
                     }
-                }
                 break;
             case MAC:
                 break;
