@@ -63,6 +63,8 @@ public class WebSocketMessengerHandler
         registerHandler(IRCQuitRequestData.class, new IRCQuitRequestHandler());
         registerDataMap("uploadLogs", UploadLogsData.class);
         registerHandler(UploadLogsData.class, new UploadLogsHandler());
+        registerDataMap("getJavas", GetJavasData.class);
+        registerHandler(GetJavasData.class, new GetJavasHandler());
     }
 
     public static void registerHandler(Class<? extends BaseData> clazz, IMessageHandler<? extends BaseData> handler)
