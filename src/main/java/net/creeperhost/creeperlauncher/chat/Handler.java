@@ -50,6 +50,10 @@ public class Handler {
         return true;
     }
 
+    public static boolean isConnected(){
+        return INSTANCE != null && INSTANCE.botInstance.isConnected() && ircThread != null;
+    }
+
     public static void disconnect() {
         System.out.println("Quitting");
         INSTANCE.botInstance.close();
