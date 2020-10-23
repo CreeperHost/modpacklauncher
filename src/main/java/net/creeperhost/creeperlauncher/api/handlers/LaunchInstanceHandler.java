@@ -12,7 +12,6 @@ public class LaunchInstanceHandler implements IMessageHandler<LaunchInstanceData
     @Override
     public void handle(LaunchInstanceData data)
     {
-        // TODO: flesh out with calling a method to launch the instance
         String _uuid = data.uuid;
         UUID uuid = UUID.fromString(_uuid);
         LocalInstance instance = Instances.getInstance(uuid);
