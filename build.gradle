@@ -182,7 +182,7 @@ sourceSets {
     main {
         resources {
             sourceSets.main.resources
-//            output.dir("./web/dist/",  builtBy: ":web:npm_run_build")
+            output.dir("./web/dist/",  builtBy: ":web:npm_run_build")
         }
     }
 }
@@ -232,37 +232,37 @@ dependencies {
     implementation group: "org.apache.ant", name: "ant-commons-net", version: "1.10.7"
 }
 
-//project(":web") {
-//    buildscript {
-//        repositories {
-//            maven {
-//                url "https://plugins.gradle.org/m2/"
-//            }
-//        }
-//        dependencies {
-//            classpath "com.github.node-gradle:gradle-node-plugin:2.2.3"
-//        }
-//    }
-//
-//    apply plugin: "com.github.node-gradle.node"
-//
-//    node {
-//        version = "12.16.1"
-//        npmVersion = "6.12.0"
-//        download = true
-//        npmWorkDir = file("${project.buildDir}/npm")
-//    }
-//
-//    npm_run_build {
-//        inputs.files(fileTree("public").matching {
-//            exclude "version.json"
-//        })
-//        inputs.files(fileTree("src"))
-//        inputs.file "package-lock.json"
-//        inputs.file "package.json"
-//        outputs.dir "dist"
-//    }
-//}
+project(":web") {
+    buildscript {
+        repositories {
+            maven {
+                url "https://plugins.gradle.org/m2/"
+            }
+        }
+        dependencies {
+            classpath "com.github.node-gradle:gradle-node-plugin:2.2.3"
+        }
+    }
+
+    apply plugin: "com.github.node-gradle.node"
+
+    node {
+        version = "12.16.1"
+        npmVersion = "6.12.0"
+        download = true
+        npmWorkDir = file("${project.buildDir}/npm")
+    }
+
+    npm_run_build {
+        inputs.files(fileTree("public").matching {
+            exclude "version.json"
+        })
+        inputs.files(fileTree("src"))
+        inputs.file "package-lock.json"
+        inputs.file "package.json"
+        outputs.dir "dist"
+    }
+}
 
 task submodulesUpdate() {
     doLast {
@@ -273,11 +273,11 @@ task submodulesUpdate() {
     }
 }
 
-//build.dependsOn(":web:npm_run_build")
+build.dependsOn(":web:npm_run_build")
 
 
 task buildAll(dependsOn: "build") {}
-//buildAll.dependsOn(":web:npm_run_buildall")
+buildAll.dependsOn(":web:npm_run_buildall")
 
 media.dependsOn buildAll
 
@@ -329,10 +329,10 @@ task writeVersion() {
     }
 }
 
-//writeVersion.dependsOn project(":web").tasks.getByName("npm_run-script_license")
-//project(":web").tasks.getByName("npm_run-script_license").dependsOn project(":web").npmInstall
-//project(":web").npm_run_buildall.dependsOn writeVersion
-//project(":web").npm_run_build.dependsOn writeVersion
+writeVersion.dependsOn project(":web").tasks.getByName("npm_run-script_license")
+project(":web").tasks.getByName("npm_run-script_license").dependsOn project(":web").npmInstall
+project(":web").npm_run_buildall.dependsOn writeVersion
+project(":web").npm_run_build.dependsOn writeVersion
 
 import org.apache.tools.ant.filters.ReplaceTokens
 
@@ -366,28 +366,28 @@ jar {
 
 def currentOS = DefaultNativePlatform.getCurrentOperatingSystem()
 
-//task copyElectron(dependsOn: ":web:npm_run_build", type: Copy) {
-//    try {
-//        if (currentOS.isWindows()) {
-//            copy {
-//                from fileTree("${projectDir}/web/release/win-unpacked/")
-//                into new File(projectDir, "/bin")
-//            }
-//        } else if (currentOS.isLinux()) {
-//            copy {
-//                from fileTree("${projectDir}/web/release/linux-unpacked/")
-//                into new File(projectDir, "/bin")
-//            }
-//        } else if (currentOS.isMacOsX()) {
-//            copy {
-//                from fileTree("${projectDir}/web/release/mac/ftbapp.app")
-//                into new File(projectDir, "/bin/ftbapp.app")
-//            }
-//        }
-//    } catch (Throwable t) {
-//        print "Error while copying files, continuing anyway";
-//    }
-//}
+task copyElectron(dependsOn: ":web:npm_run_build", type: Copy) {
+    try {
+        if (currentOS.isWindows()) {
+            copy {
+                from fileTree("${projectDir}/web/release/win-unpacked/")
+                into new File(projectDir, "/bin")
+            }
+        } else if (currentOS.isLinux()) {
+            copy {
+                from fileTree("${projectDir}/web/release/linux-unpacked/")
+                into new File(projectDir, "/bin")
+            }
+        } else if (currentOS.isMacOsX()) {
+            copy {
+                from fileTree("${projectDir}/web/release/mac/ftbapp.app")
+                into new File(projectDir, "/bin/ftbapp.app")
+            }
+        }
+    } catch (Throwable t) {
+        print "Error while copying files, continuing anyway";
+    }
+}
 
 wrapper {
     gradleVersion = "5.0"

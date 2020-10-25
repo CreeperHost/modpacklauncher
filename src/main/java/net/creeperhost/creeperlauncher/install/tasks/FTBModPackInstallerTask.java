@@ -9,6 +9,7 @@ import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.DownloadableFile;
+import net.creeperhost.creeperlauncher.api.SimpleDownloadableFile;
 import net.creeperhost.creeperlauncher.minecraft.GameLauncher;
 import net.creeperhost.creeperlauncher.minecraft.McUtils;
 import net.creeperhost.creeperlauncher.minecraft.modloader.ModLoader;
@@ -154,6 +155,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
         int minMemory = 2048;
         int recMemory = 4096;
         long id = -1;
+        List<SimpleDownloadableFile> downloadableFileList = new ArrayList<>();
 
         String resp = WebUtils.getAPIResponse(modpackURL);
         JsonElement jElement = new JsonParser().parse(resp);
@@ -218,8 +220,27 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                     }
                 }
             }
+            JsonArray filesArray = object.getAsJsonArray("files");
+            if (filesArray != null)
+            {
+                for (JsonElement serverEl : filesArray)
+                {
+                    JsonObject server = (JsonObject) serverEl;
+                    String fileType = server.get("type").getAsString();
+                    if (fileType.equalsIgnoreCase("mod")) {
+                        String fileName = server.get("name").getAsString();
+                        String fileVersion = server.get("version").getAsString();
+                        String path = server.get("path").getAsString();
+                        long size = server.get("size").getAsInt();
+                        boolean clientSideOnly = server.get("clientonly").getAsBoolean();
+                        boolean optional = server.get("optional").getAsBoolean();
+                        long fileId = server.get("id").getAsLong();
+                        downloadableFileList.add(new SimpleDownloadableFile(fileVersion, Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC) + File.separator + name + File.separator + path + File.separator + fileName, size, clientSideOnly, optional, fileId, fileName, fileType));
+                    }
+                }
+            }
         }
-        return new FTBPack(name, version, Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC) + File.separator + name, authorList, description, mc_version, url, arturl, id, minMemory, recMemory);
+        return new FTBPack(name, version, Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC) + File.separator + name, authorList, description, mc_version, url, arturl, id, minMemory, recMemory, downloadableFileList);
     }
 
     public List<DownloadableFile> getModList(File target) {
