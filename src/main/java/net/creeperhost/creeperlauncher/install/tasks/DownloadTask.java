@@ -5,6 +5,8 @@ import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.IntegrityCheckException;
 import net.creeperhost.creeperlauncher.api.DownloadableFile;
+import net.creeperhost.creeperlauncher.api.WebSocketAPI;
+import net.creeperhost.creeperlauncher.api.data.InstalledFileEventData;
 import net.creeperhost.creeperlauncher.api.handlers.InstallInstanceHandler;
 
 import java.io.File;
@@ -75,6 +77,8 @@ public class DownloadTask implements IInstallTask
                                     destination.toFile().getParentFile().mkdirs();
                                     Files.copy(cachedFile.toPath(), destination);
                                     FTBModPackInstallerTask.currentBytes.addAndGet(cachedFile.length());
+                                    if(file.getType().equalsIgnoreCase("mod"))
+                                        Settings.webSocketAPI.sendMessage(new InstalledFileEventData.Reply(file.getName()));
                                     complete = true;
                                     break;
                                 } catch (IOException ignored)
@@ -98,6 +102,8 @@ public class DownloadTask implements IInstallTask
                         {
                             CreeperLogger.INSTANCE.error("Error whilst adding to cache: ", err);
                         }
+                        if(file.getType().equalsIgnoreCase("mod"))
+                            Settings.webSocketAPI.sendMessage(new InstalledFileEventData.Reply(file.getName()));
                         complete = true;
                     } catch (Throwable e)
                     {

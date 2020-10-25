@@ -222,6 +222,46 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
         return new FTBPack(name, version, Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC) + File.separator + name, authorList, description, mc_version, url, arturl, id, minMemory, recMemory);
     }
 
+    public List<DownloadableFile> getModList(File target) {
+        List<DownloadableFile> downloadableFileList = new ArrayList<>();
+        JsonReader versionReader = null;
+        try
+        {
+            versionReader = new JsonReader(new FileReader(target));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        JsonElement jElement = new JsonParser().parse(versionReader);
+        if (jElement.isJsonObject())
+        {
+            JsonArray filesArray = jElement.getAsJsonObject().getAsJsonArray("files");
+
+            if (filesArray != null)
+            {
+                for (JsonElement serverEl : filesArray)
+                {
+                    JsonObject server = (JsonObject) serverEl;
+                    String fileName = server.get("name").getAsString();
+                    String version = server.get("version").getAsString();
+                    String path = server.get("path").getAsString();
+                    String downloadUrl = server.get("url").getAsString().replaceAll(" ", "%20");
+                    List<String> sha1 = new ArrayList<>();
+                    sha1.add(server.get("sha1").getAsString());
+                    long size = server.get("size").getAsInt();
+                    boolean clientSideOnly = server.get("clientonly").getAsBoolean();
+                    boolean optional = server.get("optional").getAsBoolean();
+                    long fileId = server.get("id").getAsLong();
+                    String fileType = server.get("type").getAsString();
+                    String updated = server.get("updated").getAsString();
+                    downloadableFileList.add(new DownloadableFile(version, instance.getDir() + File.separator + path + File.separator + fileName, downloadUrl, sha1, size, clientSideOnly, optional, fileId, fileName, fileType, updated));
+                }
+            }
+        }
+        return downloadableFileList;
+    }
+
+
     public List<DownloadableFile> getRequiredDownloads(File target, File forgeTarget) throws MalformedURLException
     {
         List<DownloadableFile> downloadableFileList = new ArrayList<>();

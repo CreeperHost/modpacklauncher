@@ -4,12 +4,16 @@ import net.creeperhost.creeperlauncher.CreeperLauncher;
 import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.Instances;
+import net.creeperhost.creeperlauncher.api.DownloadableFile;
 import net.creeperhost.creeperlauncher.api.data.InstallInstanceData;
 import net.creeperhost.creeperlauncher.install.tasks.FTBModPackInstallerTask;
 import net.creeperhost.creeperlauncher.pack.FTBPack;
 import net.creeperhost.creeperlauncher.pack.LocalInstance;
+import net.creeperhost.creeperlauncher.util.GsonUtils;
 import net.creeperhost.creeperlauncher.util.MiscUtils;
 
+import java.io.File;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -26,6 +30,7 @@ public class InstallInstanceHandler implements IMessageHandler<InstallInstanceDa
     @Override
     public void handle(InstallInstanceData data)
     {
+        CreeperLogger.INSTANCE.info("[RUSHMEADLOOKHERE] YOU DID IT RIGHT!");
         hasError.set(false);
         if (CreeperLauncher.isInstalling.get())
         {
@@ -40,6 +45,9 @@ public class InstallInstanceHandler implements IMessageHandler<InstallInstanceDa
             try {
                 instance = new LocalInstance(UUID.fromString(data.uuid));
                 install = instance.update(data.version);
+                List<DownloadableFile> files = install.getModList(new File(instance.getDir() + File.separator + "version.json"));
+                CreeperLogger.INSTANCE.info("[RUSHMEADLOOKHERE] Got " + files.size() + " files, sending to frontend");
+                Settings.webSocketAPI.sendMessage(new InstallInstanceData.Reply(data, "files", GsonUtils.GSON.toJson(files), data.uuid));
             } catch (Exception ignored) {
                 lastError.set("Instance not found, aborting update.");
                 hasError.set(true);
@@ -52,6 +60,9 @@ public class InstallInstanceHandler implements IMessageHandler<InstallInstanceDa
             Instances.addInstance(instance.getUuid(), instance);
             data.uuid = instance.getUuid().toString();
             install = instance.install();
+            List<DownloadableFile> files = install.getModList(new File(instance.getDir() + File.separator + "version.json"));
+            CreeperLogger.INSTANCE.info("[RUSHMEADLOOKHERE] Got " + files.size() + " files, sending to frontend");
+            Settings.webSocketAPI.sendMessage(new InstallInstanceData.Reply(data, "files", GsonUtils.GSON.toJson(files), ""));
         }
         install.currentTask.exceptionally((t) ->
         {
