@@ -39,6 +39,8 @@ public class DownloadTask implements IInstallTask
         return CompletableFuture.runAsync(() ->
         {
             boolean complete = false;
+            if(file.getType().equalsIgnoreCase("mod"))
+                Settings.webSocketAPI.sendMessage(new InstalledFileEventData.Reply(file.getName(), "preparing"));
             while (!complete && tries < 3)
             {
                 try
@@ -78,7 +80,7 @@ public class DownloadTask implements IInstallTask
                                     Files.copy(cachedFile.toPath(), destination);
                                     FTBModPackInstallerTask.currentBytes.addAndGet(cachedFile.length());
                                     if(file.getType().equalsIgnoreCase("mod"))
-                                        Settings.webSocketAPI.sendMessage(new InstalledFileEventData.Reply(file.getName()));
+                                        Settings.webSocketAPI.sendMessage(new InstalledFileEventData.Reply(file.getName(), "downloaded"));
                                     complete = true;
                                     break;
                                 } catch (IOException ignored)
@@ -103,7 +105,7 @@ public class DownloadTask implements IInstallTask
                             CreeperLogger.INSTANCE.error("Error whilst adding to cache: ", err);
                         }
                         if(file.getType().equalsIgnoreCase("mod"))
-                            Settings.webSocketAPI.sendMessage(new InstalledFileEventData.Reply(file.getName()));
+                            Settings.webSocketAPI.sendMessage(new InstalledFileEventData.Reply(file.getName(), "downloaded"));
                         complete = true;
                     } catch (Throwable e)
                     {
