@@ -7,6 +7,8 @@ public class IRCConnectHandler implements IMessageHandler<IRCConnectData>
 {
     @Override
     public void handle(IRCConnectData data) {
-        Handler.init(data.host, data.port, data.nick, data.realname);
+        if(!Handler.isConnected()) {
+            Handler.init(data.host, data.port, data.nick, data.realname);
+        }
     }
 }

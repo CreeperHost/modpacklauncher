@@ -1,0 +1,36 @@
+package net.creeperhost.creeperlauncher.api.handlers;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonParser;
+import com.google.gson.reflect.TypeToken;
+import com.google.gson.stream.JsonReader;
+import net.creeperhost.creeperlauncher.Settings;
+import net.creeperhost.creeperlauncher.api.data.BlockFriendData;
+import net.creeperhost.creeperlauncher.api.data.GetFriendsData;
+import net.creeperhost.creeperlauncher.chat.Friends;
+import net.creeperhost.creeperlauncher.util.GsonUtils;
+
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
+public class BlockFriendHandler implements IMessageHandler<BlockFriendData> {
+    @Override
+    public void handle(BlockFriendData data) {
+        List<String> blockedUsers;
+        if(Settings.settings.containsKey("blockedUsers")){
+            String blockedString = Settings.settings.get("blockedUsers");
+            Type listOfString = new TypeToken<ArrayList<String>>() {}.getType();
+            blockedUsers = GsonUtils.GSON.fromJson(blockedString, listOfString);
+        } else {
+            blockedUsers = new ArrayList<>();
+        }
+        if(blockedUsers.contains(data.hash)){
+            return;
+        }
+        blockedUsers.add(data.hash);
+        Settings.settings.put("blockedUsers", GsonUtils.GSON.toJson(blockedUsers));
+    }
+}

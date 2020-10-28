@@ -65,6 +65,10 @@ public class WebSocketMessengerHandler
         registerHandler(UploadLogsData.class, new UploadLogsHandler());
         registerDataMap("getJavas", GetJavasData.class);
         registerHandler(GetJavasData.class, new GetJavasHandler());
+        registerDataMap("getFriends", GetFriendsData.class);
+        registerHandler(GetFriendsData.class, new GetFriendsHandler());
+        registerDataMap("blockFriend", BlockFriendData.class);
+        registerHandler(BlockFriendData.class, new BlockFriendHandler());
     }
 
     public static void registerHandler(Class<? extends BaseData> clazz, IMessageHandler<? extends BaseData> handler)

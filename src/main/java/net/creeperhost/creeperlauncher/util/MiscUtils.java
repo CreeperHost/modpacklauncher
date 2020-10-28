@@ -217,4 +217,13 @@ public class MiscUtils
         }
         return "Unknown";
     }
+
+    public static boolean isInt(String in){
+        try {
+            Integer.parseInt(in);
+        }catch(Exception ignored) {
+            return false;
+        }
+        return true;
+    }
 }

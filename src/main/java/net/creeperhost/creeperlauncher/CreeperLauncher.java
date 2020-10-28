@@ -287,6 +287,10 @@ public class CreeperLauncher
             CreeperLogger.INSTANCE.info("No PID args");
         }
 
+        if(isDevMode){
+            startProcess = false;
+        }
+
         Settings.webSocketAPI = new WebSocketAPI(new InetSocketAddress(InetAddress.getLoopbackAddress(), defaultWebsocketPort || isDevMode ? Constants.WEBSOCKET_PORT : websocketPort));
         Settings.webSocketAPI.setConnectionLostTimeout(0);
         Settings.webSocketAPI.start();

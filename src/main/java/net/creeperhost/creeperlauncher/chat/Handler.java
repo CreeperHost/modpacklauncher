@@ -16,11 +16,14 @@ import org.pircbotx.hooks.events.WhoisEvent;
 import org.pircbotx.hooks.types.GenericCTCPEvent;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.concurrent.CompletableFuture;
 
 public class Handler {
     public static Handler INSTANCE;
     private static Thread ircThread;
     private final PircBotX botInstance;
+    private HashMap<String, CompletableFuture<WhoisEvent>> whoisRegisters;
 
     private Handler(String host, int port, String nick, String realname) throws IOException, IrcException {
         Configuration configuration = new Configuration.Builder()
@@ -31,6 +34,7 @@ public class Handler {
             .buildConfiguration();
 
             botInstance = new PircBotX(configuration);
+        whoisRegisters = new HashMap<>();
     }
 
     public static boolean init(String host, int port, String nick, String realname) {
@@ -57,13 +61,20 @@ public class Handler {
     public static void disconnect() {
         System.out.println("Quitting");
         INSTANCE.botInstance.close();
+        INSTANCE.whoisRegisters.clear();
         INSTANCE = null;
         ircThread = null;
     }
 
     public void doWhois(String nick) {
-        System.out.println("Doing whois for " + nick);
         botInstance.sendIRC().whois(nick);
+    }
+
+    public CompletableFuture<WhoisEvent> doWhoisWithFuture(String nick){
+        CompletableFuture<WhoisEvent> completableFuture = new CompletableFuture<>();
+        whoisRegisters.put(nick, completableFuture);
+        doWhois(nick);
+        return completableFuture;
     }
 
     public void sendMessage(String nick, String message) {
@@ -89,8 +100,12 @@ public class Handler {
                 }
             } else if (event instanceof WhoisEvent) {
                 WhoisEvent whois = (WhoisEvent) event;
-                System.out.println("Whois return received for " + whois.getNick());
-                Settings.webSocketAPI.sendMessage(new IRCEventWhoisData(whois.getNick(), whois.getRealname(), !whois.isExists()));
+                if(Handler.INSTANCE.whoisRegisters.containsKey(whois.getNick())){
+                    Handler.INSTANCE.whoisRegisters.get(whois.getNick()).complete(whois);
+                    Handler.INSTANCE.whoisRegisters.remove(whois.getNick());
+                } else {
+                    Settings.webSocketAPI.sendMessage(new IRCEventWhoisData(whois.getNick(), whois.getRealname(), !whois.isExists()));
+                }
             } else if (event instanceof GenericCTCPEvent) {
                 GenericCTCPEvent ctcp = (GenericCTCPEvent) event;
                 System.out.println("CTCP received from " + ctcp.getUser().getNick());
