@@ -7,6 +7,9 @@ public class ClientLaunchData extends BaseData {
         String type;
         String message;
         Object clientData;
+        public Reply(String messageType, String message){
+             this(messageType, message, null);
+        }
         public Reply(String messageType, String message, Object clientData)
         {
             this.type = messageType;

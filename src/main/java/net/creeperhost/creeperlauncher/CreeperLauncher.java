@@ -1,5 +1,6 @@
 package net.creeperhost.creeperlauncher;
 
+import com.google.gson.JsonObject;
 import com.install4j.api.launcher.ApplicationLauncher;
 import com.install4j.api.update.UpdateChecker;
 import net.creeperhost.creeperlauncher.api.WebSocketAPI;
@@ -352,7 +353,17 @@ public class CreeperLauncher
                 try
                 {
                     bufferText = in.readLine ();
-                    //TODO: Forward on using ClientLaunchData to frontend
+                    JsonObject object = GsonUtils.GSON.fromJson(bufferText, JsonObject.class);
+                    ClientLaunchData.Reply reply;
+                    if(object.has("data")){
+                        reply = new ClientLaunchData.Reply(object.get("type").getAsString(),object.get("type").getAsString(), object.get("data"));
+                    } else {
+                        reply = new ClientLaunchData.Reply(object.get("type").getAsString(),object.get("type").getAsString());
+                    }
+                    Settings.webSocketAPI.sendMessage(reply);
+                    if(object.has("message") && object.get("message").getAsString().equals("done")){
+                        break;
+                    }
                 }
                 catch (IOException e)
                 {
