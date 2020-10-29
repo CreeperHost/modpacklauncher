@@ -1,9 +1,10 @@
-package net.creeperhost.creeperlauncher.api.handlers;
+package net.creeperhost.creeperlauncher.api.handlers.instances;
 
 import com.google.gson.JsonObject;
 import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.Instances;
-import net.creeperhost.creeperlauncher.api.data.InstalledInstancesData;
+import net.creeperhost.creeperlauncher.api.data.instances.InstalledInstancesData;
+import net.creeperhost.creeperlauncher.api.handlers.IMessageHandler;
 import net.creeperhost.creeperlauncher.pack.LocalInstance;
 
 import java.util.List;
