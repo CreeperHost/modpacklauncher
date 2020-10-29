@@ -1,6 +1,7 @@
 package net.creeperhost.creeperlauncher.chat;
 
 import net.creeperhost.creeperlauncher.Settings;
+import net.creeperhost.creeperlauncher.api.data.IRCEventCTCPData;
 import net.creeperhost.creeperlauncher.api.data.IRCEventMessageData;
 import net.creeperhost.creeperlauncher.api.data.IRCEventRegisteredData;
 import net.creeperhost.creeperlauncher.api.data.IRCEventWhoisData;
@@ -12,11 +13,13 @@ import org.pircbotx.hooks.Event;
 import org.pircbotx.hooks.Listener;
 import org.pircbotx.hooks.events.ConnectEvent;
 import org.pircbotx.hooks.events.PrivateMessageEvent;
+import org.pircbotx.hooks.events.UnknownEvent;
 import org.pircbotx.hooks.events.WhoisEvent;
 import org.pircbotx.hooks.types.GenericCTCPEvent;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public class Handler {
@@ -109,9 +112,18 @@ public class Handler {
             } else if (event instanceof GenericCTCPEvent) {
                 GenericCTCPEvent ctcp = (GenericCTCPEvent) event;
                 System.out.println("CTCP received from " + ctcp.getUser().getNick());
-                //Settings.webSocketAPI.sendMessage(new IRCC(whois.getNick(), whois.getRealname()));
             } else if (event instanceof ConnectEvent) {
                 Settings.webSocketAPI.sendMessage(new IRCEventRegisteredData());
+            } else if(event instanceof UnknownEvent){
+                UnknownEvent unknownEvent = (UnknownEvent) event;
+                List<String> parsedLine = unknownEvent.getParsedLine();
+                String message = parsedLine.size() >= 2 ? parsedLine.get(1) : "";
+                if(unknownEvent.getCommand().equals("PRIVMSG") && message.startsWith("\u0001") && message.endsWith("\u0001")){
+                    String request = message.substring(1, message.length() - 1);
+                    if(request.startsWith("FRIENDREQ ") || request.startsWith("FRIENDACC ") || request.startsWith("SERVERID ")){
+                        Settings.webSocketAPI.sendMessage(new IRCEventCTCPData(unknownEvent.getNick(), request, false));
+                    }
+                }
             }
         }
     }
