@@ -4,6 +4,7 @@ import com.google.gson.reflect.TypeToken;
 import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.data.AddFriendData;
 import net.creeperhost.creeperlauncher.api.data.BlockFriendData;
+import net.creeperhost.creeperlauncher.api.data.GetFriendsData;
 import net.creeperhost.creeperlauncher.chat.Friends;
 import net.creeperhost.creeperlauncher.chat.Handler;
 import net.creeperhost.creeperlauncher.util.GsonUtils;
@@ -25,6 +26,7 @@ public class AddFriendHandler implements IMessageHandler<AddFriendData> {
                             Handler.INSTANCE.ctcpRequest(targetProfile.chat.hash.medium, "FRIENDACC " + ourFriendCode + " " + ourName);
                         }
                         Friends.addFriend(data.userHash, targetProfile.friendCode, targetProfile.display);
+                        Settings.webSocketAPI.sendMessage(new AddFriendData.Reply(data));
                     }
                 });
             }
