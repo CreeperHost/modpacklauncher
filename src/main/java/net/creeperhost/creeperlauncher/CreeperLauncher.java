@@ -3,18 +3,23 @@ package net.creeperhost.creeperlauncher;
 import com.install4j.api.launcher.ApplicationLauncher;
 import com.install4j.api.update.UpdateChecker;
 import net.creeperhost.creeperlauncher.api.WebSocketAPI;
-import net.creeperhost.creeperlauncher.api.data.CloseModalData;
-import net.creeperhost.creeperlauncher.api.data.OpenModalData;
+import net.creeperhost.creeperlauncher.api.data.other.ClientLaunchData;
+import net.creeperhost.creeperlauncher.api.data.other.CloseModalData;
+import net.creeperhost.creeperlauncher.api.data.other.OpenModalData;
 import net.creeperhost.creeperlauncher.install.tasks.FTBModPackInstallerTask;
 import net.creeperhost.creeperlauncher.install.tasks.LocalCache;
 import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.os.OSUtils;
 import net.creeperhost.creeperlauncher.util.*;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -332,6 +337,31 @@ public class CreeperLauncher
             }
         } catch (Throwable ignored)
         {
+        }
+    }
+
+    public static void listenForClient(int port)
+    {
+        try {
+            ServerSocket serverSocket = new ServerSocket(port);
+            Socket socket = serverSocket.accept();
+            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream ()));
+            while (true)
+            {
+                String bufferText = "";
+                try
+                {
+                    bufferText = in.readLine ();
+                    //TODO: Forward on using ClientLaunchData to frontend
+                }
+                catch (IOException e)
+                {
+                    break;
+                }
+            }
+        } catch (Exception e)
+        {
+            CreeperLogger.INSTANCE.error(e.getMessage());
         }
     }
 

@@ -5,9 +5,7 @@ import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.IntegrityCheckException;
 import net.creeperhost.creeperlauncher.api.DownloadableFile;
-import net.creeperhost.creeperlauncher.api.WebSocketAPI;
-import net.creeperhost.creeperlauncher.api.data.InstalledFileEventData;
-import net.creeperhost.creeperlauncher.api.handlers.InstallInstanceHandler;
+import net.creeperhost.creeperlauncher.api.data.other.InstalledFileEventData;
 
 import java.io.File;
 import java.io.IOException;

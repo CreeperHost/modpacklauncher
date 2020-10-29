@@ -3,8 +3,8 @@ package net.creeperhost.creeperlauncher.pack;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.google.gson.*;
 import com.google.gson.stream.JsonReader;
-import net.creeperhost.creeperlauncher.api.data.CloseModalData;
-import net.creeperhost.creeperlauncher.api.data.OpenModalData;
+import net.creeperhost.creeperlauncher.api.data.other.CloseModalData;
+import net.creeperhost.creeperlauncher.api.data.other.OpenModalData;
 import net.creeperhost.creeperlauncher.cloudsaves.CloudSaveManager;
 import net.creeperhost.creeperlauncher.cloudsaves.CloudSyncType;
 import net.creeperhost.creeperlauncher.install.tasks.DownloadTask;
@@ -64,7 +64,9 @@ public class LocalInstance implements IPack
     transient private Runnable postInstall;
     transient private boolean postInstallAsync;
     transient private Runnable prePlay;
+    transient private int loadingModPort;
     transient private boolean prePlayAsync;
+    transient public boolean hasLoadingMod;
     transient private Runnable preUninstall;
     transient private boolean preUninstallAsync;
     transient private AtomicBoolean inUse = new AtomicBoolean(false);
@@ -178,6 +180,7 @@ public class LocalInstance implements IPack
         this.modLoader = jsonOutput.modLoader;
         this.dir = this.path;
         this.cloudSaves = jsonOutput.cloudSaves;
+        this.hasLoadingMod = checkForLaunchMod();
         try
         {
             jr.close();
@@ -195,6 +198,7 @@ public class LocalInstance implements IPack
         this.uuid = uuid;
         this.isImport = true;
         this.path = Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC) + File.separator + this.uuid;
+        this.hasLoadingMod = checkForLaunchMod();
     }
 
     public LocalInstance(LocalInstance originalInstance)
@@ -203,6 +207,16 @@ public class LocalInstance implements IPack
         UUID uuid = UUID.randomUUID();
         this.uuid = uuid;
         this.path = Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC) + File.separator + this.uuid;
+        this.hasLoadingMod = checkForLaunchMod();
+    }
+    private boolean checkForLaunchMod()
+    {
+        File mods = new File(this.path, "mods/");
+        for(File mod : mods.listFiles())
+        {
+            if(mod.getName() == "ClientLaunch.jar") return true;
+        }
+        return false;
     }
 
     private LocalInstance()
@@ -241,6 +255,7 @@ public class LocalInstance implements IPack
                 }
             });
         }
+        this.hasLoadingMod = checkForLaunchMod();
         return installer;
     }
 
@@ -273,7 +288,7 @@ public class LocalInstance implements IPack
             FileUtils.deleteDirectory(resources);
             FileUtils.deleteDirectory(scripts);
         }
-
+        this.hasLoadingMod = checkForLaunchMod();
         update.execute().thenRunAsync(() ->
         {
             this.updateVersionFromFile();
@@ -334,6 +349,18 @@ public class LocalInstance implements IPack
         Long lastPlay = this.lastPlayed;
         this.lastPlayed = lastPlayed + 9001;
         CreeperLogger.INSTANCE.debug("Injecting profile to Mojang launcher");
+
+
+        if(this.hasLoadingMod)
+        {
+            this.loadingModPort = (int)(Math.random() * (65534 - 50000 + 1) + 50000);
+            CompletableFuture.runAsync(() -> {
+                CreeperLauncher.listenForClient(this.loadingModPort);
+            });
+            this.jvmArgs += " -Dchtray.port="+this.loadingModPort;
+        }
+
+
         McUtils.injectProfile(new File(Constants.LAUNCHER_PROFILES_JSON), this.toProfile(), jrePath);
         this.lastPlayed = lastPlay;
         try {

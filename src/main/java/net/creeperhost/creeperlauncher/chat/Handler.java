@@ -1,10 +1,10 @@
 package net.creeperhost.creeperlauncher.chat;
 
 import net.creeperhost.creeperlauncher.Settings;
-import net.creeperhost.creeperlauncher.api.data.IRCEventCTCPData;
-import net.creeperhost.creeperlauncher.api.data.IRCEventMessageData;
-import net.creeperhost.creeperlauncher.api.data.IRCEventRegisteredData;
-import net.creeperhost.creeperlauncher.api.data.IRCEventWhoisData;
+import net.creeperhost.creeperlauncher.api.data.irc.IRCEventCTCPData;
+import net.creeperhost.creeperlauncher.api.data.irc.IRCEventMessageData;
+import net.creeperhost.creeperlauncher.api.data.irc.IRCEventRegisteredData;
+import net.creeperhost.creeperlauncher.api.data.irc.IRCEventWhoisData;
 import org.pircbotx.Configuration;
 import org.pircbotx.PircBotX;
 import org.pircbotx.User;
