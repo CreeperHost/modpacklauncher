@@ -351,17 +351,23 @@ public class LocalInstance implements IPack
         CreeperLogger.INSTANCE.debug("Injecting profile to Mojang launcher");
 
 
+        String extraArgs = "";
         if(this.hasLoadingMod)
         {
             this.loadingModPort = (int)(Math.random() * (65534 - 50000 + 1) + 50000);
             CompletableFuture.runAsync(() -> {
                 CreeperLauncher.listenForClient(this.loadingModPort);
             });
-            this.jvmArgs += " -Dchtray.port="+this.loadingModPort;
+            extraArgs += "-Dchtray.port="+this.loadingModPort+" ";
         }
 
 
+        extraArgs = (((jvmArgs.length() > 0) ? " " : "") + extraArgs).trim();
+        jvmArgs += extraArgs;
+
         McUtils.injectProfile(new File(Constants.LAUNCHER_PROFILES_JSON), this.toProfile(), jrePath);
+
+        jvmArgs = jvmArgs.replace(extraArgs, "");
         this.lastPlayed = lastPlay;
         try {
             CreeperLogger.INSTANCE.debug("Saving instance json");
