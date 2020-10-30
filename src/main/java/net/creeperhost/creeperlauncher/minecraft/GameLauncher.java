@@ -149,7 +149,6 @@ public class GameLauncher
                                 try {
                                     Thread.sleep(25);
                                 } catch (InterruptedException e) {
-                                    e.printStackTrace();
                                 }
                             }
                         }
@@ -157,7 +156,6 @@ public class GameLauncher
                 }
             } catch (IOException e)
             {
-                e.printStackTrace();
             }
         }).join();
     }

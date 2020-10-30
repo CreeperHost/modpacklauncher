@@ -33,6 +33,10 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.jar.Attributes;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
+import java.util.zip.ZipEntry;
 
 public class LocalInstance implements IPack
 {
@@ -211,12 +215,58 @@ public class LocalInstance implements IPack
     }
     private boolean checkForLaunchMod()
     {
-        File mods = new File(this.path, "mods/");
-        for(File mod : mods.listFiles())
+        JarFile jarFile = null;
+        try {
+            File[] modsDir = new File(this.path, "mods/").listFiles();
+            if (modsDir == null) return false;
+
+
+            for (File file : modsDir) {
+                try {
+                    jarFile = new JarFile(file);
+                    if (jarFile == null) continue;
+
+                    if(jarFile.getManifest() == null)
+                    {
+                        jarFile.close();
+                        continue;
+                    }
+
+                    Enumeration<JarEntry> entries = jarFile.entries();
+
+                    ZipEntry entry = jarFile.getEntry("net/creeperhost/launchertray/transformer/HookLoader.class");
+                    if (entry == null)
+                    {
+                        jarFile.close();
+                        continue;
+                    }
+
+                    Map<String, Attributes> attributesMap = jarFile.getManifest().getEntries();
+
+                    jarFile.close();
+
+                    if (attributesMap == null) {
+                        continue;
+                    }
+                    return true;
+                } catch (IOException e) {
+                    if(jarFile != null) {
+                        jarFile.close();
+                    }
+                }
+            }
+            if (jarFile != null) jarFile.close();
+            return false;
+        } catch (Throwable e)
         {
-            if(mod.getName() == "ClientLaunch.jar") return true;
+            if (jarFile != null) {
+                try {
+                    jarFile.close();
+                } catch (IOException ignored) {
+                }
+            }
+            return false;
         }
-        return false;
     }
 
     private LocalInstance()
