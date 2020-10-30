@@ -363,18 +363,19 @@ public class CreeperLauncher
                     }
                     Settings.webSocketAPI.sendMessage(reply);
                     if(object.has("message") && object.get("message").getAsString().equals("done")){
+                        CreeperLogger.INSTANCE.info("We done");
                         break;
                     }
                 }
-                catch (IOException e)
+                catch (Throwable e)
                 {
-                    CreeperLogger.INSTANCE.error(e.getMessage());
+                    CreeperLogger.INSTANCE.error("Error whilst sending message on to websocket", e);
                     break;
                 }
             }
-        } catch (Exception e)
+        } catch (Throwable e)
         {
-            CreeperLogger.INSTANCE.error(e.getMessage());
+            CreeperLogger.INSTANCE.error("Error whilst sending message on to websocket", e);
         }
     }
 
