@@ -408,7 +408,7 @@ public class LocalInstance implements IPack
             CompletableFuture.runAsync(() -> {
                 CreeperLauncher.listenForClient(this.loadingModPort);
             });
-            extraArgs += "-Dchtray.port="+this.loadingModPort+" ";
+            extraArgs += "-Dchtray.port="+this.loadingModPort+" -Dhctray.instance"+this.uuid.toString()+" ";
         }
 
 
