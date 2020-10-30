@@ -253,9 +253,9 @@ public class LocalInstance implements IPack
                     FTBModPackInstallerTask.currentStage = FTBModPackInstallerTask.Stage.FINISHED;
                     CreeperLauncher.isInstalling.set(false);
                 }
+                this.hasLoadingMod = checkForLaunchMod();
             });
         }
-        this.hasLoadingMod = checkForLaunchMod();
         return installer;
     }
 

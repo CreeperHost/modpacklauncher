@@ -347,16 +347,17 @@ public class CreeperLauncher
             ServerSocket serverSocket = new ServerSocket(port);
             Socket socket = serverSocket.accept();
             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream ()));
-            while (true)
+            while (socket.isConnected())
             {
                 String bufferText = "";
                 try
                 {
                     bufferText = in.readLine ();
+                    if(bufferText.length() == 0) continue;
                     JsonObject object = GsonUtils.GSON.fromJson(bufferText, JsonObject.class);
                     ClientLaunchData.Reply reply;
                     if(object.has("data")){
-                        reply = new ClientLaunchData.Reply(object.get("type").getAsString(),object.get("message").getAsString(), object.get("data"));
+                        reply = new ClientLaunchData.Reply(object.get("type").getAsString(), object.get("data"));
                     } else {
                         reply = new ClientLaunchData.Reply(object.get("type").getAsString(),object.get("message").getAsString());
                     }
@@ -367,6 +368,7 @@ public class CreeperLauncher
                 }
                 catch (IOException e)
                 {
+                    CreeperLogger.INSTANCE.error(e.getMessage());
                     break;
                 }
             }

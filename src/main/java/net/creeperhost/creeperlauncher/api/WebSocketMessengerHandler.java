@@ -111,12 +111,16 @@ public class WebSocketMessengerHandler
                 IMessageHandler<? extends BaseData> iMessageHandler = handlers.get(typeToken);
                 if (iMessageHandler != null)
                 {
-                    BaseData parsedData = gson.fromJson(data, typeToken.getType());
-                    if (CreeperLauncher.isDevMode || (parsedData.secret != null && parsedData.secret.equals(CreeperLauncher.websocketSecret))) {
-                        CompletableFuture.runAsync(()->iMessageHandler.handle(parsedData)).exceptionally((t) -> {
-                            CreeperLogger.INSTANCE.debug("Error handling message", t);
-                            return null;
-                        });
+                    try {
+                        BaseData parsedData = gson.fromJson(data, typeToken.getType());
+                        if (CreeperLauncher.isDevMode || (parsedData.secret != null && parsedData.secret.equals(CreeperLauncher.websocketSecret))) {
+                            CompletableFuture.runAsync(() -> iMessageHandler.handle(parsedData)).exceptionally((t) -> {
+                                CreeperLogger.INSTANCE.debug("Error handling message", t);
+                                return null;
+                            });
+                        }
+                    }catch(Exception e){
+                        e.printStackTrace();
                     }
                 }
             }
