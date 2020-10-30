@@ -463,11 +463,11 @@ public class LocalInstance implements IPack
         CreeperLogger.INSTANCE.debug("Starting Mojang launcher");
 
         GameLauncher launcher = new GameLauncher();
+        launcher.launchGame();
         CreeperLauncher.mojangProcesses.getAndUpdate((List<Process> processes) -> {
-            processes.add(launcher.process);
+            if(launcher != null && launcher.process != null) processes.add(launcher.process);
             return processes;
         });
-        launcher.launchGame();
 
 
         return launcher;
