@@ -1,6 +1,7 @@
 package net.creeperhost.creeperlauncher.chat;
 
 import net.creeperhost.creeperlauncher.Settings;
+import net.creeperhost.creeperlauncher.api.data.friends.NewFriendData;
 import net.creeperhost.creeperlauncher.api.data.irc.IRCEventCTCPData;
 import net.creeperhost.creeperlauncher.api.data.irc.IRCEventMessageData;
 import net.creeperhost.creeperlauncher.api.data.irc.IRCEventRegisteredData;
@@ -120,7 +121,13 @@ public class Handler {
                 String message = parsedLine.size() >= 2 ? parsedLine.get(1) : "";
                 if(unknownEvent.getCommand().equals("PRIVMSG") && message.startsWith("\u0001") && message.endsWith("\u0001")){
                     String request = message.substring(1, message.length() - 1);
-                    if(request.startsWith("FRIENDREQ ") || request.startsWith("FRIENDACC ") || request.startsWith("SERVERID ")){
+                    if(request.startsWith("FRIENDREQ ")){
+                        Friends.getProfile(unknownEvent.getNick()).whenComplete((userProfile, throwable) -> {
+                            if(userProfile != null){
+                                Settings.webSocketAPI.sendMessage(new NewFriendData(userProfile));
+                            }
+                        });
+                    } else if(request.startsWith("FRIENDACC ") || request.startsWith("SERVERID ")){
                         Settings.webSocketAPI.sendMessage(new IRCEventCTCPData(unknownEvent.getNick(), request, false));
                     }
                 }
