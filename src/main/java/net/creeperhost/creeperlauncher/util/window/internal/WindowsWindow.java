@@ -92,6 +92,17 @@ public class WindowsWindow implements IWindow {
 
     @Override
     public void bringToFront() {
+        User32.INSTANCE.SetFocus(hWnd);
         User32.INSTANCE.SetForegroundWindow(hWnd);
+    }
+
+    @Override
+    public boolean hasFocus() {
+        return false;
+    }
+
+    @Override
+    public boolean isForeground() {
+        return false;
     }
 }

@@ -435,7 +435,7 @@ public class CreeperLauncher
         }
     }
 
-    private static void exit() {
+    public static void exit() {
         try
         {
             Settings.webSocketAPI.stop();

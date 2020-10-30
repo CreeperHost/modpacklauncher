@@ -10,4 +10,6 @@ public interface IWindow {
     IMonitor getMonitor();
     Color getPixelColour(int x, int y);
     void bringToFront();
+    boolean hasFocus();
+    boolean isForeground();
 }
