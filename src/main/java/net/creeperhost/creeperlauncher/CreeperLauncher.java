@@ -357,9 +357,9 @@ public class CreeperLauncher
                     JsonObject object = GsonUtils.GSON.fromJson(bufferText, JsonObject.class);
                     ClientLaunchData.Reply reply;
                     if(object.has("data")){
-                        reply = new ClientLaunchData.Reply(object.get("type").getAsString(), object.get("data"));
+                        reply = new ClientLaunchData.Reply(object.get("instance").getAsString(), object.get("type").getAsString(), object.get("data"));
                     } else {
-                        reply = new ClientLaunchData.Reply(object.get("type").getAsString(),object.get("message").getAsString());
+                        reply = new ClientLaunchData.Reply(object.get("instance").getAsString(), object.get("type").getAsString(),object.get("message").getAsString());
                     }
                     Settings.webSocketAPI.sendMessage(reply);
                     if(object.has("message") && object.get("message").getAsString().equals("done")){
