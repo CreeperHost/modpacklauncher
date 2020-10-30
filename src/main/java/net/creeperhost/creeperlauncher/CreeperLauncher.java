@@ -356,11 +356,12 @@ public class CreeperLauncher
                             if (bufferText.length() == 0) continue;
                             JsonObject object = GsonUtils.GSON.fromJson(bufferText, JsonObject.class);
                             ClientLaunchData.Reply reply;
+                            Object data = new Object();
                             if (object.has("data")) {
-                                reply = new ClientLaunchData.Reply(object.get("instance").getAsString(), object.get("type").getAsString(), object.get("data"));
-                            } else {
-                                reply = new ClientLaunchData.Reply(object.get("instance").getAsString(), object.get("type").getAsString(), object.get("message").getAsString());
+                                data = object.get("data");
                             }
+                            reply = new ClientLaunchData.Reply(object.get("instance").getAsString(), object.get("type").getAsString(), data);
+
                             Settings.webSocketAPI.sendMessage(reply);
                             if (object.has("message") && object.get("message").getAsString().equals("done")) {
                                 CreeperLogger.INSTANCE.info("We done");
@@ -376,6 +377,7 @@ public class CreeperLauncher
                     if(socket.isConnected()){
                         socket.close();
                     }
+                    if(serverSocket != null && !serverSocket.isClosed()) serverSocket.close();
                 } catch (Throwable e) {
                 }
             });

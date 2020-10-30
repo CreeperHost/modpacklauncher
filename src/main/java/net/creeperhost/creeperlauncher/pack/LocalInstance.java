@@ -368,10 +368,15 @@ public class LocalInstance implements IPack
         });
         return update;
     }
-
     public Profile toProfile()
     {
-        return new Profile(getUuid().toString(), getName(), getMcVersion(), modLoader, MiscUtils.getDateAndTime(), "custom", dir, art, Settings.settings.getOrDefault("jvmargs", "") + " " + jvmArgs, memory, width, height);
+        return toProfile("");
+    }
+    public Profile toProfile(String extraArgs)
+    {
+        String totalArgs = Settings.settings.getOrDefault("jvmargs", "") + " " + jvmArgs;
+        if(totalArgs.length() > 0 && extraArgs.length() > 0) totalArgs = totalArgs.trim() + " " + extraArgs.trim();
+        return new Profile(getUuid().toString(), getName(), getMcVersion(), modLoader, MiscUtils.getDateAndTime(), "custom", dir, art, totalArgs, memory, width, height);
     }
 
     public GameLauncher play()
@@ -412,7 +417,7 @@ public class LocalInstance implements IPack
                 this.hasLoadingMod = checkForLaunchMod();
             }
         }
-
+        //END TESTING CODE
         if(this.hasLoadingMod)
         {
             if(this.loadingModSocket != null){
@@ -429,18 +434,21 @@ public class LocalInstance implements IPack
             extraArgs += "-Dchtray.port="+this.loadingModPort+" -Dchtray.instance="+this.uuid.toString()+" ";
         }
 
+        Profile profile = (extraArgs.length() > 0) ? this.toProfile(extraArgs) : this.toProfile();
 
-        extraArgs = (((jvmArgs.length() > 0) ? " " : "") + extraArgs).trim();
-        jvmArgs += extraArgs;
+        if(!McUtils.injectProfile(new File(Constants.LAUNCHER_PROFILES_JSON), profile, jrePath))
+        {
+            CreeperLogger.INSTANCE.error("Unable to inject Mojang launcher profile...");
+            return null;
+        }
 
-        McUtils.injectProfile(new File(Constants.LAUNCHER_PROFILES_JSON), this.toProfile(), jrePath);
-
-        jvmArgs = jvmArgs.replace(extraArgs, "");
         this.lastPlayed = lastPlay;
         try {
             CreeperLogger.INSTANCE.debug("Saving instance json");
             this.saveJson();
-        } catch(Exception ignored) {}
+        } catch(Exception e) {
+            CreeperLogger.INSTANCE.error("Failed to save instance!", e);
+        }
 
         CreeperLogger.INSTANCE.debug("Starting Mojang launcher");
 
