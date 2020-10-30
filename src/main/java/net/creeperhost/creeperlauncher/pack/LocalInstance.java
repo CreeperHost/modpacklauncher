@@ -384,7 +384,14 @@ public class LocalInstance implements IPack
     }
     public GameLauncher play(String extraArgs)
     {
-
+        for(Process mojang : CreeperLauncher.mojangProcesses)
+        {
+            if(mojang.isAlive())
+            {
+                CreeperLogger.INSTANCE.error("Mojang launcher still running with PID "+mojang.pid());
+                return null;
+            }
+        }
         if (this.prePlay != null)
         {
             if (this.prePlayAsync)
@@ -456,7 +463,9 @@ public class LocalInstance implements IPack
         CreeperLogger.INSTANCE.debug("Starting Mojang launcher");
 
         GameLauncher launcher = new GameLauncher();
+        CreeperLauncher.mojangProcesses.add(launcher.process);
         launcher.launchGame();
+
 
         return launcher;
     }

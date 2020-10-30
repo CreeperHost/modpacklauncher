@@ -2,6 +2,7 @@ package net.creeperhost.creeperlauncher.minecraft;
 
 import com.sun.jna.platform.KeyboardUtils;
 import net.creeperhost.creeperlauncher.Constants;
+import net.creeperhost.creeperlauncher.CreeperLauncher;
 import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.os.OSUtils;
@@ -20,6 +21,7 @@ import java.util.concurrent.CompletableFuture;
 
 public class GameLauncher
 {
+    public Process process;
     public void launchGame()
     {
         CompletableFuture.runAsync(() ->
@@ -42,7 +44,19 @@ public class GameLauncher
                 environment.remove("_JAVA_OPTIONS");
                 environment.remove("JAVA_TOOL_OPTIONS");
                 environment.remove("JAVA_OPTIONS");
-                Process start = builder.start();
+                process = builder.start();
+                process.onExit().thenRunAsync(() -> {
+                        CreeperLauncher.mojangProcesses.getAndUpdate((List<Process> processes) -> {
+                            for(Process loopProcess : processes)
+                            {
+                                if(loopProcess.pid() == process.pid())
+                                {
+                                    processes.remove(loopProcess);
+                                }
+                            }
+                            return processes;
+                        });
+                });
                 //tryAutomation(start);
 
             } catch (IOException e)

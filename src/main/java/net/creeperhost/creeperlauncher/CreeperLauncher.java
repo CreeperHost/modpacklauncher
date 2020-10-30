@@ -46,6 +46,7 @@ public class CreeperLauncher
     public static int websocketPort = WebSocketAPI.generateRandomPort();
     public static final String websocketSecret = WebSocketAPI.generateSecret();
     public static AtomicBoolean isSyncing = new AtomicBoolean(false);
+    public static AtomicReference<List<Process>> mojangProcesses = new AtomicReference<List<Process>>();
 
     private static boolean warnedDevelop = false;
 
