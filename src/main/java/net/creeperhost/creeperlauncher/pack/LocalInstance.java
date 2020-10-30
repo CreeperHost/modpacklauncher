@@ -390,8 +390,8 @@ public class LocalInstance implements IPack
                 if (mojang.isAlive()) {
                     CreeperLogger.INSTANCE.error("Mojang launcher still running with PID " + mojang.pid());
                     // TODO: Switch to removing our old Mojang launcher processes
-                    // mojang.destroyForcibly();
-                    return null;//TODO: Remove me
+                     mojang.destroyForcibly();
+                    //return null;//TODO: Remove me
                 }
             }
         }
