@@ -384,12 +384,15 @@ public class LocalInstance implements IPack
     }
     public GameLauncher play(String extraArgs)
     {
-        for(Process mojang : CreeperLauncher.mojangProcesses.get())
-        {
-            if(mojang.isAlive())
-            {
-                CreeperLogger.INSTANCE.error("Mojang launcher still running with PID "+mojang.pid());
-                return null;
+        List<Process> processes = CreeperLauncher.mojangProcesses.get();
+        if(processes != null) {
+            for (Process mojang : processes) {
+                if (mojang.isAlive()) {
+                    CreeperLogger.INSTANCE.error("Mojang launcher still running with PID " + mojang.pid());
+                    // TODO: Switch to removing our old Mojang launcher processes
+                    // mojang.destroyForcibly();
+                    return null;//TODO: Remove me
+                }
             }
         }
         if (this.prePlay != null)
@@ -464,9 +467,10 @@ public class LocalInstance implements IPack
 
         GameLauncher launcher = new GameLauncher();
         launcher.launchGame();
-        CreeperLauncher.mojangProcesses.getAndUpdate((List<Process> processes) -> {
-            if(launcher != null && launcher.process != null) processes.add(launcher.process);
-            return processes;
+        CreeperLauncher.mojangProcesses.getAndUpdate((List<Process> _processes) -> {
+            if(_processes == null) _processes = new ArrayList<Process>();
+            if(launcher != null && launcher.process != null) _processes.add(launcher.process);
+            return _processes;
         });
 
 

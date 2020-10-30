@@ -48,17 +48,16 @@ public class GameLauncher
                 process = builder.start();
                 process.onExit().thenRunAsync(() -> {
                         CreeperLauncher.mojangProcesses.getAndUpdate((List<Process> processes) -> {
-                            List<Process> toRemove = new ArrayList<Process>();
-                            for(Process loopProcess : processes)
-                            {
-                                if(loopProcess.pid() == process.pid())
-                                {
-                                    toRemove.add(process);
+                            if(processes != null) {
+                                List<Process> toRemove = new ArrayList<Process>();
+                                for (Process loopProcess : processes) {
+                                    if (loopProcess.pid() == process.pid()) {
+                                        toRemove.add(process);
+                                    }
                                 }
-                            }
-                            for(Process remove : toRemove)
-                            {
-                                processes.remove(remove);
+                                for (Process remove : toRemove) {
+                                    processes.remove(remove);
+                                }
                             }
                             return processes;
                         });
