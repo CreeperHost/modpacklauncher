@@ -341,42 +341,46 @@ public class CreeperLauncher
         }
     }
 
-    public static void listenForClient(int port)
+    public static Socket listenForClient(int port)
     {
         try {
             ServerSocket serverSocket = new ServerSocket(port);
             Socket socket = serverSocket.accept();
-            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream ()));
-            while (socket.isConnected())
-            {
-                String bufferText = "";
-                try
-                {
-                    bufferText = in.readLine ();
-                    if(bufferText.length() == 0) continue;
-                    JsonObject object = GsonUtils.GSON.fromJson(bufferText, JsonObject.class);
-                    ClientLaunchData.Reply reply;
-                    if(object.has("data")){
-                        reply = new ClientLaunchData.Reply(object.get("instance").getAsString(), object.get("type").getAsString(), object.get("data"));
-                    } else {
-                        reply = new ClientLaunchData.Reply(object.get("instance").getAsString(), object.get("type").getAsString(),object.get("message").getAsString());
+            CompletableFuture.runAsync(() -> {
+                try {
+                    BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                    while (socket.isConnected()) {
+                        String bufferText = "";
+                        try {
+                            bufferText = in.readLine();
+                            if (bufferText.length() == 0) continue;
+                            JsonObject object = GsonUtils.GSON.fromJson(bufferText, JsonObject.class);
+                            ClientLaunchData.Reply reply;
+                            if (object.has("data")) {
+                                reply = new ClientLaunchData.Reply(object.get("instance").getAsString(), object.get("type").getAsString(), object.get("data"));
+                            } else {
+                                reply = new ClientLaunchData.Reply(object.get("instance").getAsString(), object.get("type").getAsString(), object.get("message").getAsString());
+                            }
+                            Settings.webSocketAPI.sendMessage(reply);
+                            if (object.has("message") && object.get("message").getAsString().equals("done")) {
+                                CreeperLogger.INSTANCE.info("We done");
+                                break;
+                            }
+                        } catch (Throwable e) {
+                            CreeperLogger.INSTANCE.error("Error whilst sending message on to websocket", e);
+                            break;
+                        }
                     }
-                    Settings.webSocketAPI.sendMessage(reply);
-                    if(object.has("message") && object.get("message").getAsString().equals("done")){
-                        CreeperLogger.INSTANCE.info("We done");
-                        break;
-                    }
+                } catch (Throwable e) {
+
                 }
-                catch (Throwable e)
-                {
-                    CreeperLogger.INSTANCE.error("Error whilst sending message on to websocket", e);
-                    break;
-                }
-            }
+            });
+            return socket;
         } catch (Throwable e)
         {
             CreeperLogger.INSTANCE.error("Error whilst sending message on to websocket", e);
         }
+        return null;
     }
 
     private static void startElectron() {

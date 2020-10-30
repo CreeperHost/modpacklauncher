@@ -26,6 +26,7 @@ import net.creeperhost.creeperlauncher.util.MiscUtils;
 import java.awt.*;
 import java.io.*;
 import java.net.MalformedURLException;
+import java.net.Socket;
 import java.nio.channels.FileLock;
 import java.nio.file.*;
 import java.util.*;
@@ -74,6 +75,7 @@ public class LocalInstance implements IPack
     transient private Runnable preUninstall;
     transient private boolean preUninstallAsync;
     transient private AtomicBoolean inUse = new AtomicBoolean(false);
+    transient public Socket loadingModSocket;
 
     public LocalInstance(FTBPack pack, long versionId)
     {
@@ -406,7 +408,7 @@ public class LocalInstance implements IPack
         {
             this.loadingModPort = (int)(Math.random() * (65534 - 50000 + 1) + 50000);
             CompletableFuture.runAsync(() -> {
-                CreeperLauncher.listenForClient(this.loadingModPort);
+                loadingModSocket = CreeperLauncher.listenForClient(this.loadingModPort);
             });
             extraArgs += "-Dchtray.port="+this.loadingModPort+" -Dchtray.instance="+this.uuid.toString()+" ";
         }

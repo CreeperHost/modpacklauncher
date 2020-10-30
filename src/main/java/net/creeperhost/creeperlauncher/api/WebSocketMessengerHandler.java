@@ -87,6 +87,8 @@ public class WebSocketMessengerHandler
         registerHandler(InstanceModsData.class, new InstanceModsHandler());
         registerDataMap("yeetLauncher", YeetLauncherData.class);
         registerHandler(YeetLauncherData.class, new YeetLauncherHandler());
+        registerDataMap("messageClient", MessageClientData.class);
+        registerHandler(MessageClientData.class, new MessageClientHandler());
     }
 
     public static void registerHandler(Class<? extends BaseData> clazz, IMessageHandler<? extends BaseData> handler)
