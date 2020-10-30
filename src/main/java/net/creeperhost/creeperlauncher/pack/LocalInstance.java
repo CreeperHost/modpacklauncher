@@ -384,7 +384,7 @@ public class LocalInstance implements IPack
     }
     public GameLauncher play(String extraArgs)
     {
-        for(Process mojang : CreeperLauncher.mojangProcesses)
+        for(Process mojang : CreeperLauncher.mojangProcesses.get())
         {
             if(mojang.isAlive())
             {
@@ -463,7 +463,10 @@ public class LocalInstance implements IPack
         CreeperLogger.INSTANCE.debug("Starting Mojang launcher");
 
         GameLauncher launcher = new GameLauncher();
-        CreeperLauncher.mojangProcesses.add(launcher.process);
+        CreeperLauncher.mojangProcesses.getAndUpdate((List<Process> processes) -> {
+            processes.add(launcher.process);
+            return processes;
+        });
         launcher.launchGame();
 
 
