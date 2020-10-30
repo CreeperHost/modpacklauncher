@@ -83,6 +83,8 @@ public class WebSocketMessengerHandler
         registerHandler(BlockFriendData.class, new BlockFriendHandler());
         registerDataMap("addFriend", AddFriendData.class);
         registerHandler(AddFriendData.class, new AddFriendHandler());
+        registerDataMap("instanceMods", InstanceModsData.class);
+        registerHandler(InstanceModsData.class, new InstanceModsHandler());
     }
 
     public static void registerHandler(Class<? extends BaseData> clazz, IMessageHandler<? extends BaseData> handler)
