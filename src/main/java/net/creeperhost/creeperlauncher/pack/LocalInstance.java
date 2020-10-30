@@ -404,10 +404,26 @@ public class LocalInstance implements IPack
 
 
         String extraArgs = "";
+        this.hasLoadingMod = checkForLaunchMod();
+        //THIS IS FOR TESTING ONLY, PLEASE REMOVE ME IN FUTURE
+        if(!this.hasLoadingMod){
+            if(modLoader.startsWith("1.12.2")){
+                DownloadUtils.downloadFile(new File(dir,"mods" + File.separator + "launchertray-1.0.jar"), "https://dist.modpacks.ch/net/creeperhost/launchertray/transformer/1.0/3616818c510b1631d1780ab12a843fb013127113");
+                this.hasLoadingMod = checkForLaunchMod();
+            }
+        }
+
         if(this.hasLoadingMod)
         {
+            if(this.loadingModSocket != null){
+                try {
+                    this.loadingModSocket.close();
+                } catch (IOException ignored) {}
+                this.loadingModSocket = null;
+            }
             this.loadingModPort = (int)(Math.random() * (65534 - 50000 + 1) + 50000);
             CompletableFuture.runAsync(() -> {
+                CreeperLogger.INSTANCE.info("Started mod socket on port " + this.loadingModPort);
                 loadingModSocket = CreeperLauncher.listenForClient(this.loadingModPort);
             });
             extraArgs += "-Dchtray.port="+this.loadingModPort+" -Dchtray.instance="+this.uuid.toString()+" ";

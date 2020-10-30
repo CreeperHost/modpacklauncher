@@ -364,15 +364,19 @@ public class CreeperLauncher
                             Settings.webSocketAPI.sendMessage(reply);
                             if (object.has("message") && object.get("message").getAsString().equals("done")) {
                                 CreeperLogger.INSTANCE.info("We done");
+                                socket.close();
                                 break;
                             }
                         } catch (Throwable e) {
                             CreeperLogger.INSTANCE.error("Error whilst sending message on to websocket", e);
+                            socket.close();
                             break;
                         }
                     }
+                    if(socket.isConnected()){
+                        socket.close();
+                    }
                 } catch (Throwable e) {
-
                 }
             });
             return socket;
