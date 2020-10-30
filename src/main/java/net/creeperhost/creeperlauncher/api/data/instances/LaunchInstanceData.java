@@ -6,6 +6,7 @@ import net.creeperhost.creeperlauncher.api.data.BaseData;
 public class LaunchInstanceData extends BaseData
 {
     public String uuid;
+    public String extraArgs = "";
 
     public static class Reply extends BaseData
     {

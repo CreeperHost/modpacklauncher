@@ -378,8 +378,11 @@ public class LocalInstance implements IPack
         if(totalArgs.length() > 0 && extraArgs.length() > 0) totalArgs = totalArgs.trim() + " " + extraArgs.trim();
         return new Profile(getUuid().toString(), getName(), getMcVersion(), modLoader, MiscUtils.getDateAndTime(), "custom", dir, art, totalArgs, memory, width, height);
     }
-
     public GameLauncher play()
+    {
+        return play("");
+    }
+    public GameLauncher play(String extraArgs)
     {
 
         if (this.prePlay != null)
@@ -408,7 +411,6 @@ public class LocalInstance implements IPack
         CreeperLogger.INSTANCE.debug("Injecting profile to Mojang launcher");
 
 
-        String extraArgs = "";
         this.hasLoadingMod = checkForLaunchMod();
         //THIS IS FOR TESTING ONLY, PLEASE REMOVE ME IN FUTURE
         if(!this.hasLoadingMod){
@@ -431,6 +433,7 @@ public class LocalInstance implements IPack
                 CreeperLogger.INSTANCE.info("Started mod socket on port " + this.loadingModPort);
                 loadingModSocket = CreeperLauncher.listenForClient(this.loadingModPort);
             });
+            if(extraArgs.length() > 0) extraArgs = extraArgs + " ";
             extraArgs += "-Dchtray.port="+this.loadingModPort+" -Dchtray.instance="+this.uuid.toString()+" ";
         }
 
