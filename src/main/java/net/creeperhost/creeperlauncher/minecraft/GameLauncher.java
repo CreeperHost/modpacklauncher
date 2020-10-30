@@ -15,6 +15,7 @@ import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -47,12 +48,17 @@ public class GameLauncher
                 process = builder.start();
                 process.onExit().thenRunAsync(() -> {
                         CreeperLauncher.mojangProcesses.getAndUpdate((List<Process> processes) -> {
+                            List<Process> toRemove = new ArrayList<Process>();
                             for(Process loopProcess : processes)
                             {
                                 if(loopProcess.pid() == process.pid())
                                 {
-                                    processes.remove(loopProcess);
+                                    toRemove.add(process);
                                 }
+                            }
+                            for(Process remove : toRemove)
+                            {
+                                processes.remove(remove);
                             }
                             return processes;
                         });
