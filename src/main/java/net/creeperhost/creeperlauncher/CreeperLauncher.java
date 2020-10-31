@@ -366,17 +366,24 @@ public class CreeperLauncher
                             Object data = new Object();
                             if(!hasStarted) hasStarted = (object.has("message") && object.get("message").getAsString().equals("init"));
                             if(hasStarted) {
-                                if (object.has("data")) {
+                                if (object.has("data") && object.get("data") != null) {
                                     data = object.get("data");
                                 }
-                                if (object.get("instance").getAsString() != null && object.get("instance").getAsString().length() > 0) {
+                                if (object.has("instance") && object.get("instance").getAsString() != null && object.get("instance").getAsString().length() > 0) {
                                     lastInstance = object.get("instance").getAsString();
                                 }
                                 boolean isDone = (object.has("message") && object.get("message").getAsString().equals("done"));
                                 if (System.currentTimeMillis() > (lastMessageTime + 200) || isDone) {
-                                    reply = new ClientLaunchData.Reply(object.get("instance").getAsString(), object.get("message").getAsString(), object.get("type").getAsString(), data);
+                                    String type = (object.has("type") && object.get("type").getAsString() != null) ? object.get("type").getAsString() : "";
+                                    String message = (object.has("message") && object.get("message").getAsString() != null) ? object.get("message").getAsString() : "";
+                                    reply = new ClientLaunchData.Reply(lastInstance, type, message, data);
                                     lastMessageTime = System.currentTimeMillis();
-                                    Settings.webSocketAPI.sendMessage(reply);
+                                    try {
+                                        Settings.webSocketAPI.sendMessage(reply);
+                                    } catch(Throwable t)
+                                    {
+                                        CreeperLogger.INSTANCE.warning("Unable to send MC client loading update to frontend!", t);
+                                    }
                                 }
                                 if (isDone) {
                                     socket.close();
@@ -384,7 +391,7 @@ public class CreeperLauncher
                                 }
                             }
                         } catch (Throwable e) {
-                            CreeperLogger.INSTANCE.error("Error whilst sending message on to websocket", e);
+                            CreeperLogger.INSTANCE.error("Error whilst receiving message from MC client", e);
                             socket.close();
                             break;
                         }
