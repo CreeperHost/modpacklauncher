@@ -374,7 +374,7 @@ public class CreeperLauncher
                                 }
                                 boolean isDone = (object.has("message") && object.get("message").getAsString().equals("done"));
                                 if (System.currentTimeMillis() > (lastMessageTime + 200) || isDone) {
-                                    reply = new ClientLaunchData.Reply(object.get("instance").getAsString(), object.get("type").getAsString(), data);
+                                    reply = new ClientLaunchData.Reply(object.get("instance").getAsString(), object.get("message").getAsString(), object.get("type").getAsString(), data);
                                     lastMessageTime = System.currentTimeMillis();
                                     Settings.webSocketAPI.sendMessage(reply);
                                 }
