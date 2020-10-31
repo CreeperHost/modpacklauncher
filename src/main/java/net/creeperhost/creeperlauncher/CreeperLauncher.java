@@ -371,9 +371,9 @@ public class CreeperLauncher
                                 lastInstance = object.get("instance").getAsString();
                             }
                             boolean isDone = (object.has("message") && object.get("message").getAsString().equals("done"));
-                            if(CreeperLauncher.unixtimestamp() > lastMessageTime || isDone) {
+                            if(System.currentTimeMillis() > (lastMessageTime+200) || isDone) {
                                 reply = new ClientLaunchData.Reply(object.get("instance").getAsString(), object.get("type").getAsString(), data);
-                                lastMessageTime = CreeperLauncher.unixtimestamp();
+                                lastMessageTime = System.currentTimeMillis();
                                 Settings.webSocketAPI.sendMessage(reply);
                             }
                             if (isDone) {

@@ -109,7 +109,7 @@ public class LocalInstance implements IPack
         {
             this.memory = this.minMemory;
         }
-        this.lastPlayed = System.currentTimeMillis() / 1000L;
+        this.lastPlayed = CreeperLauncher.unixtimestamp();
         Boolean dir = new File(this.path).mkdirs();
         String artPath = this.path + File.separator + "/art.png";
         File artFile = new File(artPath);
@@ -415,7 +415,7 @@ public class LocalInstance implements IPack
             CompletableFuture.runAsync(() -> this.cloudSync(false)).join();
         }
 
-        this.lastPlayed = System.currentTimeMillis() / 1000L;
+        this.lastPlayed = CreeperLauncher.unixtimestamp();
         CreeperLogger.INSTANCE.debug("Sending play request to API");
         Analytics.sendPlayRequest(this.getId(), this.getVersionId());
         CreeperLogger.INSTANCE.debug("Clearing existing Mojang launcher profiles");
