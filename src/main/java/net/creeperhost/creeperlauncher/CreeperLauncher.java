@@ -341,7 +341,10 @@ public class CreeperLauncher
         {
         }
     }
-
+    public static long unixtimestamp()
+    {
+        return System.currentTimeMillis() / 1000L;
+    }
     public static Socket listenForClient(int port)
     {
         try {
@@ -352,6 +355,7 @@ public class CreeperLauncher
                 ClientLaunchData.Reply reply;
                 try {
                     BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                    long lastMessageTime = 0;
                     while (socket.isConnected()) {
                         String bufferText = "";
                         try {
@@ -366,11 +370,13 @@ public class CreeperLauncher
                             {
                                 lastInstance = object.get("instance").getAsString();
                             }
-                            reply = new ClientLaunchData.Reply(object.get("instance").getAsString(), object.get("type").getAsString(), data);
-
-                            Settings.webSocketAPI.sendMessage(reply);
-                            if (object.has("message") && object.get("message").getAsString().equals("done")) {
-                                CreeperLogger.INSTANCE.info("We done");
+                            boolean isDone = (object.has("message") && object.get("message").getAsString().equals("done"));
+                            if(CreeperLauncher.unixtimestamp() > lastMessageTime || isDone) {
+                                reply = new ClientLaunchData.Reply(object.get("instance").getAsString(), object.get("type").getAsString(), data);
+                                lastMessageTime = CreeperLauncher.unixtimestamp();
+                                Settings.webSocketAPI.sendMessage(reply);
+                            }
+                            if (isDone) {
                                 socket.close();
                                 break;
                             }
