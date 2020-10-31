@@ -363,22 +363,24 @@ public class CreeperLauncher
                             if (bufferText.length() == 0) continue;
                             JsonObject object = GsonUtils.GSON.fromJson(bufferText, JsonObject.class);
                             Object data = new Object();
-                            if (object.has("data")) {
-                                data = object.get("data");
-                            }
-                            if(object.get("instance").getAsString() != null && object.get("instance").getAsString().length() > 0)
-                            {
-                                lastInstance = object.get("instance").getAsString();
-                            }
-                            boolean isDone = (object.has("message") && object.get("message").getAsString().equals("done"));
-                            if(System.currentTimeMillis() > (lastMessageTime+200) || isDone) {
-                                reply = new ClientLaunchData.Reply(object.get("instance").getAsString(), object.get("type").getAsString(), data);
-                                lastMessageTime = System.currentTimeMillis();
-                                Settings.webSocketAPI.sendMessage(reply);
-                            }
-                            if (isDone) {
-                                socket.close();
-                                break;
+                            boolean hasStarted = (object.has("message") && object.get("message").getAsString().equals("init"));
+                            if(hasStarted) {
+                                if (object.has("data")) {
+                                    data = object.get("data");
+                                }
+                                if (object.get("instance").getAsString() != null && object.get("instance").getAsString().length() > 0) {
+                                    lastInstance = object.get("instance").getAsString();
+                                }
+                                boolean isDone = (object.has("message") && object.get("message").getAsString().equals("done"));
+                                if (System.currentTimeMillis() > (lastMessageTime + 200) || isDone) {
+                                    reply = new ClientLaunchData.Reply(object.get("instance").getAsString(), object.get("type").getAsString(), data);
+                                    lastMessageTime = System.currentTimeMillis();
+                                    Settings.webSocketAPI.sendMessage(reply);
+                                }
+                                if (isDone) {
+                                    socket.close();
+                                    break;
+                                }
                             }
                         } catch (Throwable e) {
                             CreeperLogger.INSTANCE.error("Error whilst sending message on to websocket", e);
