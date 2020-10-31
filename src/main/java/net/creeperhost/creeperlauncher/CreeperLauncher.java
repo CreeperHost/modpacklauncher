@@ -348,6 +348,8 @@ public class CreeperLauncher
             ServerSocket serverSocket = new ServerSocket(port);
             Socket socket = serverSocket.accept();
             CompletableFuture.runAsync(() -> {
+                String lastInstance = "";
+                ClientLaunchData.Reply reply;
                 try {
                     BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                     while (socket.isConnected()) {
@@ -356,10 +358,13 @@ public class CreeperLauncher
                             bufferText = in.readLine();
                             if (bufferText.length() == 0) continue;
                             JsonObject object = GsonUtils.GSON.fromJson(bufferText, JsonObject.class);
-                            ClientLaunchData.Reply reply;
                             Object data = new Object();
                             if (object.has("data")) {
                                 data = object.get("data");
+                            }
+                            if(object.get("instance").getAsString() != null && object.get("instance").getAsString().length() > 0)
+                            {
+                                lastInstance = object.get("instance").getAsString();
                             }
                             reply = new ClientLaunchData.Reply(object.get("instance").getAsString(), object.get("type").getAsString(), data);
 
@@ -380,6 +385,10 @@ public class CreeperLauncher
                     }
                     if(serverSocket != null && !serverSocket.isClosed()) serverSocket.close();
                 } catch (Throwable e) {
+                }
+                if(lastInstance.length() > 0) {
+                    reply = new ClientLaunchData.Reply(lastInstance, "clientDisconnect", new Object());
+                    Settings.webSocketAPI.sendMessage(reply);
                 }
             });
             return socket;
