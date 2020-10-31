@@ -356,6 +356,7 @@ public class CreeperLauncher
                 try {
                     BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                     long lastMessageTime = 0;
+                    boolean hasStarted = false;
                     while (socket.isConnected()) {
                         String bufferText = "";
                         try {
@@ -363,7 +364,7 @@ public class CreeperLauncher
                             if (bufferText.length() == 0) continue;
                             JsonObject object = GsonUtils.GSON.fromJson(bufferText, JsonObject.class);
                             Object data = new Object();
-                            boolean hasStarted = (object.has("message") && object.get("message").getAsString().equals("init"));
+                            if(!hasStarted) hasStarted = (object.has("message") && object.get("message").getAsString().equals("init"));
                             if(hasStarted) {
                                 if (object.has("data")) {
                                     data = object.get("data");
