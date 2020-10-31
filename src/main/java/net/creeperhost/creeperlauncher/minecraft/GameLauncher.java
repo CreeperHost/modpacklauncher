@@ -62,7 +62,7 @@ public class GameLauncher
                             return processes;
                         });
                 });
-                //tryAutomation(start);
+                tryAutomation(process);
 
             } catch (IOException e)
             {

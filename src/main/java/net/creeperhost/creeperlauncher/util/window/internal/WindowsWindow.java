@@ -8,6 +8,7 @@ import net.creeperhost.creeperlauncher.util.window.IMonitor;
 import net.creeperhost.creeperlauncher.util.window.IWindow;
 
 import java.awt.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class WindowsWindow implements IWindow {
@@ -38,7 +39,14 @@ public class WindowsWindow implements IWindow {
         User32.INSTANCE.GetWindowText(hWnd, windowText, 512);
         return Native.toString(windowText);
     }
-
+    public void attachedInputAction(Runnable action)
+    {
+        long foreGround = getPid();
+        long us = ProcessHandle.current().pid();
+        User32.INSTANCE.AttachThreadInput(new WinDef.DWORD(foreGround), new WinDef.DWORD(us), true);
+        action.run();
+        User32.INSTANCE.AttachThreadInput(new WinDef.DWORD(foreGround), new WinDef.DWORD(us), false);
+    }
     @Override
     public int getPid()
     {
@@ -92,8 +100,10 @@ public class WindowsWindow implements IWindow {
 
     @Override
     public void bringToFront() {
-        User32.INSTANCE.SetFocus(hWnd);
-        User32.INSTANCE.SetForegroundWindow(hWnd);
+        attachedInputAction(() -> {
+            User32.INSTANCE.SetFocus(hWnd);
+            User32.INSTANCE.SetForegroundWindow(hWnd);
+        });
     }
 
     @Override
