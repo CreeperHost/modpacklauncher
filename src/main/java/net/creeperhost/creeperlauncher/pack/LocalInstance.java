@@ -398,7 +398,7 @@ public class LocalInstance implements IPack
                 }
             }
         }
-        
+
         if (this.prePlay != null)
         {
             if (this.prePlayAsync)
@@ -430,6 +430,9 @@ public class LocalInstance implements IPack
         if(!this.hasLoadingMod){
             if(modLoader.startsWith("1.12.2")){
                 DownloadUtils.downloadFile(new File(dir,"mods" + File.separator + "launchertray-1.0.jar"), "https://dist.modpacks.ch/net/creeperhost/launchertray/transformer/1.0/3616818c510b1631d1780ab12a843fb013127113");
+                this.hasLoadingMod = checkForLaunchMod();
+            } else if(modLoader.startsWith("1.15") || modLoader.startsWith("1.16")){
+                DownloadUtils.downloadFile(new File(dir, "mods" + File.separator + "launchertray-1.0.jar"), "https://dist.creeper.host/modpacks/maven/net/creeperhost/traylauncher/1.0/fd2c1951901ecf65f03b00296f26b6e1a223c343");
                 this.hasLoadingMod = checkForLaunchMod();
             }
         }
