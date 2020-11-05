@@ -215,6 +215,9 @@ public class LocalInstance implements IPack
         this.path = Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC) + File.separator + this.uuid;
         this.hasLoadingMod = checkForLaunchMod();
     }
+
+    private static String[] candidates = new String[] {"net/creeperhost/traylauncher/TrayLauncher.class", "net/creeperhost/launchertray/LauncherTray.class", "net/creeperhost/launchertray/transformer/HookLoader.class"};
+
     private boolean checkForLaunchMod()
     {
         JarFile jarFile = null;
@@ -236,8 +239,16 @@ public class LocalInstance implements IPack
 
                     Enumeration<JarEntry> entries = jarFile.entries();
 
-                    ZipEntry entry = jarFile.getEntry("net/creeperhost/launchertray/transformer/HookLoader.class");
-                    if (entry == null)
+
+                    boolean found = false;
+                    for(String candidate: candidates) {
+                        if (jarFile.getEntry(candidate) != null) {
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    if(!found)
                     {
                         jarFile.close();
                         continue;
@@ -431,10 +442,10 @@ public class LocalInstance implements IPack
             if(modLoader.startsWith("1.12.2")){
                 DownloadUtils.downloadFile(new File(dir,"mods" + File.separator + "launchertray-1.0.jar"), "https://dist.modpacks.ch/net/creeperhost/launchertray/transformer/1.0/3616818c510b1631d1780ab12a843fb013127113");
                 this.hasLoadingMod = checkForLaunchMod();
-            } else if(modLoader.startsWith("1.15") || modLoader.startsWith("1.16")){
-                DownloadUtils.downloadFile(new File(dir, "mods" + File.separator + "launchertray-1.0.jar"), "https://dist.creeper.host/modpacks/maven/net/creeperhost/traylauncher/1.0/fd2c1951901ecf65f03b00296f26b6e1a223c343");
-                this.hasLoadingMod = checkForLaunchMod();
-            }
+            }// else if(modLoader.startsWith("1.15") || modLoader.startsWith("1.16")){
+            //    DownloadUtils.downloadFile(new File(dir, "mods" + File.separator + "launchertray-1.0.jar"), "https://dist.creeper.host/modpacks/maven/net/creeperhost/traylauncher/1.0/fd2c1951901ecf65f03b00296f26b6e1a223c343");
+            //    this.hasLoadingMod = checkForLaunchMod();
+            //}
         }
         //END TESTING CODE
         if(this.hasLoadingMod)
