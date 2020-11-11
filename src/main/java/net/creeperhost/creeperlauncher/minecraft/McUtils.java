@@ -7,7 +7,10 @@ import com.google.gson.JsonParser;
 import com.google.gson.stream.JsonReader;
 import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.CreeperLogger;
+import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.DownloadableFile;
+import net.creeperhost.creeperlauncher.api.data.other.CloseModalData;
+import net.creeperhost.creeperlauncher.api.data.other.OpenModalData;
 import net.creeperhost.creeperlauncher.install.tasks.DownloadTask;
 import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.os.OSUtils;
@@ -196,7 +199,24 @@ public class McUtils {
     public static void downloadVanillaLauncher() {
         String downloadurl = OSUtils.getMinecraftLauncherURL();
         File binfolder = new File(Constants.BIN_LOCATION);
-        binfolder.mkdir();
+        if(!binfolder.exists()) {
+            if (!binfolder.mkdir()) {
+                if(!binfolder.canWrite())
+                {
+                    OpenModalData.openModal("Error", "Cannot write to data directory, please check file permissions.", List.of(
+                            new OpenModalData.ModalButton("Ok", "red", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
+                    ));
+                    CreeperLogger.INSTANCE.error("Cannot write to data directory "+Constants.DATA_DIR+".");
+                    return;
+                } else {
+                    OpenModalData.openModal("Error", "Data directory does not exist.", List.of(
+                            new OpenModalData.ModalButton("Ok", "red", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
+                    ));
+                    CreeperLogger.INSTANCE.error("Data directory " + Constants.DATA_DIR + " does not exist.");
+                    return;
+                }
+            }
+        }
         File file = new File(Constants.MINECRAFT_LAUNCHER_LOCATION);
         OS os = OSUtils.getOs();
         if (os == OS.MAC) {
@@ -208,7 +228,10 @@ public class McUtils {
             File destinationFile = new File(Constants.MINECRAFT_LAUNCHER_LOCATION);
             if(!destinationFile.canWrite())
             {
-                CreeperLogger.INSTANCE.error("Cannot write to data directory "+Constants.DATA_DIR+"?");
+                OpenModalData.openModal("Error", "Unable to download Minecraft launcher due to file permissions.", List.of(
+                        new OpenModalData.ModalButton("Ok", "red", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
+                ));
+                CreeperLogger.INSTANCE.error("Cannot write Minecraft launcher to data directory "+Constants.DATA_DIR+".");
             } else {
                 DownloadTask task = new DownloadTask(remoteFile, destinationFile.toPath());
                 task.execute().join();
