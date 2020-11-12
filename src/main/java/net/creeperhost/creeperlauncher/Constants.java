@@ -57,11 +57,15 @@ public class Constants
     public static String S3_HOST = "";
 
 
-    public static String getCreeperhostModpackSearch2()
+    public static String getCreeperhostModpackSearch2(boolean _private)
     {
-        if(Constants.KEY.isEmpty() || Constants.SECRET.isEmpty())
+        if(Constants.KEY.isEmpty() || !_private)
         {
             return Constants.CREEPERHOST_MODPACK_SEARCH2;
+        }
+        if(Constants.KEY.isEmpty() && _private)
+        {
+            CreeperLogger.INSTANCE.error("Tried to access a private pack without having configured the secret and key.");
         }
         return Constants.CREEPERHOST_MODPACK + "/" + Constants.KEY + "/modpack/";
     }

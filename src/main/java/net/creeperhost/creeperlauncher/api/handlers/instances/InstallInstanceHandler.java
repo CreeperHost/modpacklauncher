@@ -37,7 +37,7 @@ public class InstallInstanceHandler implements IMessageHandler<InstallInstanceDa
             return;
         }
         Settings.webSocketAPI.sendMessage(new InstallInstanceData.Reply(data, "init", "Install started.", ""));
-        FTBPack pack = FTBModPackInstallerTask.getPackFromAPI(data.id, data.version);
+        FTBPack pack = FTBModPackInstallerTask.getPackFromAPI(data.id, data.version, data._private);
         List<SimpleDownloadableFile> files = pack.getMods();
         CreeperLogger.INSTANCE.info("[RUSHMEADLOOKHERE] Got " + files.size() + " files, sending to frontend");
         Settings.webSocketAPI.sendMessage(new InstallInstanceData.Reply(data, "files", GsonUtils.GSON.toJson(files), ""));

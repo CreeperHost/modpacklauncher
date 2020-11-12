@@ -9,6 +9,7 @@ public class InstallInstanceData extends BaseData
     public String uuid;
     public long id;
     public long version;
+    public boolean _private = false;
 
     public static class Reply extends BaseData
     {

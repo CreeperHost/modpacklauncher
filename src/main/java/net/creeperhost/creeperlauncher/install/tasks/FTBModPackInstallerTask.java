@@ -47,6 +47,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
     public static AtomicLong startTime = new AtomicLong(0);
     public static AtomicReference<String> lastError = new AtomicReference<String>();
     public String currentUUID = "";
+    public boolean _private = false;
     public CompletableFuture<Void> currentTask = null;
     public static Stage currentStage = Stage.INIT;
     LocalInstance instance;
@@ -94,7 +95,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
             File instanceDir = new File(instance.getDir());
             instanceDir.mkdir();
             currentStage = Stage.API;
-            downloadJsons(instanceDir);
+            downloadJsons(instanceDir, this._private);
             currentStage = Stage.FORGE;
             File forgeJson = installModLoaders();
             currentStage = Stage.DOWNLOADS;
@@ -117,14 +118,14 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
         return (returnVal > 100.00d) ? 100.00d : returnVal;
     }
 
-    public boolean downloadJsons(File instanceDir)
+    public boolean downloadJsons(File instanceDir, boolean _private)
     {
         CreeperLogger.INSTANCE.info("Preparing instance folder for " + instanceDir.getAbsolutePath());
         if (!instanceDir.exists()) instanceDir.mkdir();
 
         File modpackJson = new File(instanceDir + File.separator + "modpack.json");
         if (modpackJson.exists()) modpackJson.delete(); //Need to remove and redownload this each time or updates will have old info
-        DownloadUtils.downloadFile(modpackJson, Constants.getCreeperhostModpackSearch2() + instance.getId());
+        DownloadUtils.downloadFile(modpackJson, Constants.getCreeperhostModpackSearch2(_private) + instance.getId());
 
         File versionJson = new File(instanceDir + File.separator + "version.json");
         if (versionJson.exists())
@@ -136,14 +137,14 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                 return false;
             }
         }
-        DownloadUtils.downloadFile(versionJson, Constants.getCreeperhostModpackSearch2() + instance.getId() + "/" + instance.getVersionId());
+        DownloadUtils.downloadFile(versionJson, Constants.getCreeperhostModpackSearch2(_private) + instance.getId() + "/" + instance.getVersionId());
 
         return (modpackJson.exists() && versionJson.exists());
     }
 
-    public static FTBPack getPackFromAPI(long packId, long versionId)
+    public static FTBPack getPackFromAPI(long packId, long versionId, boolean _private)
     {
-        String modpackURL = Constants.getCreeperhostModpackSearch2() + packId;
+        String modpackURL = Constants.getCreeperhostModpackSearch2(_private) + packId;
         String versionURL = modpackURL + "/" + versionId;
         String name = "";
         String version = "";
