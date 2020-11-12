@@ -11,7 +11,7 @@ public class Constants
     public static final String DATA_DIR = System.getProperty("user.home") + File.separator + ".ftba";
 
     //Launcher titles
-    public static final String windowTitle = "Modpack Launcher";
+    public static final String windowTitle = "FTBApp";
 
     //Mojang
     public static final String MC_VERSION_MANIFEST = "https://launchermeta.mojang.com/mc/game/version_manifest.json";
@@ -59,6 +59,8 @@ public class Constants
 
     public static String getCreeperhostModpackSearch2(boolean _private)
     {
+        //TODO: Remove this override once frontend sends flag.
+        _private = true;
         if(Constants.KEY.isEmpty() || !_private)
         {
             return Constants.CREEPERHOST_MODPACK_SEARCH2;

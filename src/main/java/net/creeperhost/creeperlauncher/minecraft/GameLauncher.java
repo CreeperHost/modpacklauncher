@@ -4,6 +4,7 @@ import com.sun.jna.platform.KeyboardUtils;
 import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.CreeperLauncher;
 import net.creeperhost.creeperlauncher.CreeperLogger;
+import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.os.OSUtils;
 import net.creeperhost.creeperlauncher.util.StreamGobblerLog;
@@ -62,7 +63,7 @@ public class GameLauncher
                             return processes;
                         });
                 });
-                tryAutomation(process);
+                if(Settings.settings.getOrDefault("automateMojang", "true").equalsIgnoreCase("true")) tryAutomation(process);
 
             } catch (IOException e)
             {

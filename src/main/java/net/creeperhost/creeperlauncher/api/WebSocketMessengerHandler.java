@@ -121,7 +121,8 @@ public class WebSocketMessengerHandler
                         BaseData parsedData = gson.fromJson(data, typeToken.getType());
                         if (CreeperLauncher.isDevMode || (parsedData.secret != null && parsedData.secret.equals(CreeperLauncher.websocketSecret))) {
                             CompletableFuture.runAsync(() -> iMessageHandler.handle(parsedData)).exceptionally((t) -> {
-                                CreeperLogger.INSTANCE.debug("Error handling message", t);
+                                CreeperLogger.INSTANCE.debug("Error handling message", t.getCause());
+                                t.printStackTrace();
                                 return null;
                             });
                         }

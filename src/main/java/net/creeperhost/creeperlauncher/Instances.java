@@ -64,7 +64,11 @@ public class Instances
                         l++;
                     } catch (FileNotFoundException err)
                     {
-                        CreeperLogger.INSTANCE.error("Not a valid instance '" + f.getName() + "', skipping...");
+                        if(!f.getName().startsWith(".")) {
+                            CreeperLogger.INSTANCE.error("Not a valid instance '" + f.getName() + "', skipping...");
+                        } else {
+                            t--;
+                        }
                         //err.printStackTrace();
                     }
                 }

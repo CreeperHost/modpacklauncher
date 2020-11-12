@@ -164,6 +164,11 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
         if (jElement.isJsonObject())
         {
             JsonObject object = jElement.getAsJsonObject();
+            if(object.getAsJsonPrimitive("status").getAsString().equalsIgnoreCase("error"))
+            {
+                CreeperLogger.INSTANCE.error("Unable to load modpack from '" + modpackURL + "'...");
+                return null;
+            }
             description = object.getAsJsonPrimitive("description").getAsString();
             name = object.getAsJsonPrimitive("name").getAsString();
             id = object.getAsJsonPrimitive("id").getAsLong();
