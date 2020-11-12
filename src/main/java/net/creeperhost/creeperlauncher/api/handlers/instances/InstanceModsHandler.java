@@ -14,7 +14,7 @@ public class InstanceModsHandler implements IMessageHandler<InstanceModsData> {
     @Override
     public void handle(InstanceModsData data) {
         LocalInstance instance = Instances.getInstance(UUID.fromString(data.uuid));
-        FTBPack pack = FTBModPackInstallerTask.getPackFromAPI(instance.getId(), instance.getVersionId());
+        FTBPack pack = FTBModPackInstallerTask.getPackFromAPI(instance.getId(), instance.getVersionId(), data._private);
         Settings.webSocketAPI.sendMessage(new InstanceModsData.Reply(data, pack.getMods()));
     }
 }

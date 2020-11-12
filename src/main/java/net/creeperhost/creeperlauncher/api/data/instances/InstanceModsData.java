@@ -11,7 +11,7 @@ import java.util.List;
 public class InstanceModsData extends BaseData
 {
     public String uuid;
-
+    public boolean _private = false;
     public static class Reply extends InstanceModsData
     {
         public List<SimpleDownloadableFile> files;
