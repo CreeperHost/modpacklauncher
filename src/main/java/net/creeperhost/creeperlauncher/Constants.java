@@ -59,8 +59,6 @@ public class Constants
 
     public static String getCreeperhostModpackSearch2(boolean _private)
     {
-        //TODO: Remove this override once frontend sends flag.
-        _private = true;
         if(Constants.KEY.isEmpty() || !_private)
         {
             return Constants.CREEPERHOST_MODPACK_SEARCH2;

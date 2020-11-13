@@ -36,15 +36,16 @@ public class InstanceConfigureHandler implements IMessageHandler<InstanceConfigu
                     case "height":
                         instance.height = Integer.parseInt(setting.getValue());
                         break;
-                    case "embeddedjre":
-                        instance.embeddedJre = Boolean.parseBoolean(setting.getValue());
-                        if (!instance.embeddedJre)
-                        {
-                            instance.embeddedJre = (!instance.setJre(true, ""));
-                        }
-                        break;
                     case "cloudsaves":
                         instance.cloudSaves = Boolean.parseBoolean(setting.getValue());
+                        break;
+                    case "jrepath":
+                        if(setting.getValue().length() == 0){
+                            instance.embeddedJre = true;
+                        } else {
+                            instance.embeddedJre = false;
+                            instance.jrePath = setting.getValue();
+                        }
                         break;
                 }
             }
