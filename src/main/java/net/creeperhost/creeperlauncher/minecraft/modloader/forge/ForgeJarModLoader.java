@@ -45,8 +45,7 @@ public class ForgeJarModLoader extends ForgeModLoader
 		file.mkdir();
 
 		//Add the jvm args to fix loading older forge versions
-		instance.jvmArgs = instance.jvmArgs + " -Dminecraft.applet.TargetDirectory=" + instance.getDir() +
-				"-Dfml.ignorePatchDiscrepancies=true -Dfml.ignoreInvalidMinecraftCertificates=true";
+		instance.jvmArgs = instance.jvmArgs + " -Dfml.ignorePatchDiscrepancies=true -Dfml.ignoreInvalidMinecraftCertificates=true".trim();
 		try
 		{
 			URI url = null;
@@ -92,7 +91,6 @@ public class ForgeJarModLoader extends ForgeModLoader
 
 			instance.mcVersion = getMinecraftVersion();
 			instance.modLoader = getForgeVersion();
-//			instance.setPrePlay(() -> prePlay(instance), false);
 
 			try
 			{
@@ -103,7 +101,6 @@ public class ForgeJarModLoader extends ForgeModLoader
 				CreeperLogger.INSTANCE.error(e.toString());
 			}
 			instance.setPostInstall(() -> prePlay(instance), false);
-//			prePlay(instance);
 
 			return returnFile;
 		} catch (Exception ignored) { }
@@ -128,17 +125,22 @@ public class ForgeJarModLoader extends ForgeModLoader
 			if (!libVersionDir.exists()) libVersionDir.mkdirs();
 			File forgeVersion = new File(libVersionDir + File.separator + "forge-" + instance.getMcVersion() + "-" + instance.getModLoader() + ".jar");
 			CreeperLogger.INSTANCE.info("forgeVersion: " + forgeVersion);
+			File versionsDir = new File(Constants.VERSIONS_FOLDER_LOC + File.separator + newname + File.separator + newname + ".jar");
+			if(!versionsDir.getParentFile().exists()) versionsDir.getParentFile().mkdirs();
 
 			//Remove the forge jar that is loaded so we can build a new one, This will be required for us to load newly added core mods
-//		if(forgeVersion.exists()) forgeVersion.delete();
+			if(forgeVersion.exists()) forgeVersion.delete();
 
-			if (mcFile.exists()) {
+			if (mcFile.exists())
+			{
 				CreeperLogger.INSTANCE.info("mc file exists, attempting to merge jars");
-				try {
+				try
+				{
 					File merged = new File(instMods + File.separator + "merged.jar");
+					FileUtils.removeMeta(merged);
 
 					//Remove the prebuilt jar so we can make a fresh one
-//				if(merged.exists()) merged.delete();
+					if(merged.exists()) merged.delete();
 
 					Files.copy(mcFile.toPath(), merged.toPath());
 
@@ -159,9 +161,13 @@ public class ForgeJarModLoader extends ForgeModLoader
 					}
 					//Move the merged jar to it location in the libs folder to load
 					if (merged.exists()) {
+						Files.copy(merged.toPath(), versionsDir.toPath(), StandardCopyOption.REPLACE_EXISTING);
 						Files.copy(merged.toPath(), forgeVersion.toPath(), StandardCopyOption.REPLACE_EXISTING);
 					}
 					CreeperLogger.INSTANCE.info("All files successfully merged");
+
+					instance.modLoader = newname;
+					instance.saveJson();
 				} catch (Exception e) {
 					e.printStackTrace();
 				}

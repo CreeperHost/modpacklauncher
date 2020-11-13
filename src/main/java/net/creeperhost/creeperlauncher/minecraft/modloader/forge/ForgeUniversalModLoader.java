@@ -45,7 +45,7 @@ public class ForgeUniversalModLoader extends ForgeModLoader
 		//TODO clean this up but it should work for testing
 		if(getMinecraftVersion().equalsIgnoreCase("1.5.2"))
 		{
-			instance.jvmArgs = instance.jvmArgs + " -Dfml.ignorePatchDiscrepancies=true -Dfml.ignoreInvalidMinecraftCertificates=true";
+			instance.jvmArgs = instance.jvmArgs + " -Dfml.ignorePatchDiscrepancies=true -Dfml.ignoreInvalidMinecraftCertificates=true".trim();
 			File vanillaFolder = new File(Constants.VERSIONS_FOLDER_LOC + File.separator + getMinecraftVersion());
 			if(!vanillaFolder.exists())
 			{

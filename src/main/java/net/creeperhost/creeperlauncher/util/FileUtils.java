@@ -215,6 +215,18 @@ public class FileUtils
         return result.toString();
     }
 
+    public static boolean removeMeta(File file)
+    {
+        if(!file.exists()) return false;
+        try (FileSystem fileSystem = FileSystems.newFileSystem(file.toPath(), null))
+        {
+            Path meta = fileSystem.getPath("/META_INF");
+            Files.delete(meta);
+            return true;
+        } catch (IOException e) { e.printStackTrace(); }
+        return false;
+    }
+
     public static boolean mergeJars(File input, File output)
     {
         if(input == null || output == null) return false;
