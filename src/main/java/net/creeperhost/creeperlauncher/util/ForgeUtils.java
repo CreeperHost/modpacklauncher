@@ -23,6 +23,14 @@ public class ForgeUtils
         URI url = new URI(repo + minecraftVersion + "-" + forgeVersion + "/" +
                 "forge-" + minecraftVersion + "-" + forgeVersion + "-universal.jar");
 
+        //Temp code to get around there being -universal.jars on our repo that are not real
+        if(minecraftVersion.equalsIgnoreCase("1.2.5"))
+        {
+            CreeperLogger.INSTANCE.info("Legacy version detected, Using older forge urls " + url);
+            return new URI(repo + minecraftVersion + "-" + forgeVersion + "/" +
+                    "forge-" + minecraftVersion + "-" + forgeVersion + "-client.jar");
+        }
+
         if (!WebUtils.checkExist(url.toURL()))
         {
             CreeperLogger.INSTANCE.info("File does not exist on repo for " + url);

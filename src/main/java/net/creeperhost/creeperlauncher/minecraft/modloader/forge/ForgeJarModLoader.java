@@ -9,11 +9,13 @@ import net.creeperhost.creeperlauncher.pack.LocalInstance;
 import net.creeperhost.creeperlauncher.util.FileUtils;
 import net.creeperhost.creeperlauncher.util.ForgeUtils;
 import net.creeperhost.creeperlauncher.util.LoaderTarget;
+import net.creeperhost.creeperlauncher.util.WebUtils;
 
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -80,14 +82,25 @@ public class ForgeJarModLoader extends ForgeModLoader
 			{
 				CreeperLogger.INSTANCE.error("Failed to extract version json, attempting to download it from repo");
 				String downloadName = "forge-" + getMinecraftVersion() + ".json";
-				DownloadableFile fjson = new DownloadableFile(forgeJson.getName(), forgeJson.getAbsolutePath(), "https://apps.modpacks.ch/versions/minecraftjsons/" + downloadName, new ArrayList<>(), 0, false, false, 0, downloadName, "modloader", String.valueOf(System.currentTimeMillis() / 1000L));
-				DownloadTask ftask = new DownloadTask(fjson, forgeJson.toPath());
-				ftask.execute().join();
+				String jsonurl = "https://apps.modpacks.ch/versions/minecraftjsons/" + downloadName;
+
+				if(WebUtils.checkExist(new URL(jsonurl)))
+				{
+					DownloadableFile fjson = new DownloadableFile(forgeJson.getName(), forgeJson.getAbsolutePath(), jsonurl, new ArrayList<>(), 0, false, false, 0, downloadName, "modloader", String.valueOf(System.currentTimeMillis() / 1000L));
+					DownloadTask ftask = new DownloadTask(fjson, forgeJson.toPath());
+					ftask.execute().join();
+				}
+				else
+				{
+					CreeperLogger.INSTANCE.error("Failed to download " + downloadName + " from repo");
+				}
 			}
 
-			returnFile = forgeJson;
-
-			ForgeUtils.updateForgeJson(forgeJson, newname, getMinecraftVersion());
+			if(forgeJson.exists())
+			{
+				ForgeUtils.updateForgeJson(forgeJson, newname, getMinecraftVersion());
+				returnFile = forgeJson;
+			}
 
 			instance.mcVersion = getMinecraftVersion();
 			instance.modLoader = getForgeVersion();
@@ -115,6 +128,8 @@ public class ForgeJarModLoader extends ForgeModLoader
 			String newname = instance.getMcVersion() + "-forge" + instance.getMcVersion() + "-" + instance.getModLoader();
 
 			File instMods = new File(instance.getDir() + File.separator + "instmods");
+			File jarMods = new File(instance.getDir() + File.separator + "jarmods");
+
 			CreeperLogger.INSTANCE.info("intmods location: " + instMods.getAbsolutePath());
 			File mcFile = new File(instMods.getAbsolutePath() + File.separator + "minecraft" + ".jar");
 			CreeperLogger.INSTANCE.info("mc location: " + mcFile.getAbsolutePath());
@@ -145,6 +160,8 @@ public class ForgeJarModLoader extends ForgeModLoader
 					Files.copy(mcFile.toPath(), merged.toPath());
 
 					File[] instFiles = instMods.listFiles();
+					File[] jarFiles = jarMods.listFiles();
+
 					if (instFiles != null) {
 						CreeperLogger.INSTANCE.info("instmod folder has mods to merge, attempting to merge jars");
 						//Merge every file in the instmods folder that is not the mc jar or the merge target
@@ -154,6 +171,21 @@ public class ForgeJarModLoader extends ForgeModLoader
 									CreeperLogger.INSTANCE.info("Merging " + instFile.getName() + " into the merged.jar");
 									if (!FileUtils.mergeJars(instFile, merged)) {
 										CreeperLogger.INSTANCE.error("Filed to merge " + instFile.getName() + " into merged.jar");
+									}
+								}
+							}
+						}
+
+						if (jarFiles != null) {
+							CreeperLogger.INSTANCE.info("jarmods folder has mods to merge, attempting to merge jars");
+							//Merge every file in the instmods folder that is not the mc jar or the merge target
+							for (File instFile : jarFiles) {
+								if (instFile != null && instFile != merged) {
+									if (!instFile.getName().contains("minecraft") && !instFile.getName().contains("merged")) {
+										CreeperLogger.INSTANCE.info("Merging " + instFile.getName() + " into the merged.jar");
+										if (!FileUtils.mergeJars(instFile, merged)) {
+											CreeperLogger.INSTANCE.error("Filed to merge " + instFile.getName() + " into merged.jar");
+										}
 									}
 								}
 							}

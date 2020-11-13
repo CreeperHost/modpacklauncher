@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.jar.JarFile;
 import java.util.zip.GZIPInputStream;
 
 public class FileUtils
@@ -220,8 +221,8 @@ public class FileUtils
         if(!file.exists()) return false;
         try (FileSystem fileSystem = FileSystems.newFileSystem(file.toPath(), null))
         {
-            Path meta = fileSystem.getPath("/META_INF");
-            Files.delete(meta);
+            Path meta = fileSystem.getPath("META_INF");
+            FileUtils.deleteDirectory(meta);
             return true;
         } catch (IOException e) { e.printStackTrace(); }
         return false;
