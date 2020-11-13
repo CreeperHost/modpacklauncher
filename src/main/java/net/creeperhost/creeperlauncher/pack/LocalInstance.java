@@ -184,6 +184,7 @@ public class LocalInstance implements IPack
         this.lastPlayed = jsonOutput.lastPlayed;
         this.jvmArgs = jsonOutput.jvmArgs;
         this.modLoader = jsonOutput.modLoader;
+        this.jrePath = jsonOutput.jrePath;
         this.dir = this.path;
         this.cloudSaves = jsonOutput.cloudSaves;
         this.hasLoadingMod = checkForLaunchMod();
@@ -440,12 +441,13 @@ public class LocalInstance implements IPack
         //THIS IS FOR TESTING ONLY, PLEASE REMOVE ME IN FUTURE
         if(!this.hasLoadingMod){
             if(modLoader.startsWith("1.12.2")){
-                DownloadUtils.downloadFile(new File(dir,"mods" + File.separator + "launchertray-1.0.jar"), "https://dist.modpacks.ch/net/creeperhost/launchertray/transformer/1.0/3616818c510b1631d1780ab12a843fb013127113");
+                DownloadUtils.downloadFile(new File(dir,"mods" + File.separator + "launchertray-1.0.jar"), "https://dist.creeper.host/modpacks/maven/net/creeperhost/launchertray/transformer/1.0/381778e244181cc2bb7dd02f03fb745164e87ee0");
                 this.hasLoadingMod = checkForLaunchMod();
-            }// else if(modLoader.startsWith("1.15") || modLoader.startsWith("1.16")){
-            //    DownloadUtils.downloadFile(new File(dir, "mods" + File.separator + "launchertray-1.0.jar"), "https://dist.creeper.host/modpacks/maven/net/creeperhost/traylauncher/1.0/fd2c1951901ecf65f03b00296f26b6e1a223c343");
-            //    this.hasLoadingMod = checkForLaunchMod();
-            //}
+            } else if(modLoader.startsWith("1.15") || modLoader.startsWith("1.16")){
+                DownloadUtils.downloadFile(new File(dir, "mods" + File.separator + "launchertray-1.0.jar"), "https://dist.creeper.host/modpacks/maven/net/creeperhost/traylauncher/1.0/134dd1944e04224ce53ff18750e81f5517704c8e");
+                DownloadUtils.downloadFile(new File(dir, "mods" + File.separator + "launchertray-progress-1.0.jar"), "https://dist.creeper.host/modpacks/maven/net/creeperhost/traylauncher/unknown/74ced30ca35e88b583969b6d74efa0f7c2470e8b");
+                this.hasLoadingMod = checkForLaunchMod();
+            }
         }
         //END TESTING CODE
         if(this.hasLoadingMod)
