@@ -201,12 +201,10 @@ public class McUtils {
         String downloadurl = OSUtils.getMinecraftLauncherURL();
         File binfolder = new File(Constants.BIN_LOCATION);
         File tempFolder = new File(System.getProperty("java.io.tmpdir"));
-        File downloadFolder = binfolder;
         if(!binfolder.exists()) {
             if (!binfolder.mkdir()) {
                 if(!binfolder.canWrite())
                 {
-                    downloadFolder = tempFolder;
                     CreeperLogger.INSTANCE.error("Cannot write to data directory "+Constants.DATA_DIR+".");
                     return;
                 } else {
@@ -231,14 +229,18 @@ public class McUtils {
             if(!destinationFile.canWrite())
             {
                 moveDestination = destinationFile;
-                destinationFile = new File(downloadFolder, UUID.randomUUID().toString());
+                destinationFile = new File(tempFolder, UUID.randomUUID().toString());
                 CreeperLogger.INSTANCE.error("Cannot write Minecraft launcher to data directory '"+Constants.DATA_DIR+"', File '"+moveDestination.getAbsolutePath().toString()+"', trying temporary file '"+destinationFile.getAbsolutePath().toString()+".");
             }
             DownloadTask task = new DownloadTask(remoteFile, destinationFile.toPath());
             task.execute().join();
             if(moveDestination != null)
             {
-                destinationFile.renameTo(destinationFile);
+                if(!destinationFile.renameTo(moveDestination))
+                {
+                    CreeperLogger.INSTANCE.error("Unable to move temporary file from '"+destinationFile.getAbsolutePath().toString()+"' to '"+moveDestination.getAbsolutePath().toString()+"'.");
+                }
+                destinationFile = moveDestination;
             }
             if(!destinationFile.exists())
             {
