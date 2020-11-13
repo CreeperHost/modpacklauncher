@@ -27,6 +27,7 @@ import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class McUtils {
     public static String getMinecraftJsonForVersion(String version) {
@@ -199,13 +200,13 @@ public class McUtils {
     public static void downloadVanillaLauncher() {
         String downloadurl = OSUtils.getMinecraftLauncherURL();
         File binfolder = new File(Constants.BIN_LOCATION);
+        File tempFolder = new File(System.getProperty("java.io.tmpdir"));
+        File downloadFolder = binfolder;
         if(!binfolder.exists()) {
             if (!binfolder.mkdir()) {
                 if(!binfolder.canWrite())
                 {
-                    OpenModalData.openModal("Error", "Cannot write to data directory, please check file permissions.", List.of(
-                            new OpenModalData.ModalButton("Ok", "red", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
-                    ));
+                    downloadFolder = tempFolder;
                     CreeperLogger.INSTANCE.error("Cannot write to data directory "+Constants.DATA_DIR+".");
                     return;
                 } else {
@@ -226,23 +227,33 @@ public class McUtils {
             CreeperLogger.INSTANCE.info("Starting download of the vanilla launcher");
             DownloadableFile remoteFile = new DownloadableFile("official", "/", downloadurl, new ArrayList<>(), 0, false, false, 0, "Vanilla", "vanilla", String.valueOf(System.currentTimeMillis() / 1000L));
             File destinationFile = new File(Constants.MINECRAFT_LAUNCHER_LOCATION);
+            File moveDestination = null;
             if(!destinationFile.canWrite())
             {
-                OpenModalData.openModal("Error", "Unable to download Minecraft launcher due to file permissions.", List.of(
+                moveDestination = destinationFile;
+                destinationFile = new File(downloadFolder, UUID.randomUUID().toString());
+                CreeperLogger.INSTANCE.error("Cannot write Minecraft launcher to data directory '"+Constants.DATA_DIR+"', File '"+moveDestination.getAbsolutePath().toString()+"', trying temporary file '"+destinationFile.getAbsolutePath().toString()+".");
+            }
+            DownloadTask task = new DownloadTask(remoteFile, destinationFile.toPath());
+            task.execute().join();
+            if(moveDestination != null)
+            {
+                destinationFile.renameTo(destinationFile);
+            }
+            if(!destinationFile.exists())
+            {
+                OpenModalData.openModal("Error", "Failed to download Mojang launcher.", List.of(
                         new OpenModalData.ModalButton("Ok", "red", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
                 ));
-                CreeperLogger.INSTANCE.error("Cannot write Minecraft launcher to data directory "+Constants.DATA_DIR+".");
-            } else {
-                DownloadTask task = new DownloadTask(remoteFile, destinationFile.toPath());
-                task.execute().join();
-                boolean osConfig = false;
-                try {
-                    osConfig = McUtils.prepareVanillaLauncher();
-                } catch (Exception err) {
-                    err.printStackTrace();
-                }
-                if (!osConfig) CreeperLogger.INSTANCE.error("Failed to configure Vanilla launcher for this OS!");
+                return;
             }
+            boolean osConfig = false;
+            try {
+                osConfig = McUtils.prepareVanillaLauncher();
+            } catch (Exception err) {
+                err.printStackTrace();
+            }
+            if (!osConfig) CreeperLogger.INSTANCE.error("Failed to configure Vanilla launcher for this OS!");
         }
     }
 
