@@ -9,6 +9,7 @@ import net.creeperhost.creeperlauncher.minetogether.cloudsaves.CloudSaveManager;
 import net.creeperhost.creeperlauncher.minetogether.cloudsaves.CloudSyncType;
 import net.creeperhost.creeperlauncher.install.tasks.DownloadTask;
 import net.creeperhost.creeperlauncher.minetogether.vpn.MineTogetherConnect;
+import net.creeperhost.creeperlauncher.util.*;
 import oshi.SystemInfo;
 import oshi.hardware.HardwareAbstractionLayer;
 
@@ -19,10 +20,6 @@ import net.creeperhost.creeperlauncher.minecraft.GameLauncher;
 import net.creeperhost.creeperlauncher.minecraft.McUtils;
 import net.creeperhost.creeperlauncher.minecraft.Profile;
 import net.creeperhost.creeperlauncher.os.OSUtils;
-import net.creeperhost.creeperlauncher.util.DownloadUtils;
-import net.creeperhost.creeperlauncher.util.FileUtils;
-import net.creeperhost.creeperlauncher.util.ForgeUtils;
-import net.creeperhost.creeperlauncher.util.MiscUtils;
 
 import java.awt.*;
 import java.io.*;
@@ -39,6 +36,10 @@ import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
+import static net.creeperhost.creeperlauncher.util.MiscUtils.allFutures;
+
+//TODO: Turn LocalInstance into a package somehow and split out the individual parts for easier navigation.
+//TODO: Switch prePlay events, postInstall(Semi-Completed), events etc into the same setup as gameClose to allow multiple code blocks.
 public class LocalInstance implements IPack
 {
     private UUID uuid;
@@ -66,8 +67,7 @@ public class LocalInstance implements IPack
     private long lastPlayed;
     private boolean isImport = false;
     public boolean cloudSaves = false;
-    transient private Runnable postInstall;
-    transient private boolean postInstallAsync;
+    transient private HashMap<String, instanceEvent> postInstall = new HashMap<>();
     transient private Runnable prePlay;
     transient private int loadingModPort;
     transient private boolean prePlayAsync;
@@ -76,7 +76,7 @@ public class LocalInstance implements IPack
     transient private boolean preUninstallAsync;
     transient private AtomicBoolean inUse = new AtomicBoolean(false);
     transient public Socket loadingModSocket;
-    transient private HashMap<String, Runnable> gameCloseEvents;
+    transient private HashMap<String, instanceEvent> gameCloseEvents = new HashMap<>();
 
     public LocalInstance(FTBPack pack, long versionId)
     {
@@ -300,20 +300,17 @@ public class LocalInstance implements IPack
             Analytics.sendInstallRequest(this.getId(), this.getVersionId());
             installer.execute().thenRunAsync(() ->
             {
-                if (this.postInstall != null)
+                if (this.postInstall != null && this.postInstall.size() > 0)
                 {
-                    if (this.postInstallAsync)
+                    ArrayList<CompletableFuture> futures = new ArrayList<>();
+                    for(Map.Entry<String, instanceEvent> event : this.postInstall.entrySet())
                     {
-                        CompletableFuture.runAsync(this.postInstall).thenRunAsync(() -> {
-                           FTBModPackInstallerTask.currentStage = FTBModPackInstallerTask.Stage.FINISHED;
-                            CreeperLauncher.isInstalling.set(false);
-                        });
-                    } else
-                    {
-                        this.postInstall.run();
+                        futures.add(event.getValue().Run());
+                    }
+                    allFutures(futures).thenRunAsync(() -> {
                         FTBModPackInstallerTask.currentStage = FTBModPackInstallerTask.Stage.FINISHED;
                         CreeperLauncher.isInstalling.set(false);
-                    }
+                    });
                 } else {
                     FTBModPackInstallerTask.currentStage = FTBModPackInstallerTask.Stage.FINISHED;
                     CreeperLauncher.isInstalling.set(false);
@@ -360,20 +357,17 @@ public class LocalInstance implements IPack
             try {
                 this.saveJson();
             } catch (IOException ignored){}
-            if (this.postInstall != null)
+            if (this.postInstall != null && this.postInstall.size() > 0)
             {
-                if (this.postInstallAsync)
+                ArrayList<CompletableFuture> futures = new ArrayList<>();
+                for(Map.Entry<String, instanceEvent> event : this.postInstall.entrySet())
                 {
-                    CompletableFuture.runAsync(this.postInstall).thenRunAsync(() -> {
-                        FTBModPackInstallerTask.currentStage = FTBModPackInstallerTask.Stage.FINISHED;
-                        CreeperLauncher.isInstalling.set(false);
-                    });
-                } else
-                {
-                    this.postInstall.run();
+                    futures.add(event.getValue().Run());
+                }
+                allFutures(futures).thenRunAsync(() -> {
                     FTBModPackInstallerTask.currentStage = FTBModPackInstallerTask.Stage.FINISHED;
                     CreeperLauncher.isInstalling.set(false);
-                }
+                });
             } else {
                 FTBModPackInstallerTask.currentStage = FTBModPackInstallerTask.Stage.FINISHED;
                 CreeperLauncher.isInstalling.set(false);
@@ -529,10 +523,9 @@ public class LocalInstance implements IPack
         return launcher;
     }
     private transient CompletableFuture launcherWait;
-    public void setPostInstall(Runnable hook, boolean async)
+    public void setPostInstall(Runnable lambda, boolean async)
     {
-        this.postInstall = hook;
-        this.postInstallAsync = async;
+        this.postInstall.put("postInstall", new instanceEvent(lambda, !async));
     }
 
     public void setPrePlay(Runnable hook, boolean async)
@@ -740,10 +733,10 @@ public class LocalInstance implements IPack
                 if(fireEvents && !inUse)
                 {
 
-                    for(Map.Entry<String, Runnable> event : gameCloseEvents.entrySet())
+                    for(Map.Entry<String, instanceEvent> event : gameCloseEvents.entrySet())
                     {
                         CreeperLogger.INSTANCE.info("Running game close event '"+event.getKey()+"'...");
-                        CompletableFuture.runAsync(event.getValue());
+                        event.getValue().Run();
                     }
                     fireEvents = false;
                 }
@@ -756,7 +749,7 @@ public class LocalInstance implements IPack
     public void onGameClose(String name, Runnable lambda)
     {
         if(gameCloseEvents.containsKey(name)) return;
-        gameCloseEvents.put(name, lambda);
+        gameCloseEvents.put(name, new instanceEvent(lambda, name));
     }
     public boolean isInUse(boolean checkFiles)
     {
@@ -969,7 +962,7 @@ public class LocalInstance implements IPack
                     case SYNC_NORMAL:
                         try
                         {
-                            List<CompletableFuture> futures = new ArrayList<>();
+                            ArrayList<CompletableFuture> futures = new ArrayList<>();
                             futures.add(CompletableFuture.runAsync(() ->
                             {
                                 try
@@ -978,24 +971,7 @@ public class LocalInstance implements IPack
                                 } catch (Exception e) { e.printStackTrace(); }
                             }, DownloadTask.threadPool));
 
-                            CompletableFuture<Void> combinedFuture = CompletableFuture.allOf(
-                                    futures.toArray(new CompletableFuture[0])).exceptionally((t) ->
-                                    {
-                                        t.printStackTrace();
-                                        return null;
-                                    }
-                            );
-
-                            futures.forEach((blah) ->
-                            {
-                                ((CompletableFuture<Void>) blah).exceptionally((t) ->
-                                {
-                                    combinedFuture.completeExceptionally(t);
-                                    return null;
-                                });
-                            });
-
-                            combinedFuture.join();
+                            allFutures(futures).join();
                         } catch (Throwable t)
                         {
                             t.printStackTrace();

@@ -24,12 +24,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -37,6 +33,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static net.creeperhost.creeperlauncher.util.MiscUtils.allFutures;
 
 public class FTBModPackInstallerTask implements IInstallTask<Void>
 {
@@ -495,25 +493,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
         }
         try
         {
-            CompletableFuture<Void> combinedFuture = CompletableFuture.allOf(
-                    futures.toArray(new CompletableFuture[0])).exceptionally((t) ->
-                    {
-                        t.printStackTrace();
-                        return null;
-                    }
-            );
-
-            futures.forEach((blah) ->
-            {
-                ((CompletableFuture<Void>) blah).exceptionally((t) ->
-                {
-                    combinedFuture.completeExceptionally(t);
-                    return null;
-                });
-            });
-
-            combinedFuture.join();
-
+            allFutures(futures).join();
         } catch (Throwable err)
         {
             for (CompletableFuture ftr : futures)
