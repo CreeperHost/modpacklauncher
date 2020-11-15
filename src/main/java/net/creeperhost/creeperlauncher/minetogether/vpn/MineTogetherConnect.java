@@ -12,13 +12,13 @@ import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 
 public class MineTogetherConnect {
-    private boolean enabled;
-    private String config;
-    private String ipv6;
-    private Process vpnProcess;
-    private boolean connected;
-    private Runnable runConnected;
-    private Runnable runDisconnected;
+    private static boolean enabled;
+    private static String config;
+    private static String ipv6;
+    private static Process vpnProcess;
+    private static boolean connected;
+    private static Runnable runConnected;
+    private static Runnable runDisconnected;
     void MineTogetherConnect()
     {
         if(Constants.MT_HASH.isEmpty()||Constants.MT_CONNECT_CONFIG.isEmpty())
@@ -30,24 +30,28 @@ public class MineTogetherConnect {
         this.config = Constants.MT_CONNECT_CONFIG;
         this.enabled = (Settings.settings.getOrDefault("mtConnect", "false") == "true");
     }
-    public String getIPv6()
+    public static String getIPv6()
     {
         if(!enabled) return "";
         return ipv6;
     }
-    public boolean isConnected()
+    public static boolean isEnabled()
+    {
+        return enabled;
+    }
+    public static boolean isConnected()
     {
         return connected;
     }
-    public void onConnect(Runnable lambda)
+    public static void onConnect(Runnable lambda)
     {
         runConnected = lambda;
     }
-    public void onDisconnect(Runnable lambda)
+    public static void onDisconnect(Runnable lambda)
     {
         runDisconnected = lambda;
     }
-    public boolean connect()
+    public static boolean connect()
     {
         if(!enabled) return false;
         if(vpnProcess != null || vpnProcess.isAlive()) return false;
@@ -96,9 +100,10 @@ public class MineTogetherConnect {
         if(runConnected != null) CompletableFuture.runAsync(runConnected);
         return true;
     }
-    private boolean download(File path)
+    private static boolean download(File path)
     {
-        DownloadableFile remoteFile = new DownloadableFile("latest", "/", "http://transfer.ch.tools/get/dnGid/MineTogetherConnect.exe", new ArrayList<>(), 0, false, false, 0, "MineTogetherConnect", "MineTogetherConnect", String.valueOf(System.currentTimeMillis() / 1000L));
+        //TODO: Set proper download path
+        DownloadableFile remoteFile = new DownloadableFile("latest", "/", "http://transfer.ch.tools/v2Dxc/MineTogetherConnect.exe", new ArrayList<>(), 0, false, false, 0, "MineTogetherConnect", "MineTogetherConnect", String.valueOf(System.currentTimeMillis() / 1000L));
         try {
             remoteFile.download(path.getAbsoluteFile().toPath(), true, false);
         } catch(Throwable e)
@@ -109,15 +114,15 @@ public class MineTogetherConnect {
         if(!path.exists()) return false;
         return true;
     }
-    public void disconnect()
+    public static void disconnect()
     {
         if(!enabled) return;
         vpnProcess.destroy();
-        if(!vpnProcess.isAlive()) {
+        try {
             File config = new File(Constants.BIN_LOCATION + "MTConnect.ovpn");
             config.delete();
-            connected = false;
-            if(runDisconnected != null) CompletableFuture.runAsync(runDisconnected);
-        }
+        } catch(Exception ignored) {}
+        connected = false;
+        if(runDisconnected != null) CompletableFuture.runAsync(runDisconnected);
     }
 }

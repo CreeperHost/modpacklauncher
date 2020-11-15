@@ -8,6 +8,7 @@ import net.creeperhost.creeperlauncher.api.data.other.OpenModalData;
 import net.creeperhost.creeperlauncher.minetogether.cloudsaves.CloudSaveManager;
 import net.creeperhost.creeperlauncher.minetogether.cloudsaves.CloudSyncType;
 import net.creeperhost.creeperlauncher.install.tasks.DownloadTask;
+import net.creeperhost.creeperlauncher.minetogether.vpn.MineTogetherConnect;
 import oshi.SystemInfo;
 import oshi.hardware.HardwareAbstractionLayer;
 
@@ -75,6 +76,7 @@ public class LocalInstance implements IPack
     transient private boolean preUninstallAsync;
     transient private AtomicBoolean inUse = new AtomicBoolean(false);
     transient public Socket loadingModSocket;
+    transient private List<Runnable> gameCloseEvents;
 
     public LocalInstance(FTBPack pack, long versionId)
     {
@@ -424,6 +426,21 @@ public class LocalInstance implements IPack
         if(!Constants.S3_SECRET.isEmpty() && !Constants.S3_KEY.isEmpty() && !Constants.S3_HOST.isEmpty() && !Constants.S3_BUCKET.isEmpty()) {
             CreeperLogger.INSTANCE.debug("Doing cloud sync");
             CompletableFuture.runAsync(() -> this.cloudSync(false)).join();
+            onGameClose(() -> {
+                if(cloudSaves) {
+                    this.cloudSync(false);
+                }
+            });
+        }
+        if(MineTogetherConnect.isEnabled())
+        {
+            MineTogetherConnect.connect();
+            onGameClose(() -> {
+                if(MineTogetherConnect.isConnected())
+                {
+                    MineTogetherConnect.disconnect();
+                }
+            });
         }
 
         this.lastPlayed = CreeperLauncher.unixtimestamp();
@@ -437,9 +454,14 @@ public class LocalInstance implements IPack
 
 
         this.hasLoadingMod = checkForLaunchMod();
-        //THIS IS FOR TESTING ONLY, PLEASE REMOVE ME IN FUTURE
+        //TODO: THIS IS FOR TESTING ONLY, PLEASE REMOVE ME IN FUTURE
         if(!this.hasLoadingMod){
-            if(modLoader.startsWith("1.12.2")){
+            if(modLoader.startsWith("1.7.10"))
+            {
+                //TODO: Add 1.7.10 mod from gitlab
+                /*DownloadUtils.downloadFile(new File(dir,"mods" + File.separator + "launchertray-1.0.jar"), "https://dist.creeper.host/modpacks/maven/net/creeperhost/launchertray/transformer/1.0/381778e244181cc2bb7dd02f03fb745164e87ee0");
+                this.hasLoadingMod = checkForLaunchMod();*/
+            } else if(modLoader.startsWith("1.12.2")){
                 DownloadUtils.downloadFile(new File(dir,"mods" + File.separator + "launchertray-1.0.jar"), "https://dist.creeper.host/modpacks/maven/net/creeperhost/launchertray/transformer/1.0/381778e244181cc2bb7dd02f03fb745164e87ee0");
                 this.hasLoadingMod = checkForLaunchMod();
             } else if(modLoader.startsWith("1.15") || modLoader.startsWith("1.16")){
@@ -491,11 +513,22 @@ public class LocalInstance implements IPack
             if(launcher != null && launcher.process != null) _processes.add(launcher.process);
             return _processes;
         });
-
+        if(launcherWait != null || (!launcherWait.isDone())) launcherWait.cancel(true);
+        launcherWait = CompletableFuture.runAsync(() -> {
+           //Wait for Mojang launcher to launch actual game, then begin the inUseCheck to fire game close events.
+           while(!isInUse(true))
+           {
+               try {
+                   Thread.sleep(10000);
+               } catch (InterruptedException ignored) {}
+           }
+           //Start monitoring the instance directory to wait until the client has stopped using it
+           inUseCheck();
+        });
 
         return launcher;
     }
-
+    private transient CompletableFuture launcherWait;
     public void setPostInstall(Runnable hook, boolean async)
     {
         this.postInstall = hook;
@@ -693,7 +726,35 @@ public class LocalInstance implements IPack
         }
         return true;
     }
+    private transient CompletableFuture inUseThread;
+    private void inUseCheck()
+    {
+        if(inUseThread != null || !inUseThread.isDone()) return;
+        inUseThread = CompletableFuture.runAsync(() -> {
+            boolean fireEvents = false;
+            while(true)
+            {
+                boolean inUse = isInUse(true);
+                if(!fireEvents) fireEvents = inUse;
 
+                if(fireEvents && !inUse)
+                {
+                    for(Runnable event : gameCloseEvents)
+                    {
+                        CompletableFuture.runAsync(event);
+                    }
+                    fireEvents = false;
+                }
+                try {
+                    Thread.sleep(10000);
+                } catch (InterruptedException ignored) {}
+            }
+        });
+    }
+    public void onGameClose(Runnable lambda)
+    {
+        gameCloseEvents.add(lambda);
+    }
     public boolean isInUse(boolean checkFiles)
     {
         if (inUse.get()) return true;
