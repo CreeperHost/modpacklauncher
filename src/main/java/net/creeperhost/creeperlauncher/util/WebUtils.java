@@ -1,6 +1,7 @@
 package net.creeperhost.creeperlauncher.util;
 
 import net.creeperhost.creeperlauncher.Constants;
+import net.creeperhost.creeperlauncher.Settings;
 
 import javax.net.ssl.HttpsURLConnection;
 import java.io.BufferedReader;
@@ -78,7 +79,36 @@ public class WebUtils
 
         return "error";
     }
+    public static String mtAPIGet(String urlString)
+    {
+        try
+        {
+            URL url = new URL(urlString);
+            URI uri = new URI(url.getProtocol(), url.getUserInfo(), url.getHost(), url.getPort(), url.getPath(), url.getQuery(), url.getRef());
+            url = uri.toURL();
+            // lul
+            HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
 
+            conn.setRequestMethod("GET");
+            conn.addRequestProperty("APP_AUTH", Settings.settings.get("sessionString"));
+
+            conn.setRequestProperty("User-Agent", "modpacklauncher/" + Constants.APPVERSION + " Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.138 Safari/537.36 Vivaldi/1.8.770.56");
+            BufferedReader rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            String line;
+            StringBuilder respData = new StringBuilder();
+            while ((line = rd.readLine()) != null)
+            {
+                respData.append(line);
+                respData.append("\n");
+            }
+            rd.close();
+            return respData.toString();
+        } catch (Throwable ignored)
+        {
+        }
+
+        return "error";
+    }
     public static String getWebResponse(String urlString)
     {
         try

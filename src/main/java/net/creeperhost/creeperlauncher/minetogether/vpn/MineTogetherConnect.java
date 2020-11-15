@@ -11,6 +11,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 
+import static net.creeperhost.creeperlauncher.util.WebUtils.mtAPIGet;
+
 public class MineTogetherConnect {
     private static boolean enabled;
     private static String config;
@@ -72,6 +74,9 @@ public class MineTogetherConnect {
         if(!config.canWrite()) return false;
         try {
             FileWriter fw = new FileWriter(config);
+            String sessionIdent = Settings.settings.get("sessionString");
+            if(sessionIdent == null || sessionIdent.isEmpty()) return false;
+            Constants.MT_CONNECT_CONFIG = mtAPIGet("https://minetogether.io/api/mtConnect");
             fw.write(Constants.MT_CONNECT_CONFIG);
             fw.close();
         } catch (IOException e) {
