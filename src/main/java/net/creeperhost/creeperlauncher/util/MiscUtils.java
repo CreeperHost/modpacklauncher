@@ -38,9 +38,9 @@ public class MiscUtils
                     return null;
                 }
         );
-        futures.forEach((blah) ->
+        futures.forEach((x) ->
         {
-            ((CompletableFuture<Void>) blah).exceptionally((t) ->
+            ((CompletableFuture<Void>) x).exceptionally((t) ->
             {
                 combinedFuture.completeExceptionally(t);
                 return null;
