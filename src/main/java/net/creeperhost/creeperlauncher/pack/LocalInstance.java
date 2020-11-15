@@ -76,7 +76,7 @@ public class LocalInstance implements IPack
     transient private boolean preUninstallAsync;
     transient private AtomicBoolean inUse = new AtomicBoolean(false);
     transient public Socket loadingModSocket;
-    transient private List<Runnable> gameCloseEvents;
+    transient private HashMap<String, Runnable> gameCloseEvents;
 
     public LocalInstance(FTBPack pack, long versionId)
     {
@@ -426,7 +426,7 @@ public class LocalInstance implements IPack
         if(!Constants.S3_SECRET.isEmpty() && !Constants.S3_KEY.isEmpty() && !Constants.S3_HOST.isEmpty() && !Constants.S3_BUCKET.isEmpty()) {
             CreeperLogger.INSTANCE.debug("Doing cloud sync");
             CompletableFuture.runAsync(() -> this.cloudSync(false)).join();
-            onGameClose(() -> {
+            onGameClose("cloudSync", () -> {
                 if(cloudSaves) {
                     this.cloudSync(false);
                 }
@@ -435,7 +435,7 @@ public class LocalInstance implements IPack
         if(MineTogetherConnect.isEnabled())
         {
             MineTogetherConnect.connect();
-            onGameClose(() -> {
+            onGameClose("MTC-Disconnect", () -> {
                 if(MineTogetherConnect.isConnected())
                 {
                     MineTogetherConnect.disconnect();
@@ -739,9 +739,11 @@ public class LocalInstance implements IPack
 
                 if(fireEvents && !inUse)
                 {
-                    for(Runnable event : gameCloseEvents)
+
+                    for(Map.Entry<String, Runnable> event : gameCloseEvents.entrySet())
                     {
-                        CompletableFuture.runAsync(event);
+                        CreeperLogger.INSTANCE.info("Running game close event '"+event.getKey()+"'...");
+                        CompletableFuture.runAsync(event.getValue());
                     }
                     fireEvents = false;
                 }
@@ -751,9 +753,10 @@ public class LocalInstance implements IPack
             }
         });
     }
-    public void onGameClose(Runnable lambda)
+    public void onGameClose(String name, Runnable lambda)
     {
-        gameCloseEvents.add(lambda);
+        if(gameCloseEvents.containsKey(name)) return;
+        gameCloseEvents.put(name, lambda);
     }
     public boolean isInUse(boolean checkFiles)
     {
