@@ -5,8 +5,8 @@ import com.google.gson.*;
 import com.google.gson.stream.JsonReader;
 import net.creeperhost.creeperlauncher.api.data.other.CloseModalData;
 import net.creeperhost.creeperlauncher.api.data.other.OpenModalData;
-import net.creeperhost.creeperlauncher.cloudsaves.CloudSaveManager;
-import net.creeperhost.creeperlauncher.cloudsaves.CloudSyncType;
+import net.creeperhost.creeperlauncher.minetogether.cloudsaves.CloudSaveManager;
+import net.creeperhost.creeperlauncher.minetogether.cloudsaves.CloudSyncType;
 import net.creeperhost.creeperlauncher.install.tasks.DownloadTask;
 import oshi.SystemInfo;
 import oshi.hardware.HardwareAbstractionLayer;
@@ -37,7 +37,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
-import java.util.zip.ZipEntry;
 
 public class LocalInstance implements IPack
 {

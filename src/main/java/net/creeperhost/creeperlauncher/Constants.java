@@ -50,6 +50,10 @@ public class Constants
     public static String KEY = "";
     public static String SECRET = "";
 
+    //MT Identifiers
+    public static String MT_HASH = "";
+    public static String MT_CONNECT_CONFIG = "";
+
     //S3 Auth
     public static String S3_KEY = "";
     public static String S3_SECRET = "";
