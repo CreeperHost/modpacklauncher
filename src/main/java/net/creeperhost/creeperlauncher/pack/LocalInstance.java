@@ -429,6 +429,9 @@ public class LocalInstance implements IPack
             if (CreeperLauncher.mtConnect.isEnabled()) {
                 CreeperLogger.INSTANCE.info("MineTogether Connect is enabled... Connecting...");
                 CreeperLauncher.mtConnect.connect();
+                try {
+                    Thread.sleep(1500);
+                } catch(Exception ignored) {} //Just a small sleep so we're not messing with routing and NIC's just as the Vanilla launcher opens.
                 onGameClose("MTC-Disconnect", () -> {
                     if (CreeperLauncher.mtConnect.isConnected()) {
                         CreeperLogger.INSTANCE.info("MineTogether Connect is enabled... Disconnecting...");
