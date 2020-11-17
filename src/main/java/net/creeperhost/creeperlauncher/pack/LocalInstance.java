@@ -473,11 +473,24 @@ public class LocalInstance implements IPack
                 } catch (IOException ignored) {}
                 this.loadingModSocket = null;
             }
-            this.loadingModPort = (int)(Math.random() * (65534 - 50000 + 1) + 50000);
-            CompletableFuture.runAsync(() -> {
-                CreeperLogger.INSTANCE.info("Started mod socket on port " + this.loadingModPort);
-                loadingModSocket = CreeperLauncher.listenForClient(this.loadingModPort);
-            });
+            this.loadingModPort = (int) (Math.random() * (65534 - 50000 + 1) + 50000);
+            while(loadingModSocket == null) {
+                //Retry ports...
+                CompletableFuture.runAsync(() -> {
+                    try {
+                        CreeperLogger.INSTANCE.info("Started mod socket on port " + this.loadingModPort);
+                        loadingModSocket = CreeperLauncher.listenForClient(this.loadingModPort);
+                    } catch(Exception err)
+                    {
+                        CreeperLogger.INSTANCE.error("Unable to open loading mod listener on port '"+this.loadingModPort+"'...", err);
+                        loadingModSocket = null;
+                        this.loadingModPort = (int) (Math.random() * (65534 - 50000 + 1) + 50000);
+                    }
+                });
+                try {
+                    Thread.sleep(100);
+                } catch(Exception ignored) {}
+            }
             if(extraArgs.length() > 0) extraArgs = extraArgs + " ";
             extraArgs += "-Dchtray.port="+this.loadingModPort+" -Dchtray.instance="+this.uuid.toString()+" ";
         }
@@ -507,7 +520,10 @@ public class LocalInstance implements IPack
             if(launcher != null && launcher.process != null) _processes.add(launcher.process);
             return _processes;
         });
-        if(launcherWait != null || (!launcherWait.isDone())) launcherWait.cancel(true);
+        try {
+            //Got an NPE here even with a null check...
+            if (launcherWait != null || (!launcherWait.isDone())) launcherWait.cancel(true);
+        } catch(Exception ignored) {}
         launcherWait = CompletableFuture.runAsync(() -> {
            //Wait for Mojang launcher to launch actual game, then begin the inUseCheck to fire game close events.
            while(!isInUse(true))
