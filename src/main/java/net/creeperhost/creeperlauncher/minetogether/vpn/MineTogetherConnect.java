@@ -101,6 +101,11 @@ public class MineTogetherConnect {
             String sessionIdent = Settings.settings.get("sessionString");
             if(sessionIdent == null || sessionIdent.isEmpty()) return false;
             this.config = mtAPIGet("https://minetogether.io/api/mtConnect");
+            if(this.config.equals("error") || this.config.length() == 0)
+            {
+                CreeperLogger.INSTANCE.error("Unable to grab configuration file... Not high enough supporter tier?");
+                return false;
+            }
             fw.write(this.config);
             fw.close();
         } catch (IOException e) {
@@ -132,8 +137,7 @@ public class MineTogetherConnect {
     }
     private static boolean download(File path)
     {
-        //TODO: Set proper download path
-        DownloadableFile remoteFile = new DownloadableFile("latest", "/", "http://transfer.ch.tools/e9nwR/MineTogetherConnect.exe", new ArrayList<>(), 0, false, false, 0, "MineTogetherConnect", "MineTogetherConnect", String.valueOf(System.currentTimeMillis() / 1000L));
+        DownloadableFile remoteFile = new DownloadableFile("latest", "/", "https://apps.modpacks.ch/MineTogether/MineTogetherConnect.exe", new ArrayList<>(), 0, false, false, 0, "MineTogetherConnect", "MineTogetherConnect", String.valueOf(System.currentTimeMillis() / 1000L));
         try {
             remoteFile.prepare();
             remoteFile.download(path.getAbsoluteFile().toPath(), true, false);
