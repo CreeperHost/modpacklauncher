@@ -8,7 +8,6 @@ import net.creeperhost.creeperlauncher.api.data.other.OpenModalData;
 import net.creeperhost.creeperlauncher.minetogether.cloudsaves.CloudSaveManager;
 import net.creeperhost.creeperlauncher.minetogether.cloudsaves.CloudSyncType;
 import net.creeperhost.creeperlauncher.install.tasks.DownloadTask;
-import net.creeperhost.creeperlauncher.minetogether.vpn.MineTogetherConnect;
 import net.creeperhost.creeperlauncher.util.*;
 import oshi.SystemInfo;
 import oshi.hardware.HardwareAbstractionLayer;
@@ -426,15 +425,21 @@ public class LocalInstance implements IPack
                 }
             });
         }
-        if(MineTogetherConnect.isEnabled())
-        {
-            MineTogetherConnect.connect();
-            onGameClose("MTC-Disconnect", () -> {
-                if(MineTogetherConnect.isConnected())
-                {
-                    MineTogetherConnect.disconnect();
-                }
-            });
+        if(CreeperLauncher.mtConnect != null) {
+            if (CreeperLauncher.mtConnect.isEnabled()) {
+                CreeperLogger.INSTANCE.info("MineTogether Connect is enabled... Connecting...");
+                CreeperLauncher.mtConnect.connect();
+                onGameClose("MTC-Disconnect", () -> {
+                    if (CreeperLauncher.mtConnect.isConnected()) {
+                        CreeperLogger.INSTANCE.info("MineTogether Connect is enabled... Disconnecting...");
+                        CreeperLauncher.mtConnect.disconnect();
+                    }
+                });
+            } else {
+                CreeperLogger.INSTANCE.info("MineTogether Connect is not enabled...");
+            }
+        } else {
+            CreeperLogger.INSTANCE.error("Unable to initialize MineTogether Connect!");
         }
 
         this.lastPlayed = CreeperLauncher.unixtimestamp();
@@ -452,9 +457,8 @@ public class LocalInstance implements IPack
         if(!this.hasLoadingMod){
             if(modLoader.startsWith("1.7.10"))
             {
-                //TODO: Add 1.7.10 mod from gitlab
-                /*DownloadUtils.downloadFile(new File(dir,"mods" + File.separator + "launchertray-1.0.jar"), "https://dist.creeper.host/modpacks/maven/net/creeperhost/launchertray/transformer/1.0/381778e244181cc2bb7dd02f03fb745164e87ee0");
-                this.hasLoadingMod = checkForLaunchMod();*/
+                DownloadUtils.downloadFile(new File(dir,"mods" + File.separator + "launchertray-1.0.jar"), "https://dist.creeper.host/modpacks/maven/com/sun/jna/1.7.10-1.0.0/d4c2da853f1dbc80ab15b128701001fd3af6718f");
+                this.hasLoadingMod = checkForLaunchMod();
             } else if(modLoader.startsWith("1.12.2")){
                 DownloadUtils.downloadFile(new File(dir,"mods" + File.separator + "launchertray-1.0.jar"), "https://dist.creeper.host/modpacks/maven/net/creeperhost/launchertray/transformer/1.0/381778e244181cc2bb7dd02f03fb745164e87ee0");
                 this.hasLoadingMod = checkForLaunchMod();
@@ -473,26 +477,36 @@ public class LocalInstance implements IPack
                 } catch (IOException ignored) {}
                 this.loadingModSocket = null;
             }
-            this.loadingModPort = (int) (Math.random() * (65534 - 50000 + 1) + 50000);
-            while(loadingModSocket == null) {
+            int retries = 0;
+            AtomicBoolean hasErrored = new AtomicBoolean(true);
+            while(hasErrored.get()) {
                 //Retry ports...
+                hasErrored.set(false);
+                this.loadingModPort = MiscUtils.getRandomNumber(50001,52000);
                 CompletableFuture.runAsync(() -> {
                     try {
+
                         CreeperLogger.INSTANCE.info("Started mod socket on port " + this.loadingModPort);
                         loadingModSocket = CreeperLauncher.listenForClient(this.loadingModPort);
                     } catch(Exception err)
                     {
                         CreeperLogger.INSTANCE.error("Unable to open loading mod listener on port '"+this.loadingModPort+"'...", err);
                         loadingModSocket = null;
-                        this.loadingModPort = (int) (Math.random() * (65534 - 50000 + 1) + 50000);
+                        hasErrored.set(true);
                     }
                 });
                 try {
                     Thread.sleep(100);
+                    if(retries >= 5) break;
+                    retries++;
                 } catch(Exception ignored) {}
             }
-            if(extraArgs.length() > 0) extraArgs = extraArgs + " ";
-            extraArgs += "-Dchtray.port="+this.loadingModPort+" -Dchtray.instance="+this.uuid.toString()+" ";
+            if(!hasErrored.get()) {
+                if (extraArgs.length() > 0) extraArgs = extraArgs + " ";
+                extraArgs += "-Dchtray.port=" + this.loadingModPort + " -Dchtray.instance=" + this.uuid.toString() + " ";
+            } else {
+                CreeperLogger.INSTANCE.error("Unable to open loading mod listener port... Tried "+retries+" times.");
+            }
         }
 
         Profile profile = (extraArgs.length() > 0) ? this.toProfile(extraArgs) : this.toProfile();
@@ -520,20 +534,9 @@ public class LocalInstance implements IPack
             if(launcher != null && launcher.process != null) _processes.add(launcher.process);
             return _processes;
         });
-        try {
-            //Got an NPE here even with a null check...
-            if (launcherWait != null || (!launcherWait.isDone())) launcherWait.cancel(true);
-        } catch(Exception ignored) {}
+        if (launcherWait != null && (!launcherWait.isDone())) launcherWait.cancel(true);
         launcherWait = CompletableFuture.runAsync(() -> {
-           //Wait for Mojang launcher to launch actual game, then begin the inUseCheck to fire game close events.
-           while(!isInUse(true))
-           {
-               try {
-                   Thread.sleep(10000);
-               } catch (InterruptedException ignored) {}
-           }
-           //Start monitoring the instance directory to wait until the client has stopped using it
-           inUseCheck();
+           inUseCheck(launcher.process);
         });
 
         return launcher;
@@ -736,30 +739,42 @@ public class LocalInstance implements IPack
         return true;
     }
     private transient CompletableFuture inUseThread;
-    private void inUseCheck()
+    private void inUseCheck(Process vanillaLauncher)
     {
-        if(inUseThread != null || !inUseThread.isDone()) return;
+        if(inUseThread != null && !inUseThread.isDone()) return;
         inUseThread = CompletableFuture.runAsync(() -> {
             boolean fireEvents = false;
             while(true)
             {
-                boolean inUse = isInUse(true);
-                if(!fireEvents) fireEvents = inUse;
+                if(!vanillaLauncher.isAlive()) {
+                    boolean inUse = isInUse(true);
+                    if (!fireEvents) fireEvents = inUse;
 
-                if(fireEvents && !inUse)
-                {
+                    if (fireEvents && !inUse) {
 
-                    for(Map.Entry<String, instanceEvent> event : gameCloseEvents.entrySet())
-                    {
-                        CreeperLogger.INSTANCE.info("Running game close event '"+event.getKey()+"'...");
-                        event.getValue().Run();
+                        for (Map.Entry<String, instanceEvent> event : gameCloseEvents.entrySet()) {
+                            CreeperLogger.INSTANCE.info("Running game close event '" + event.getKey() + "'...");
+                            event.getValue().Run();
+                        }
+                        fireEvents = false;
+                    } else {
+                        if (!fireEvents) {
+                            break;
+                        }
                     }
-                    fireEvents = false;
+                } else {
+                    if(!fireEvents) fireEvents = true;
                 }
                 try {
-                    Thread.sleep(10000);
+                    if(vanillaLauncher.isAlive()) {
+                        Thread.sleep(250);
+                    } else {
+                        //Expensive file checking should happen less often...
+                        Thread.sleep(5000);
+                    }
                 } catch (InterruptedException ignored) {}
             }
+            CreeperLogger.INSTANCE.debug("Game close event listener stopped...");
         });
     }
     public void onGameClose(String name, Runnable lambda)

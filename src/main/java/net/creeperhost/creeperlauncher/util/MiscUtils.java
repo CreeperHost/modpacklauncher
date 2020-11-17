@@ -48,6 +48,9 @@ public class MiscUtils
         });
         return combinedFuture;
     }
+    public static int getRandomNumber(int min, int max) {
+        return (int) ((Math.random() * (max - min)) + min);
+    }
     public static String byteArrayToHex(byte[] a)
     {
         StringBuilder sb = new StringBuilder(a.length * 2);

@@ -1,8 +1,10 @@
 package net.creeperhost.creeperlauncher.api.handlers.other;
 
 import net.creeperhost.creeperlauncher.Constants;
+import net.creeperhost.creeperlauncher.CreeperLauncher;
 import net.creeperhost.creeperlauncher.api.data.other.StoreAuthDetailsData;
 import net.creeperhost.creeperlauncher.api.handlers.IMessageHandler;
+import net.creeperhost.creeperlauncher.minetogether.vpn.MineTogetherConnect;
 
 public class StoreAuthDetailsHandler implements IMessageHandler<StoreAuthDetailsData>
 {
@@ -16,5 +18,6 @@ public class StoreAuthDetailsHandler implements IMessageHandler<StoreAuthDetails
         Constants.S3_HOST = data.s3Host;
         Constants.S3_KEY = data.s3Key;
         Constants.S3_SECRET = data.s3Secret;
+        CreeperLauncher.mtConnect = new MineTogetherConnect();
     }
 }
