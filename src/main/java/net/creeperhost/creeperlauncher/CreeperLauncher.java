@@ -477,6 +477,10 @@ public class CreeperLauncher
         try
         {
             Settings.webSocketAPI.stop();
+            if(CreeperLauncher.mtConnect != null && CreeperLauncher.mtConnect.isEnabled() && CreeperLauncher.mtConnect.isConnected())
+            {
+                CreeperLauncher.mtConnect.disconnect();
+            }
         } catch (IOException | InterruptedException e)
         {
             e.printStackTrace();

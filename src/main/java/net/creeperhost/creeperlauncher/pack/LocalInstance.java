@@ -425,26 +425,6 @@ public class LocalInstance implements IPack
                 }
             });
         }
-        if(CreeperLauncher.mtConnect != null) {
-            if (CreeperLauncher.mtConnect.isEnabled()) {
-                CreeperLogger.INSTANCE.info("MineTogether Connect is enabled... Connecting...");
-                CreeperLauncher.mtConnect.connect();
-                try {
-                    Thread.sleep(1500);
-                } catch(Exception ignored) {} //Just a small sleep so we're not messing with routing and NIC's just as the Vanilla launcher opens.
-                onGameClose("MTC-Disconnect", () -> {
-                    if (CreeperLauncher.mtConnect.isConnected()) {
-                        CreeperLogger.INSTANCE.info("MineTogether Connect is enabled... Disconnecting...");
-                        CreeperLauncher.mtConnect.disconnect();
-                    }
-                });
-            } else {
-                CreeperLogger.INSTANCE.info("MineTogether Connect is not enabled...");
-            }
-        } else {
-            CreeperLogger.INSTANCE.error("Unable to initialize MineTogether Connect!");
-        }
-
         this.lastPlayed = CreeperLauncher.unixtimestamp();
         CreeperLogger.INSTANCE.debug("Sending play request to API");
         Analytics.sendPlayRequest(this.getId(), this.getVersionId());
@@ -537,6 +517,25 @@ public class LocalInstance implements IPack
             if(launcher != null && launcher.process != null) _processes.add(launcher.process);
             return _processes;
         });
+        if(CreeperLauncher.mtConnect != null) {
+            if (CreeperLauncher.mtConnect.isEnabled()) {
+                try {
+                    Thread.sleep(20000);
+                } catch(Exception ignored) {} //Just a small sleep so we're not messing with routing and NIC's just as the Vanilla launcher opens.
+                CreeperLogger.INSTANCE.info("MineTogether Connect is enabled... Connecting...");
+                CreeperLauncher.mtConnect.connect();
+                onGameClose("MTC-Disconnect", () -> {
+                    if (CreeperLauncher.mtConnect.isConnected()) {
+                        CreeperLogger.INSTANCE.info("MineTogether Connect is enabled... Disconnecting...");
+                        CreeperLauncher.mtConnect.disconnect();
+                    }
+                });
+            } else {
+                CreeperLogger.INSTANCE.info("MineTogether Connect is not enabled...");
+            }
+        } else {
+            CreeperLogger.INSTANCE.error("Unable to initialize MineTogether Connect!");
+        }
         if (launcherWait != null && (!launcherWait.isDone())) launcherWait.cancel(true);
         launcherWait = CompletableFuture.runAsync(() -> {
            inUseCheck(launcher.process);
