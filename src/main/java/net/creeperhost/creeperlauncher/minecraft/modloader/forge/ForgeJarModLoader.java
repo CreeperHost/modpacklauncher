@@ -47,7 +47,7 @@ public class ForgeJarModLoader extends ForgeModLoader
 		file.mkdir();
 
 		//Add the jvm args to fix loading older forge versions
-		instance.jvmArgs = instance.jvmArgs + " -Dfml.ignorePatchDiscrepancies=true -Dfml.ignoreInvalidMinecraftCertificates=true".trim();
+		instance.jvmArgs = instance.jvmArgs + " -Dfml.ignorePatchDiscrepancies=true -Dfml.ignoreInvalidMinecraftCertificates=true -Dminecraft.applet.TargetDirectory=" + instance.getDir().trim();
 		try
 		{
 			URI url = null;
@@ -214,7 +214,7 @@ public class ForgeJarModLoader extends ForgeModLoader
 	public boolean isApplicable()
 	{
 		int minorMcVersion = McUtils.parseMinorVersion(getTargetVersion("minecraft").orElse("0.0.0"));
-		//1.2.5 -> 1.4.7
-		return super.isApplicable() && minorMcVersion >= 2 && minorMcVersion <= 4;
+		//1.2.5 -> 1.5.2
+		return super.isApplicable() && minorMcVersion >= 2 && minorMcVersion <= 5;
 	}
 }

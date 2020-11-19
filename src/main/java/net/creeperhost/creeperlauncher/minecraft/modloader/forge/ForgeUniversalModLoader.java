@@ -110,7 +110,7 @@ public class ForgeUniversalModLoader extends ForgeModLoader
 	public boolean isApplicable()
 	{
 		int minorMcVersion = McUtils.parseMinorVersion(getTargetVersion("minecraft").orElse("0.0.0"));
-		//1.5 -> 1.12.2
-		return super.isApplicable() && minorMcVersion >= 5 && minorMcVersion <= 12;
+		//1.6 -> 1.12.2
+		return super.isApplicable() && minorMcVersion >= 6 && minorMcVersion <= 12;
 	}
 }
