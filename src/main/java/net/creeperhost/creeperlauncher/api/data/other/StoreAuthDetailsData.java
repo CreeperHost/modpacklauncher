@@ -6,6 +6,7 @@ public class StoreAuthDetailsData extends BaseData
 {
     public String mpKey;
     public String mpSecret;
+    public String mtHash;
     public String s3Key;
     public String s3Secret;
     public String s3Bucket;

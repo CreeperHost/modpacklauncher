@@ -1,4 +1,4 @@
-package net.creeperhost.creeperlauncher.cloudsaves;
+package net.creeperhost.creeperlauncher.minetogether.cloudsaves;
 
 public enum CloudSyncType
 {

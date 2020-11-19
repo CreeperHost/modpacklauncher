@@ -17,9 +17,11 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -27,6 +29,28 @@ public class MiscUtils
 {
     public static final DateFormat ISO_8601 = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
 
+    public static CompletableFuture allFutures(ArrayList<CompletableFuture> futures)
+    {
+        CompletableFuture<Void> combinedFuture = CompletableFuture.allOf(
+                futures.toArray(new CompletableFuture[0])).exceptionally((t) ->
+                {
+                    t.printStackTrace();
+                    return null;
+                }
+        );
+        futures.forEach((x) ->
+        {
+            ((CompletableFuture<Void>) x).exceptionally((t) ->
+            {
+                combinedFuture.completeExceptionally(t);
+                return null;
+            });
+        });
+        return combinedFuture;
+    }
+    public static int getRandomNumber(int min, int max) {
+        return (int) ((Math.random() * (max - min)) + min);
+    }
     public static String byteArrayToHex(byte[] a)
     {
         StringBuilder sb = new StringBuilder(a.length * 2);

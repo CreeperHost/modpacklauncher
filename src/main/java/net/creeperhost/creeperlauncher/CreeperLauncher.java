@@ -9,6 +9,7 @@ import net.creeperhost.creeperlauncher.api.data.other.CloseModalData;
 import net.creeperhost.creeperlauncher.api.data.other.OpenModalData;
 import net.creeperhost.creeperlauncher.install.tasks.FTBModPackInstallerTask;
 import net.creeperhost.creeperlauncher.install.tasks.LocalCache;
+import net.creeperhost.creeperlauncher.minetogether.vpn.MineTogetherConnect;
 import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.os.OSUtils;
 import net.creeperhost.creeperlauncher.util.*;
@@ -47,6 +48,7 @@ public class CreeperLauncher
     public static final String websocketSecret = WebSocketAPI.generateSecret();
     public static AtomicBoolean isSyncing = new AtomicBoolean(false);
     public static AtomicReference<List<Process>> mojangProcesses = new AtomicReference<List<Process>>();
+    public static MineTogetherConnect mtConnect;
 
     private static boolean warnedDevelop = false;
 
@@ -475,6 +477,10 @@ public class CreeperLauncher
         try
         {
             Settings.webSocketAPI.stop();
+            if(CreeperLauncher.mtConnect != null && CreeperLauncher.mtConnect.isEnabled() && CreeperLauncher.mtConnect.isConnected())
+            {
+                CreeperLauncher.mtConnect.disconnect();
+            }
         } catch (IOException | InterruptedException e)
         {
             e.printStackTrace();

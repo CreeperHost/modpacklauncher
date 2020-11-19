@@ -3,6 +3,7 @@ package net.creeperhost.creeperlauncher;
 import net.creeperhost.creeperlauncher.os.OSUtils;
 
 import java.io.File;
+import java.nio.file.FileSystems;
 
 public class Constants
 {
@@ -45,10 +46,15 @@ public class Constants
     public static final int WEBSOCKET_PORT = 13377;
     public static final String APPVERSION = "@APPVERSION@";
     public static final String BRANCH = "@BRANCH@";
+    public static final String PLATFORM = FileSystems.getDefault().getPath(".").toAbsolutePath().toString().contains("Overwolf") ? "Overwolf" : "Electron";
 
     //Auth
     public static String KEY = "";
     public static String SECRET = "";
+
+    //MT Identifiers
+    public static String MT_HASH = "";
+    public static String MTCONNECT_DIR = Constants.DATA_DIR + File.separator + "MTConnect";
 
     //S3 Auth
     public static String S3_KEY = "";

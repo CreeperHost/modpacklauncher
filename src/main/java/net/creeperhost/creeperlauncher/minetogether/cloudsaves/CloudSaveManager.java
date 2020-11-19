@@ -1,4 +1,4 @@
-package net.creeperhost.creeperlauncher.cloudsaves;
+package net.creeperhost.creeperlauncher.minetogether.cloudsaves;
 
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.Protocol;
@@ -11,7 +11,6 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.*;
 import com.amazonaws.services.s3.transfer.*;
-import com.install4j.runtime.beans.KeyValuePair;
 import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.util.FileUtils;
@@ -24,11 +23,9 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class CloudSaveManager {
     private static boolean isSetup = false;
