@@ -163,38 +163,43 @@ public class LocalInstance implements IPack
         Gson gson = new Gson();
 
         //This won't work, but my intent is clear so hopefully someone else can show me how?
-        FileReader fileReader = new FileReader(json.getAbsoluteFile());
-        BufferedReader bufferedReader = new BufferedReader(fileReader);
-        JsonReader jr = new JsonReader(bufferedReader);
-        LocalInstance jsonOutput = (LocalInstance) gson.fromJson(jr, LocalInstance.class);
-        this.id = jsonOutput.id;
-        this.name = jsonOutput.name;
-        this.artUrl = jsonOutput.artUrl;
-        this.mcVersion = jsonOutput.mcVersion;
-        this.authors = jsonOutput.authors;
-        this.art = jsonOutput.art;
-        this.memory = jsonOutput.memory;
-        this.version = jsonOutput.version;
-        this.versionId = jsonOutput.versionId;
-        this.width = jsonOutput.width;
-        this.height = jsonOutput.height;
-        this.url = jsonOutput.url;
-        this.minMemory = jsonOutput.minMemory;
-        this.recMemory = jsonOutput.recMemory;
-        this.lastPlayed = jsonOutput.lastPlayed;
-        this.jvmArgs = jsonOutput.jvmArgs;
-        this.modLoader = jsonOutput.modLoader;
-        this.jrePath = jsonOutput.jrePath;
-        this.dir = this.path;
-        this.cloudSaves = jsonOutput.cloudSaves;
-        this.hasLoadingMod = checkForLaunchMod();
-        try
+        try {
+            FileReader fileReader = new FileReader(json.getAbsoluteFile());
+            BufferedReader bufferedReader = new BufferedReader(fileReader);
+            JsonReader jr = new JsonReader(bufferedReader);
+            LocalInstance jsonOutput = (LocalInstance) gson.fromJson(jr, LocalInstance.class);
+            this.id = jsonOutput.id;
+            this.name = jsonOutput.name;
+            this.artUrl = jsonOutput.artUrl;
+            this.mcVersion = jsonOutput.mcVersion;
+            this.authors = jsonOutput.authors;
+            this.art = jsonOutput.art;
+            this.memory = jsonOutput.memory;
+            this.version = jsonOutput.version;
+            this.versionId = jsonOutput.versionId;
+            this.width = jsonOutput.width;
+            this.height = jsonOutput.height;
+            this.url = jsonOutput.url;
+            this.minMemory = jsonOutput.minMemory;
+            this.recMemory = jsonOutput.recMemory;
+            this.lastPlayed = jsonOutput.lastPlayed;
+            this.jvmArgs = jsonOutput.jvmArgs;
+            this.modLoader = jsonOutput.modLoader;
+            this.jrePath = jsonOutput.jrePath;
+            this.dir = this.path;
+            this.cloudSaves = jsonOutput.cloudSaves;
+            this.hasLoadingMod = checkForLaunchMod();
+            try
+            {
+                jr.close();
+                bufferedReader.close();
+                fileReader.close();
+            } catch (IOException ignored)
+            {
+            }
+        } catch(Exception e)
         {
-            jr.close();
-            bufferedReader.close();
-            fileReader.close();
-        } catch (IOException ignored)
-        {
+            throw new FileNotFoundException("Instance is corrupted!");
         }
     }
 
