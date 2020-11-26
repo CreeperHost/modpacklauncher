@@ -45,20 +45,19 @@
       <mountPoint id="670" root="61" location="bin/ftbapp.app/Contents" />
       <mountPoint id="671" root="61" location="bin/ftbapp.app/Contents/Frameworks" />
       <mountPoint id="672" root="61" location="bin/ftbapp.app/Contents/Frameworks/Electron Framework.framework" />
+      <mountPoint id="673" root="61" location="bin/ftbapp.app/Contents/Frameworks/Squirrel.framework" />
+      <mountPoint id="674" root="61" location="bin/ftbapp.app/Contents/Frameworks/Mantle.framework" />
+      <mountPoint id="675" root="61" location="bin/ftbapp.app/Contents/Frameworks/ReactiveCocoa.framework" />
       <mountPoint id="225" root="64" />
     </mountPoints>
     <entries>
       <fileEntry mountPoint="73" file="./build/libs/launcher-${compiler:sys.version}-all.jar" />
       <dirEntry mountPoint="74" file="./web/release/win-unpacked" entryMode="subdir" subDirectory="bin" />
-      <dirEntry mountPoint="224" file="./web/release/mac" entryMode="subdir" subDirectory="bin">
-        <exclude>
-          <entry location="ftbapp.app/Contents/Frameworks/Electron Framework.framework/Electron Framework" />
-          <entry location="ftbapp.app/Contents/Frameworks/Electron Framework.framework/Resources" />
-          <entry location="ftbapp.app/Contents/Frameworks/Electron Framework.framework/Versions" />
-          <entry location="ftbapp.app/Contents/Frameworks/Electron Framework.framework/Libraries" />
-        </exclude>
-      </dirEntry>
+      <dirEntry mountPoint="224" file="./web/release/mac" entryMode="subdir" subDirectory="bin" />
       <dirEntry mountPoint="672" file="./web/release/mac/ftbapp.app/Contents/Frameworks/Electron Framework.framework/Versions/A" subDirectory="mac" />
+      <dirEntry mountPoint="673" file="./web/release/mac/ftbapp.app/Contents/Frameworks/Squirrel.framework/Versions/A" subDirectory="mac" />
+      <dirEntry mountPoint="674" file="./web/release/mac/ftbapp.app/Contents/Frameworks/Mantle.framework/Versions/A" subDirectory="mac" />
+      <dirEntry mountPoint="675" file="./web/release/mac/ftbapp.app/Contents/Frameworks/ReactiveCocoa.framework/Versions/A" subDirectory="mac" />
       <dirEntry mountPoint="225" file="./web/release/linux-unpacked" entryMode="subdir" subDirectory="bin" />
     </entries>
     <components>
