@@ -40,10 +40,11 @@
       <mountPoint id="73" />
       <mountPoint id="74" root="59" />
       <mountPoint id="224" root="61" />
-      <mountPoint id="664" root="61" location="ftbapp.app" />
-      <mountPoint id="665" root="61" location="ftbapp.app/Contents" />
-      <mountPoint id="666" root="61" location="ftbapp.app/Contents/Frameworks" />
-      <mountPoint id="667" root="61" location="ftbapp.app/Contents/Frameworks/Electron Framework.framework" />
+      <mountPoint id="668" root="61" location="bin" />
+      <mountPoint id="669" root="61" location="bin/ftbapp.app" />
+      <mountPoint id="670" root="61" location="bin/ftbapp.app/Contents" />
+      <mountPoint id="671" root="61" location="bin/ftbapp.app/Contents/Frameworks" />
+      <mountPoint id="672" root="61" location="bin/ftbapp.app/Contents/Frameworks/Electron Framework.framework" />
       <mountPoint id="225" root="64" />
     </mountPoints>
     <entries>
@@ -57,7 +58,7 @@
           <entry location="ftbapp.app/Contents/Frameworks/Electron Framework.framework/Libraries" />
         </exclude>
       </dirEntry>
-      <dirEntry mountPoint="667" file="./web/release/mac/ftbapp.app/Contents/Frameworks/Electron Framework.framework/Versions/A" subDirectory="mac" />
+      <dirEntry mountPoint="672" file="./web/release/mac/ftbapp.app/Contents/Frameworks/Electron Framework.framework/Versions/A" subDirectory="mac" />
       <dirEntry mountPoint="225" file="./web/release/linux-unpacked" entryMode="subdir" subDirectory="bin" />
     </entries>
     <components>
