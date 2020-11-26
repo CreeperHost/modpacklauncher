@@ -110,6 +110,7 @@
                       <property name="updateInstallationDirectory" type="boolean" value="false" />
                     </serializedBean>
                   </action>
+                  <action id="663" beanClass="com.install4j.runtime.beans.actions.UninstallPreviousAction" actionElevationType="none" rollbackBarrierExitCode="0" />
                   <action id="654" beanClass="com.install4j.runtime.beans.actions.misc.RunExecutableAction" actionElevationType="elevated" rollbackBarrierExitCode="0" failureStrategy="askRetryQuit">
                     <serializedBean>
                       <property name="executable">
