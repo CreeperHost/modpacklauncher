@@ -1,6 +1,7 @@
 package net.creeperhost.creeperlauncher.util;
 
 import net.creeperhost.creeperlauncher.Constants;
+import net.creeperhost.creeperlauncher.Settings;
 
 import javax.net.ssl.HttpsURLConnection;
 import java.io.BufferedReader;
@@ -78,7 +79,36 @@ public class WebUtils
 
         return "error";
     }
+    public static String mtAPIGet(String urlString)
+    {
+        try
+        {
+            URL url = new URL(urlString);
+            URI uri = new URI(url.getProtocol(), url.getUserInfo(), url.getHost(), url.getPort(), url.getPath(), url.getQuery(), url.getRef());
+            url = uri.toURL();
+            // lul
+            HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
 
+            conn.setRequestMethod("GET");
+            conn.addRequestProperty("APP_AUTH", Settings.settings.get("sessionString"));
+
+            conn.setRequestProperty("User-Agent", "modpacklauncher/" + Constants.APPVERSION + " Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.138 Safari/537.36 Vivaldi/1.8.770.56");
+            BufferedReader rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            String line;
+            StringBuilder respData = new StringBuilder();
+            while ((line = rd.readLine()) != null)
+            {
+                respData.append(line);
+                respData.append("\n");
+            }
+            rd.close();
+            return respData.toString();
+        } catch (Throwable ignored)
+        {
+        }
+
+        return "error";
+    }
     public static String getWebResponse(String urlString)
     {
         try
@@ -152,10 +182,13 @@ public class WebUtils
 
     public static String methodWebResponse(String urlString, String postDataString, String method, boolean isJson, boolean silent)
     {
+        return methodWebResponse(urlString, postDataString, method, isJson ? "application/json" : "application/x-www-form-urlencoded", isJson, silent);
+    }
+
+    public static String methodWebResponse(String urlString, String postDataString, String method, String contentType, boolean isJson, boolean silent)
+    {
         try
         {
-            postDataString.substring(0, postDataString.length() - 1);
-
             byte[] postData = postDataString.getBytes(Charset.forName("UTF-8"));
             int postDataLength = postData.length;
 
@@ -171,7 +204,7 @@ public class WebUtils
                     conn.addRequestProperty("Cookie", cookie.split(";", 2)[0]);
                 }
             }
-            conn.setRequestProperty("Content-Type", isJson ? "application/json" : "application/x-www-form-urlencoded");
+            conn.setRequestProperty("Content-Type", contentType);
             conn.setRequestProperty("charset", "utf-8");
             conn.setRequestProperty("Content-Length", Integer.toString(postDataLength));
             conn.setConnectTimeout(5000);
@@ -222,6 +255,11 @@ public class WebUtils
     public static String postWebResponse(String urlString, String postDataString)
     {
         return methodWebResponse(urlString, postDataString, "POST", false, false);
+    }
+
+    public static String postWebResponse(String urlString, String postDataString, String contentType)
+    {
+        return methodWebResponse(urlString, postDataString, "POST", contentType, false, false);
     }
 
     public static String putWebResponse(String urlString, String body, boolean isJson, boolean isSilent)

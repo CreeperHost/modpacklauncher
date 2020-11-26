@@ -11,14 +11,14 @@ public class CreeperLogger
 {
     public static CreeperLogger INSTANCE = new CreeperLogger();
     private static Logger logger;
-    private String filename = Constants.WORKING_DIR + File.separator + "launcher.log";
+    private String filename = Constants.DATA_DIR + File.separator + "ftbapp.log";
     private FileHandler fileHandler;
     private final int limit = 1024 * 10000; //10 MB
     private SimpleFormatter simpleFormatter;
 
     public CreeperLogger()
     {
-        logger = Logger.getLogger("launcher.log");
+        logger = Logger.getLogger("ftbapp.log");
 
         simpleFormatter = new SimpleFormatter();
         try

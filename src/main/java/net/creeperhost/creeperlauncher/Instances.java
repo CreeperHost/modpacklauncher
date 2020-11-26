@@ -2,13 +2,11 @@ package net.creeperhost.creeperlauncher;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import net.creeperhost.creeperlauncher.cloudsaves.CloudSaveManager;
+import net.creeperhost.creeperlauncher.minetogether.cloudsaves.CloudSaveManager;
 import net.creeperhost.creeperlauncher.pack.LocalInstance;
-import net.creeperhost.creeperlauncher.util.GsonUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
@@ -64,7 +62,11 @@ public class Instances
                         l++;
                     } catch (FileNotFoundException err)
                     {
-                        CreeperLogger.INSTANCE.error("Not a valid instance '" + f.getName() + "', skipping...");
+                        if(!f.getName().startsWith(".")) {
+                            CreeperLogger.INSTANCE.error("Not a valid instance '" + f.getName() + "', skipping...");
+                        } else {
+                            t--;
+                        }
                         //err.printStackTrace();
                     }
                 }

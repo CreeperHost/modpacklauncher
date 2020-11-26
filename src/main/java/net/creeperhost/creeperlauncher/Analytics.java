@@ -7,7 +7,7 @@ public class Analytics
 {
     public static void sendInstallRequest(long packID, long packVersion)
     {
-        String analytics = Constants.getCreeperhostModpackSearch2() + "/" + packID + "/" + packVersion + "/install";
+        String analytics = Constants.getCreeperhostModpackSearch2(false) + "/" + packID + "/" + packVersion + "/install";
         CompletableFuture.runAsync(() -> {
             WebUtils.getAPIResponse(analytics);
         });
@@ -15,7 +15,7 @@ public class Analytics
 
     public static void sendPlayRequest(long packID, long packVersion)
     {
-        String analytics = Constants.getCreeperhostModpackSearch2() + "/" + packID + "/" + packVersion + "/play";
+        String analytics = Constants.getCreeperhostModpackSearch2(false) + "/" + packID + "/" + packVersion + "/play";
         CompletableFuture.runAsync(() -> {
             WebUtils.getAPIResponse(analytics);
         });

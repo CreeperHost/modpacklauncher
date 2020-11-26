@@ -7,7 +7,10 @@ import com.google.gson.JsonParser;
 import com.google.gson.stream.JsonReader;
 import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.CreeperLogger;
+import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.DownloadableFile;
+import net.creeperhost.creeperlauncher.api.data.other.CloseModalData;
+import net.creeperhost.creeperlauncher.api.data.other.OpenModalData;
 import net.creeperhost.creeperlauncher.install.tasks.DownloadTask;
 import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.os.OSUtils;
@@ -24,6 +27,7 @@ import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class McUtils {
     public static String getMinecraftJsonForVersion(String version) {
@@ -196,7 +200,22 @@ public class McUtils {
     public static void downloadVanillaLauncher() {
         String downloadurl = OSUtils.getMinecraftLauncherURL();
         File binfolder = new File(Constants.BIN_LOCATION);
-        binfolder.mkdir();
+        File tempFolder = new File(System.getProperty("java.io.tmpdir"));
+        if(!binfolder.exists()) {
+            if (!binfolder.mkdir()) {
+                if(!binfolder.canWrite())
+                {
+                    CreeperLogger.INSTANCE.error("Cannot write to data directory "+Constants.DATA_DIR+".");
+                    return;
+                } else {
+                    OpenModalData.openModal("Error", "Data directory does not exist.", List.of(
+                            new OpenModalData.ModalButton("Ok", "red", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
+                    ));
+                    CreeperLogger.INSTANCE.error("Data directory " + Constants.DATA_DIR + " does not exist.");
+                    return;
+                }
+            }
+        }
         File file = new File(Constants.MINECRAFT_LAUNCHER_LOCATION);
         OS os = OSUtils.getOs();
         if (os == OS.MAC) {
@@ -206,20 +225,37 @@ public class McUtils {
             CreeperLogger.INSTANCE.info("Starting download of the vanilla launcher");
             DownloadableFile remoteFile = new DownloadableFile("official", "/", downloadurl, new ArrayList<>(), 0, false, false, 0, "Vanilla", "vanilla", String.valueOf(System.currentTimeMillis() / 1000L));
             File destinationFile = new File(Constants.MINECRAFT_LAUNCHER_LOCATION);
+            File moveDestination = null;
             if(!destinationFile.canWrite())
             {
-                CreeperLogger.INSTANCE.error("Cannot write to data directory "+Constants.DATA_DIR+"?");
-            } else {
-                DownloadTask task = new DownloadTask(remoteFile, destinationFile.toPath());
-                task.execute().join();
-                boolean osConfig = false;
-                try {
-                    osConfig = McUtils.prepareVanillaLauncher();
-                } catch (Exception err) {
-                    err.printStackTrace();
-                }
-                if (!osConfig) CreeperLogger.INSTANCE.error("Failed to configure Vanilla launcher for this OS!");
+                moveDestination = destinationFile;
+                destinationFile = new File(tempFolder, UUID.randomUUID().toString());
+                CreeperLogger.INSTANCE.error("Cannot write Minecraft launcher to data directory '"+Constants.DATA_DIR+"', File '"+moveDestination.getAbsolutePath().toString()+"', trying temporary file '"+destinationFile.getAbsolutePath().toString()+".");
             }
+            DownloadTask task = new DownloadTask(remoteFile, destinationFile.toPath());
+            task.execute().join();
+            if(moveDestination != null)
+            {
+                if(!destinationFile.renameTo(moveDestination))
+                {
+                    CreeperLogger.INSTANCE.error("Unable to move temporary file from '"+destinationFile.getAbsolutePath().toString()+"' to '"+moveDestination.getAbsolutePath().toString()+"'.");
+                }
+                destinationFile = moveDestination;
+            }
+            if(!destinationFile.exists())
+            {
+                OpenModalData.openModal("Error", "Failed to download Mojang launcher.", List.of(
+                        new OpenModalData.ModalButton("Ok", "red", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
+                ));
+                return;
+            }
+            boolean osConfig = false;
+            try {
+                osConfig = McUtils.prepareVanillaLauncher();
+            } catch (Exception err) {
+                err.printStackTrace();
+            }
+            if (!osConfig) CreeperLogger.INSTANCE.error("Failed to configure Vanilla launcher for this OS!");
         }
     }
 
