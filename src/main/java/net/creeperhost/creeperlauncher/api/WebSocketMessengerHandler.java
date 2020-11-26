@@ -6,8 +6,21 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 import net.creeperhost.creeperlauncher.CreeperLauncher;
+import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.api.data.*;
+import net.creeperhost.creeperlauncher.api.data.friends.AddFriendData;
+import net.creeperhost.creeperlauncher.api.data.friends.BlockFriendData;
+import net.creeperhost.creeperlauncher.api.data.friends.GetFriendsData;
+import net.creeperhost.creeperlauncher.api.data.instances.*;
+import net.creeperhost.creeperlauncher.api.data.irc.*;
+import net.creeperhost.creeperlauncher.api.data.other.*;
 import net.creeperhost.creeperlauncher.api.handlers.*;
+import net.creeperhost.creeperlauncher.api.handlers.friends.AddFriendHandler;
+import net.creeperhost.creeperlauncher.api.handlers.friends.BlockFriendHandler;
+import net.creeperhost.creeperlauncher.api.handlers.friends.GetFriendsHandler;
+import net.creeperhost.creeperlauncher.api.handlers.instances.*;
+import net.creeperhost.creeperlauncher.api.handlers.irc.*;
+import net.creeperhost.creeperlauncher.api.handlers.other.*;
 
 import java.util.HashMap;
 import java.util.concurrent.CompletableFuture;
@@ -46,6 +59,36 @@ public class WebSocketMessengerHandler
         registerHandler(OpenModalData.ModalCallbackData.class, new ModalCallbackHandler());
         registerDataMap("fileHash", FileHashData.class);
         registerHandler(FileHashData.class, new FileHashHandler());
+        registerDataMap("storeAuthDetails", StoreAuthDetailsData.class);
+        registerHandler(StoreAuthDetailsData.class, new StoreAuthDetailsHandler());
+        registerDataMap("syncInstance", SyncInstanceData.class);
+        registerHandler(SyncInstanceData.class, new SyncInstanceHandler());
+        registerDataMap("ircConnect", IRCConnectData.class);
+        registerHandler(IRCConnectData.class, new IRCConnectHandler());
+        registerDataMap("ircWhoisRequest", IRCWhoisRequestData.class);
+        registerHandler(IRCWhoisRequestData.class, new IRCWhoisRequestHandler());
+        registerDataMap("ircSendMessage", IRCSendMessageData.class);
+        registerHandler(IRCSendMessageData.class, new IRCSendMessageHandler());
+        registerDataMap("ircCtcpRequest", IRCCtcpRequestData.class);
+        registerHandler(IRCCtcpRequestData.class, new IRCCtcpRequestHandler());
+        registerDataMap("ircQuitRequest", IRCQuitRequestData.class);
+        registerHandler(IRCQuitRequestData.class, new IRCQuitRequestHandler());
+        registerDataMap("uploadLogs", UploadLogsData.class);
+        registerHandler(UploadLogsData.class, new UploadLogsHandler());
+        registerDataMap("getJavas", GetJavasData.class);
+        registerHandler(GetJavasData.class, new GetJavasHandler());
+        registerDataMap("getFriends", GetFriendsData.class);
+        registerHandler(GetFriendsData.class, new GetFriendsHandler());
+        registerDataMap("blockFriend", BlockFriendData.class);
+        registerHandler(BlockFriendData.class, new BlockFriendHandler());
+        registerDataMap("addFriend", AddFriendData.class);
+        registerHandler(AddFriendData.class, new AddFriendHandler());
+        registerDataMap("instanceMods", InstanceModsData.class);
+        registerHandler(InstanceModsData.class, new InstanceModsHandler());
+        registerDataMap("yeetLauncher", YeetLauncherData.class);
+        registerHandler(YeetLauncherData.class, new YeetLauncherHandler());
+        registerDataMap("messageClient", MessageClientData.class);
+        registerHandler(MessageClientData.class, new MessageClientHandler());
     }
 
     public static void registerHandler(Class<? extends BaseData> clazz, IMessageHandler<? extends BaseData> handler)
@@ -74,9 +117,17 @@ public class WebSocketMessengerHandler
                 IMessageHandler<? extends BaseData> iMessageHandler = handlers.get(typeToken);
                 if (iMessageHandler != null)
                 {
-                    BaseData parsedData = gson.fromJson(data, typeToken.getType());
-                    if (CreeperLauncher.isDevMode || (parsedData.secret != null && parsedData.secret.equals(CreeperLauncher.websocketSecret))) {
-                        CompletableFuture.runAsync(()->iMessageHandler.handle(parsedData));
+                    try {
+                        BaseData parsedData = gson.fromJson(data, typeToken.getType());
+                        if (CreeperLauncher.isDevMode || (parsedData.secret != null && parsedData.secret.equals(CreeperLauncher.websocketSecret))) {
+                            CompletableFuture.runAsync(() -> iMessageHandler.handle(parsedData)).exceptionally((t) -> {
+                                CreeperLogger.INSTANCE.debug("Error handling message", t.getCause());
+                                t.printStackTrace();
+                                return null;
+                            });
+                        }
+                    }catch(Exception e){
+                        e.printStackTrace();
                     }
                 }
             }

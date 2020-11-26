@@ -9,6 +9,7 @@ import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.DownloadableFile;
+import net.creeperhost.creeperlauncher.api.SimpleDownloadableFile;
 import net.creeperhost.creeperlauncher.minecraft.GameLauncher;
 import net.creeperhost.creeperlauncher.minecraft.McUtils;
 import net.creeperhost.creeperlauncher.minecraft.modloader.ModLoader;
@@ -23,12 +24,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -36,6 +33,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static net.creeperhost.creeperlauncher.util.MiscUtils.allFutures;
 
 public class FTBModPackInstallerTask implements IInstallTask<Void>
 {
@@ -46,6 +45,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
     public static AtomicLong startTime = new AtomicLong(0);
     public static AtomicReference<String> lastError = new AtomicReference<String>();
     public String currentUUID = "";
+    public boolean _private = false;
     public CompletableFuture<Void> currentTask = null;
     public static Stage currentStage = Stage.INIT;
     LocalInstance instance;
@@ -93,7 +93,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
             File instanceDir = new File(instance.getDir());
             instanceDir.mkdir();
             currentStage = Stage.API;
-            downloadJsons(instanceDir);
+            downloadJsons(instanceDir, this._private);
             currentStage = Stage.FORGE;
             File forgeJson = installModLoaders();
             currentStage = Stage.DOWNLOADS;
@@ -116,14 +116,14 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
         return (returnVal > 100.00d) ? 100.00d : returnVal;
     }
 
-    public boolean downloadJsons(File instanceDir)
+    public boolean downloadJsons(File instanceDir, boolean _private)
     {
         CreeperLogger.INSTANCE.info("Preparing instance folder for " + instanceDir.getAbsolutePath());
         if (!instanceDir.exists()) instanceDir.mkdir();
 
         File modpackJson = new File(instanceDir + File.separator + "modpack.json");
         if (modpackJson.exists()) modpackJson.delete(); //Need to remove and redownload this each time or updates will have old info
-        DownloadUtils.downloadFile(modpackJson, Constants.getCreeperhostModpackSearch2() + instance.getId());
+        DownloadUtils.downloadFile(modpackJson, Constants.getCreeperhostModpackSearch2(_private) + instance.getId());
 
         File versionJson = new File(instanceDir + File.separator + "version.json");
         if (versionJson.exists())
@@ -135,14 +135,14 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                 return false;
             }
         }
-        DownloadUtils.downloadFile(versionJson, Constants.getCreeperhostModpackSearch2() + instance.getId() + "/" + instance.getVersionId());
+        DownloadUtils.downloadFile(versionJson, Constants.getCreeperhostModpackSearch2(_private) + instance.getId() + "/" + instance.getVersionId());
 
         return (modpackJson.exists() && versionJson.exists());
     }
 
-    public static FTBPack getPackFromAPI(long packId, long versionId)
+    public static FTBPack getPackFromAPI(long packId, long versionId, boolean _private)
     {
-        String modpackURL = Constants.getCreeperhostModpackSearch2() + packId;
+        String modpackURL = Constants.getCreeperhostModpackSearch2(_private) + packId;
         String versionURL = modpackURL + "/" + versionId;
         String name = "";
         String version = "";
@@ -154,6 +154,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
         int minMemory = 2048;
         int recMemory = 4096;
         long id = -1;
+        List<SimpleDownloadableFile> downloadableFileList = new ArrayList<>();
 
         String resp = WebUtils.getAPIResponse(modpackURL);
         JsonElement jElement = new JsonParser().parse(resp);
@@ -161,6 +162,11 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
         if (jElement.isJsonObject())
         {
             JsonObject object = jElement.getAsJsonObject();
+            if(object.getAsJsonPrimitive("status").getAsString().equalsIgnoreCase("error"))
+            {
+                CreeperLogger.INSTANCE.error("Unable to load modpack from '" + modpackURL + "'...");
+                return null;
+            }
             description = object.getAsJsonPrimitive("description").getAsString();
             name = object.getAsJsonPrimitive("name").getAsString();
             id = object.getAsJsonPrimitive("id").getAsLong();
@@ -218,9 +224,68 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                     }
                 }
             }
+            JsonArray filesArray = object.getAsJsonArray("files");
+            if (filesArray != null)
+            {
+                for (JsonElement serverEl : filesArray)
+                {
+                    JsonObject server = (JsonObject) serverEl;
+                    String fileType = server.get("type").getAsString();
+                    if (fileType.equalsIgnoreCase("mod")) {
+                        String fileName = server.get("name").getAsString();
+                        String fileVersion = server.get("version").getAsString();
+                        String path = server.get("path").getAsString();
+                        long size = server.get("size").getAsInt();
+                        boolean clientSideOnly = server.get("clientonly").getAsBoolean();
+                        boolean optional = server.get("optional").getAsBoolean();
+                        long fileId = server.get("id").getAsLong();
+                        downloadableFileList.add(new SimpleDownloadableFile(fileVersion, Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC) + File.separator + name + File.separator + path + File.separator + fileName, size, clientSideOnly, optional, fileId, fileName, fileType));
+                    }
+                }
+            }
         }
-        return new FTBPack(name, version, Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC) + File.separator + name, authorList, description, mc_version, url, arturl, id, minMemory, recMemory);
+        return new FTBPack(name, version, Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC) + File.separator + name, authorList, description, mc_version, url, arturl, id, minMemory, recMemory, downloadableFileList);
     }
+
+    public List<DownloadableFile> getModList(File target) {
+        List<DownloadableFile> downloadableFileList = new ArrayList<>();
+        JsonReader versionReader = null;
+        try
+        {
+            versionReader = new JsonReader(new FileReader(target));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        JsonElement jElement = new JsonParser().parse(versionReader);
+        if (jElement.isJsonObject())
+        {
+            JsonArray filesArray = jElement.getAsJsonObject().getAsJsonArray("files");
+
+            if (filesArray != null)
+            {
+                for (JsonElement serverEl : filesArray)
+                {
+                    JsonObject server = (JsonObject) serverEl;
+                    String fileName = server.get("name").getAsString();
+                    String version = server.get("version").getAsString();
+                    String path = server.get("path").getAsString();
+                    String downloadUrl = server.get("url").getAsString().replaceAll(" ", "%20");
+                    List<String> sha1 = new ArrayList<>();
+                    sha1.add(server.get("sha1").getAsString());
+                    long size = server.get("size").getAsInt();
+                    boolean clientSideOnly = server.get("clientonly").getAsBoolean();
+                    boolean optional = server.get("optional").getAsBoolean();
+                    long fileId = server.get("id").getAsLong();
+                    String fileType = server.get("type").getAsString();
+                    String updated = server.get("updated").getAsString();
+                    downloadableFileList.add(new DownloadableFile(version, instance.getDir() + File.separator + path + File.separator + fileName, downloadUrl, sha1, size, clientSideOnly, optional, fileId, fileName, fileType, updated));
+                }
+            }
+        }
+        return downloadableFileList;
+    }
+
 
     public List<DownloadableFile> getRequiredDownloads(File target, File forgeTarget) throws MalformedURLException
     {
@@ -415,7 +480,6 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
             if (!f.exists()) f.mkdir();
             try
             {
-                URI url = new URI(file.getUrl());
                 Path path = Paths.get(file.getPath());
                 if (!path.toFile().exists())
                 {
@@ -429,28 +493,9 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
         }
         try
         {
-            CompletableFuture<Void> combinedFuture = CompletableFuture.allOf(
-                    futures.toArray(new CompletableFuture[0])).exceptionally((t) ->
-                    {
-                        t.printStackTrace();
-                        return null;
-                    }
-            );
-
-            futures.forEach((blah) ->
-            {
-                ((CompletableFuture<Void>) blah).exceptionally((t) ->
-                {
-                    combinedFuture.completeExceptionally(t);
-                    return null;
-                });
-            });
-
-            combinedFuture.join();
-
+            allFutures(futures).join();
         } catch (Throwable err)
         {
-            CreeperLogger.INSTANCE.error(err.getMessage());
             for (CompletableFuture ftr : futures)
             {
                 ftr.cancel(true);

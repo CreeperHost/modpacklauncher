@@ -14,9 +14,9 @@ public class ModLoaderManager {
 
 	private static final List<ModLoaderFactory<?>> MOD_LOADER_FACTORIES = new ArrayList<>();
 
-	public static final ModLoaderFactory<ForgeJarModLoader> FORGE_JAR = register(ForgeJarModLoader::new);
-	public static final ModLoaderFactory<ForgeUniversalModLoader> FORGE_UNIVERSAL = register(ForgeUniversalModLoader::new);
 	public static final ModLoaderFactory<ForgeInstallerModLoader> FORGE_INSTALLER = register(ForgeInstallerModLoader::new);
+	public static final ModLoaderFactory<ForgeUniversalModLoader> FORGE_UNIVERSAL = register(ForgeUniversalModLoader::new);
+	public static final ModLoaderFactory<ForgeJarModLoader> FORGE_JAR = register(ForgeJarModLoader::new);
 	public static final ModLoaderFactory<FabricModLoader> FABRIC = register(FabricModLoader::new);
 
 	private static <T extends ModLoader> ModLoaderFactory<T> register(ModLoaderFactory<T> modLoaderFactory)

@@ -23,6 +23,14 @@ public class ForgeUtils
         URI url = new URI(repo + minecraftVersion + "-" + forgeVersion + "/" +
                 "forge-" + minecraftVersion + "-" + forgeVersion + "-universal.jar");
 
+        //Temp code to get around there being -universal.jars on our repo that are not real
+        if(minecraftVersion.equalsIgnoreCase("1.2.5"))
+        {
+            CreeperLogger.INSTANCE.info("Legacy version detected, Using older forge urls " + url);
+            return new URI(repo + minecraftVersion + "-" + forgeVersion + "/" +
+                    "forge-" + minecraftVersion + "-" + forgeVersion + "-client.jar");
+        }
+
         if (!WebUtils.checkExist(url.toURL()))
         {
             CreeperLogger.INSTANCE.info("File does not exist on repo for " + url);
@@ -34,6 +42,19 @@ public class ForgeUtils
                 CreeperLogger.INSTANCE.info("File does not exist on repo for " + url);
                 url = new URI(repo + minecraftVersion + "-" + forgeVersion + "/" +
                         "forge-" + minecraftVersion + "-" + forgeVersion + "-universal.zip");
+            }
+            if (!WebUtils.checkExist(url.toURL()))
+            {
+                CreeperLogger.INSTANCE.info("File does not exist on repo for " + url);
+                url = new URI(repo + minecraftVersion + "-" + forgeVersion + "/" +
+                        "forge-" + minecraftVersion + "-" + forgeVersion + "-client.jar");
+            }
+
+            if (!WebUtils.checkExist(url.toURL()))
+            {
+                CreeperLogger.INSTANCE.info("File does not exist on repo for " + url);
+                url = new URI(repo + minecraftVersion + "-" + forgeVersion + "/" +
+                        "forge-" + minecraftVersion + "-" + forgeVersion + "-universal.jar");
             }
         }
 
@@ -73,8 +94,6 @@ public class ForgeUtils
         if (sj.getJar() == null) sj.setJar(instance.getMcVersion());
         if (sj.getInheritsFrom() == null) sj.setInheritsFrom(instance.getMcVersion());
         if (!sj.getId().equalsIgnoreCase(instance.getModLoader())) sj.setId(instance.getModLoader());
-
-        //TODO rename forge lib url
 
         String jstring = GsonUtils.GSON.toJson(sj);
         try
@@ -165,16 +184,18 @@ public class ForgeUtils
         }
     }
 
-    public static void extractJson(String path, String name)
+    public static boolean extractJson(String path, String name)
     {
         File jar_location = new File(path);
         try
         {
             FileUtils.fileFromZip(jar_location, new File(jar_location.getParent(), name), "version.json");
+            return true;
         } catch (IOException err)
         {
             CreeperLogger.INSTANCE.error("Failed to extract 'version.json' from '" + path + "' to '" + name + "'");
         }
+        return false;
     }
 
     @SuppressWarnings("all")

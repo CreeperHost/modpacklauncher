@@ -6,6 +6,7 @@ import net.creeperhost.creeperlauncher.api.DownloadableFile;
 import net.creeperhost.creeperlauncher.install.tasks.DownloadTask;
 import net.creeperhost.creeperlauncher.minecraft.McUtils;
 import net.creeperhost.creeperlauncher.pack.LocalInstance;
+import net.creeperhost.creeperlauncher.util.DownloadUtils;
 import net.creeperhost.creeperlauncher.util.ForgeUtils;
 import net.creeperhost.creeperlauncher.util.LoaderTarget;
 
@@ -39,6 +40,22 @@ public class ForgeUniversalModLoader extends ForgeModLoader
 		File file = new File(Constants.VERSIONS_FOLDER_LOC + File.separator + newname);
 		file.mkdir();
 
+		DownloadUtils.downloadFile(new File(file.getAbsolutePath() + newname + ".json"), "https://apps.modpacks.ch/versions/minecraftjsons/forge-1.5.2.json");
+
+		//TODO clean this up but it should work for testing
+		if(getMinecraftVersion().equalsIgnoreCase("1.5.2"))
+		{
+			instance.jvmArgs = instance.jvmArgs + " -Dfml.ignorePatchDiscrepancies=true -Dfml.ignoreInvalidMinecraftCertificates=true".trim();
+			File vanillaFolder = new File(Constants.VERSIONS_FOLDER_LOC + File.separator + getMinecraftVersion());
+			if(!vanillaFolder.exists())
+			{
+				vanillaFolder.mkdir();
+				DownloadableFile mc = McUtils.getMinecraftDownload(getMinecraftVersion(), vanillaFolder.getAbsolutePath());
+				DownloadTask mcTask = new DownloadTask(mc, new File(vanillaFolder + File.separator + getMinecraftVersion() + ".jar").toPath());
+				mcTask.execute().join();
+			}
+		}
+
 		try
 		{
 			URI url = ForgeUtils.findForgeDownloadURL(getMinecraftVersion(), getForgeVersion());
@@ -51,8 +68,16 @@ public class ForgeUniversalModLoader extends ForgeModLoader
 
 			if (forgeFile.exists())
 			{
-				ForgeUtils.extractJson(forgeFile.getAbsolutePath(), newname + ".json");
+				boolean extracted = ForgeUtils.extractJson(forgeFile.getAbsolutePath(), newname + ".json");
 				File forgeJson = new File(file.getAbsolutePath() + File.separator + newname + ".json");
+				if(!extracted)
+				{
+					CreeperLogger.INSTANCE.error("Failed to extract version json, attempting to download it from repo");
+					String downloadName = "forge-" + getMinecraftVersion() + ".json";
+					DownloadableFile fjson = new DownloadableFile(forgeJson.getName(), forgeJson.getAbsolutePath(), "https://apps.modpacks.ch/versions/minecraftjsons/" + downloadName, new ArrayList<>(), 0, false, false, 0, downloadName, "modloader", String.valueOf(System.currentTimeMillis() / 1000L));
+					DownloadTask ftask = new DownloadTask(fjson, forgeJson.toPath());
+					ftask.execute().join();
+				}
 				if (forgeJson.exists())
 				{
 					ForgeUtils.updateForgeJson(forgeJson, newname, getMinecraftVersion());
@@ -85,7 +110,7 @@ public class ForgeUniversalModLoader extends ForgeModLoader
 	public boolean isApplicable()
 	{
 		int minorMcVersion = McUtils.parseMinorVersion(getTargetVersion("minecraft").orElse("0.0.0"));
-		//1.5 -> 1.12.2
-		return super.isApplicable() && minorMcVersion >= 5 && minorMcVersion <= 12;
+		//1.6 -> 1.12.2
+		return super.isApplicable() && minorMcVersion >= 6 && minorMcVersion <= 12;
 	}
 }
