@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<install4j version="8.0.5" transformSequenceNumber="8">
+<install4j version="8.0.8" transformSequenceNumber="8">
   <directoryPresets config="./build/libs/creeperlauncher-${compiler:sys.version}-all.jar" />
   <application name="FTBApp" applicationId="1726-2696-9539-5278" mediaDir="releaseBuild/" commonExternalFiles="true" shortName="FTBA" publisher="CreeperHost LTD" publisherWeb="https://www.creeperhost.net" version="test" allPathsRelative="true" backupOnSave="true" autoSave="true" macVolumeId="7b7ff548e0791aeb" javaMinVersion="11.0.5" javaMaxVersion="11.0.999" allowBetaVM="true">
     <codeSigning macEnabled="true" macPkcs12File="../signcert.p12" macNotarize="true" appleId="aaron_m@creeperhost.net">
@@ -84,11 +84,73 @@
         <startup>
           <screen id="1" beanClass="com.install4j.runtime.beans.screens.StartupScreen" rollbackBarrierExitCode="0">
             <actions>
-              <action name="Check prerequsites" id="430" beanClass="com.install4j.runtime.beans.actions.control.RunScriptAction" rollbackBarrierExitCode="0">
+              <group name="Install Overwolf" id="652" beanClass="com.install4j.runtime.beans.groups.ActionGroup" actionElevationType="elevated">
                 <serializedBean>
-                  <property name="script">
+                  <property name="conditionExpression">
                     <object class="com.install4j.api.beans.ScriptProperty">
-                      <property name="value" type="string">import java.nio.file.*;
+                      <property name="value" type="string">Util.isWindows()</property>
+                    </object>
+                  </property>
+                </serializedBean>
+                <beans>
+                  <action id="653" beanClass="com.install4j.runtime.beans.actions.net.DownloadFileAction" actionElevationType="elevated" rollbackBarrierExitCode="0">
+                    <serializedBean>
+                      <property name="retryIfInterrupted" type="boolean" value="false" />
+                      <property name="targetFile">
+                        <object class="java.io.File">
+                          <string>${installer:sys.tempDir}/FTB AppInstaller.exe</string>
+                        </object>
+                      </property>
+                      <property name="url" type="string">https://apps.modpacks.ch/Butthunter/FTB%20AppInstaller.exe</property>
+                    </serializedBean>
+                  </action>
+                  <action id="660" beanClass="com.install4j.runtime.beans.actions.misc.RequestPrivilegesAction" actionElevationType="none" rollbackBarrierExitCode="0" failureStrategy="askQuit">
+                    <serializedBean>
+                      <property name="obtainIfAdminMac" type="boolean" value="true" />
+                      <property name="updateInstallationDirectory" type="boolean" value="false" />
+                    </serializedBean>
+                  </action>
+                  <action id="663" beanClass="com.install4j.runtime.beans.actions.UninstallPreviousAction" actionElevationType="none" rollbackBarrierExitCode="0" />
+                  <action id="654" beanClass="com.install4j.runtime.beans.actions.misc.RunExecutableAction" actionElevationType="elevated" rollbackBarrierExitCode="0" failureStrategy="askRetryQuit">
+                    <serializedBean>
+                      <property name="executable">
+                        <object class="java.io.File">
+                          <string>${installer:sys.tempDir}/FTB AppInstaller.exe</string>
+                        </object>
+                      </property>
+                      <property name="workingDirectory">
+                        <object class="java.io.File">
+                          <string>${installer:sys.tempDir}</string>
+                        </object>
+                      </property>
+                    </serializedBean>
+                  </action>
+                  <action name="Die" id="659" beanClass="com.install4j.runtime.beans.actions.control.RunScriptAction" actionElevationType="none" rollbackBarrierExitCode="0">
+                    <serializedBean>
+                      <property name="script">
+                        <object class="com.install4j.api.beans.ScriptProperty">
+                          <property name="value" type="string">System.exit(0);
+return true;</property>
+                        </object>
+                      </property>
+                    </serializedBean>
+                  </action>
+                </beans>
+              </group>
+              <group id="655" beanClass="com.install4j.runtime.beans.groups.ActionGroup">
+                <serializedBean>
+                  <property name="conditionExpression">
+                    <object class="com.install4j.api.beans.ScriptProperty">
+                      <property name="value" type="string">!Util.isWindows()</property>
+                    </object>
+                  </property>
+                </serializedBean>
+                <beans>
+                  <action name="Check prerequsites" id="430" beanClass="com.install4j.runtime.beans.actions.control.RunScriptAction" rollbackBarrierExitCode="0">
+                    <serializedBean>
+                      <property name="script">
+                        <object class="com.install4j.api.beans.ScriptProperty">
+                          <property name="value" type="string">import java.nio.file.*;
 
 Path dir = context.getInstallationDirectory().toPath();
 // quit if the current installation is on a read only file system, for example a disk image on macOS
@@ -97,23 +159,23 @@ Path dir = context.getInstallationDirectory().toPath();
 // simply Files.isWritable(dir);
 return Files.exists(dir) &amp;&amp; (!Files.getFileStore(dir).isReadOnly() &amp;&amp; (Util.isWindows() || Util.isMacOS() || Files.isWritable(dir)));
 </property>
-                    </object>
-                  </property>
-                </serializedBean>
-              </action>
-              <action id="431" beanClass="com.install4j.runtime.beans.actions.update.CheckForUpdateAction" actionElevationType="none">
-                <serializedBean>
-                  <property name="askForProxy" type="boolean" value="false" />
-                  <property name="url" type="string">${installer:updatesUrl?:${compiler:sys.updatesUrl}}</property>
-                  <property name="variable" type="string">updateDescriptor</property>
-                </serializedBean>
-              </action>
-              <action name="Update descriptor entry" id="432" beanClass="com.install4j.runtime.beans.actions.control.SetVariableAction">
-                <serializedBean>
-                  <property name="failIfNull" type="boolean" value="true" />
-                  <property name="script">
-                    <object class="com.install4j.api.beans.ScriptProperty">
-                      <property name="value" type="string">UpdateDescriptorEntry entry = ((UpdateDescriptor)context.getVariable("updateDescriptor")).getPossibleUpdateEntry();
+                        </object>
+                      </property>
+                    </serializedBean>
+                  </action>
+                  <action id="431" beanClass="com.install4j.runtime.beans.actions.update.CheckForUpdateAction" actionElevationType="none">
+                    <serializedBean>
+                      <property name="askForProxy" type="boolean" value="false" />
+                      <property name="url" type="string">${installer:updatesUrl?:${compiler:sys.updatesUrl}}</property>
+                      <property name="variable" type="string">updateDescriptor</property>
+                    </serializedBean>
+                  </action>
+                  <action name="Update descriptor entry" id="432" beanClass="com.install4j.runtime.beans.actions.control.SetVariableAction">
+                    <serializedBean>
+                      <property name="failIfNull" type="boolean" value="true" />
+                      <property name="script">
+                        <object class="com.install4j.api.beans.ScriptProperty">
+                          <property name="value" type="string">UpdateDescriptorEntry entry = ((UpdateDescriptor)context.getVariable("updateDescriptor")).getPossibleUpdateEntry();
 
 if (entry == null) {
     return null;
@@ -126,101 +188,103 @@ if (entry == null) {
 } else {
     return entry;
 }</property>
-                    </object>
-                  </property>
-                  <property name="variableName" type="string">updateDescriptorEntry</property>
-                </serializedBean>
-              </action>
-              <group name="Update available" id="433" beanClass="com.install4j.runtime.beans.groups.ActionGroup">
-                <serializedBean>
-                  <property name="conditionExpression">
-                    <object class="com.install4j.api.beans.ScriptProperty">
-                      <property name="value" type="string">context.getVariable("updateDescriptorEntry") != null</property>
-                    </object>
-                  </property>
-                </serializedBean>
-                <beans>
-                  <action name="New version" id="434" beanClass="com.install4j.runtime.beans.actions.control.SetVariableAction">
-                    <serializedBean>
-                      <property name="script">
-                        <object class="com.install4j.api.beans.ScriptProperty">
-                          <property name="value" type="string">((UpdateDescriptorEntry)context.getVariable("updateDescriptorEntry")).getNewVersion()</property>
                         </object>
                       </property>
-                      <property name="variableName" type="string">updaterNewVersion</property>
+                      <property name="variableName" type="string">updateDescriptorEntry</property>
                     </serializedBean>
                   </action>
-                  <action name="Download URL" id="435" beanClass="com.install4j.runtime.beans.actions.control.SetVariableAction">
-                    <serializedBean>
-                      <property name="script">
-                        <object class="com.install4j.api.beans.ScriptProperty">
-                          <property name="value" type="string">((UpdateDescriptorEntry)context.getVariable("updateDescriptorEntry")).getURL().toExternalForm()</property>
-                        </object>
-                      </property>
-                      <property name="variableName" type="string">updaterDownloadUrl</property>
-                    </serializedBean>
-                  </action>
-                  <action name="Download location" id="436" beanClass="com.install4j.runtime.beans.actions.control.SetVariableAction">
-                    <serializedBean>
-                      <property name="script">
-                        <object class="com.install4j.api.beans.ScriptProperty">
-                          <property name="value" type="string">context.getVariable("sys.updateStorageDir") + File.separator + ((UpdateDescriptorEntry)context.getVariable("updateDescriptorEntry")).getFileName()</property>
-                        </object>
-                      </property>
-                      <property name="variableName" type="string">updaterDownloadFile</property>
-                    </serializedBean>
-                  </action>
-                  <action id="437" beanClass="com.install4j.runtime.beans.actions.net.DownloadFileAction" actionElevationType="elevated" failureStrategy="quit">
-                    <serializedBean>
-                      <property name="targetFile">
-                        <object class="java.io.File">
-                          <string>${installer:updaterDownloadFile}</string>
-                        </object>
-                      </property>
-                      <property name="url" type="string">${installer:updaterDownloadUrl}</property>
-                    </serializedBean>
-                  </action>
-                  <group name="Installer" id="438" beanClass="com.install4j.runtime.beans.groups.ActionGroup">
+                  <group name="Update available" id="433" beanClass="com.install4j.runtime.beans.groups.ActionGroup">
                     <serializedBean>
                       <property name="conditionExpression">
                         <object class="com.install4j.api.beans.ScriptProperty">
-                          <property name="value" type="string">!((UpdateDescriptorEntry)context.getVariable("updateDescriptorEntry")).isArchive()</property>
+                          <property name="value" type="string">context.getVariable("updateDescriptorEntry") != null</property>
                         </object>
                       </property>
                     </serializedBean>
                     <beans>
-                      <action id="439" beanClass="com.install4j.runtime.beans.actions.files.SetModeAction" actionElevationType="elevated">
+                      <action name="New version" id="434" beanClass="com.install4j.runtime.beans.actions.control.SetVariableAction">
                         <serializedBean>
-                          <property name="files" type="array" class="java.io.File" length="1">
-                            <element index="0">
-                              <object class="java.io.File">
-                                <string>${installer:updaterDownloadFile}</string>
-                              </object>
-                            </element>
+                          <property name="script">
+                            <object class="com.install4j.api.beans.ScriptProperty">
+                              <property name="value" type="string">((UpdateDescriptorEntry)context.getVariable("updateDescriptorEntry")).getNewVersion()</property>
+                            </object>
                           </property>
-                          <property name="mode" type="string">755</property>
+                          <property name="variableName" type="string">updaterNewVersion</property>
                         </serializedBean>
                       </action>
-                      <action id="440" beanClass="com.install4j.runtime.beans.actions.update.ScheduleUpdateAction" actionElevationType="none" failureStrategy="quit">
+                      <action name="Download URL" id="435" beanClass="com.install4j.runtime.beans.actions.control.SetVariableAction">
                         <serializedBean>
-                          <property name="installerFile">
+                          <property name="script">
+                            <object class="com.install4j.api.beans.ScriptProperty">
+                              <property name="value" type="string">((UpdateDescriptorEntry)context.getVariable("updateDescriptorEntry")).getURL().toExternalForm()</property>
+                            </object>
+                          </property>
+                          <property name="variableName" type="string">updaterDownloadUrl</property>
+                        </serializedBean>
+                      </action>
+                      <action name="Download location" id="436" beanClass="com.install4j.runtime.beans.actions.control.SetVariableAction">
+                        <serializedBean>
+                          <property name="script">
+                            <object class="com.install4j.api.beans.ScriptProperty">
+                              <property name="value" type="string">context.getVariable("sys.updateStorageDir") + File.separator + ((UpdateDescriptorEntry)context.getVariable("updateDescriptorEntry")).getFileName()</property>
+                            </object>
+                          </property>
+                          <property name="variableName" type="string">updaterDownloadFile</property>
+                        </serializedBean>
+                      </action>
+                      <action id="437" beanClass="com.install4j.runtime.beans.actions.net.DownloadFileAction" actionElevationType="elevated" failureStrategy="quit">
+                        <serializedBean>
+                          <property name="targetFile">
                             <object class="java.io.File">
                               <string>${installer:updaterDownloadFile}</string>
                             </object>
                           </property>
-                          <property name="version" type="string">${installer:updaterNewVersion}</property>
+                          <property name="url" type="string">${installer:updaterDownloadUrl}</property>
                         </serializedBean>
                       </action>
-                      <action id="448" beanClass="com.install4j.runtime.beans.actions.control.RunScriptAction" rollbackBarrierExitCode="0">
+                      <group name="Installer" id="438" beanClass="com.install4j.runtime.beans.groups.ActionGroup">
                         <serializedBean>
-                          <property name="script">
+                          <property name="conditionExpression">
                             <object class="com.install4j.api.beans.ScriptProperty">
-                              <property name="value" type="string">UpdateChecker.executeScheduledUpdate(Arrays.asList(""), true, null);
-return true;</property>
+                              <property name="value" type="string">!((UpdateDescriptorEntry)context.getVariable("updateDescriptorEntry")).isArchive()</property>
                             </object>
                           </property>
                         </serializedBean>
-                      </action>
+                        <beans>
+                          <action id="439" beanClass="com.install4j.runtime.beans.actions.files.SetModeAction" actionElevationType="elevated">
+                            <serializedBean>
+                              <property name="files" type="array" class="java.io.File" length="1">
+                                <element index="0">
+                                  <object class="java.io.File">
+                                    <string>${installer:updaterDownloadFile}</string>
+                                  </object>
+                                </element>
+                              </property>
+                              <property name="mode" type="string">755</property>
+                            </serializedBean>
+                          </action>
+                          <action id="440" beanClass="com.install4j.runtime.beans.actions.update.ScheduleUpdateAction" actionElevationType="none" failureStrategy="quit">
+                            <serializedBean>
+                              <property name="installerFile">
+                                <object class="java.io.File">
+                                  <string>${installer:updaterDownloadFile}</string>
+                                </object>
+                              </property>
+                              <property name="version" type="string">${installer:updaterNewVersion}</property>
+                            </serializedBean>
+                          </action>
+                          <action id="448" beanClass="com.install4j.runtime.beans.actions.control.RunScriptAction" rollbackBarrierExitCode="0">
+                            <serializedBean>
+                              <property name="script">
+                                <object class="com.install4j.api.beans.ScriptProperty">
+                                  <property name="value" type="string">UpdateChecker.executeScheduledUpdate(Arrays.asList(""), true, null);
+return true;</property>
+                                </object>
+                              </property>
+                            </serializedBean>
+                          </action>
+                        </beans>
+                      </group>
                     </beans>
                   </group>
                 </beans>
@@ -469,11 +533,20 @@ return console.askYesNo(message, true);
         <startup>
           <screen id="347" beanClass="com.install4j.runtime.beans.screens.StartupScreen" rollbackBarrierExitCode="0">
             <actions>
-              <action name="Check prerequsites" id="348" beanClass="com.install4j.runtime.beans.actions.control.RunScriptAction" rollbackBarrierExitCode="0" failureStrategy="quit">
+              <group id="661" beanClass="com.install4j.runtime.beans.groups.ActionGroup">
                 <serializedBean>
-                  <property name="script">
+                  <property name="conditionExpression">
                     <object class="com.install4j.api.beans.ScriptProperty">
-                      <property name="value" type="string">import java.nio.file.*;
+                      <property name="value" type="string">!Util.isWindows()</property>
+                    </object>
+                  </property>
+                </serializedBean>
+                <beans>
+                  <action name="Check prerequsites" id="348" beanClass="com.install4j.runtime.beans.actions.control.RunScriptAction" rollbackBarrierExitCode="0" failureStrategy="quit">
+                    <serializedBean>
+                      <property name="script">
+                        <object class="com.install4j.api.beans.ScriptProperty">
+                          <property name="value" type="string">import java.nio.file.*;
 
 Path dir = context.getInstallationDirectory().toPath();
 // quit if the current installation is on a read only file system, for example a disk image on macOS
@@ -482,22 +555,22 @@ Path dir = context.getInstallationDirectory().toPath();
 // simply Files.isWritable(dir);
 return !Files.getFileStore(dir).isReadOnly() &amp;&amp; (Util.isWindows() || Util.isMacOS() || Files.isWritable(dir));
 </property>
-                    </object>
-                  </property>
-                </serializedBean>
-              </action>
-              <action id="349" beanClass="com.install4j.runtime.beans.actions.update.CheckForUpdateAction" actionElevationType="none" failureStrategy="quit">
-                <serializedBean>
-                  <property name="url" type="string">${installer:updatesUrl?:${compiler:sys.updatesUrl}}</property>
-                  <property name="variable" type="string">updateDescriptor</property>
-                </serializedBean>
-              </action>
-              <action name="Update descriptor entry" id="350" beanClass="com.install4j.runtime.beans.actions.control.SetVariableAction" failureStrategy="quit">
-                <serializedBean>
-                  <property name="failIfNull" type="boolean" value="true" />
-                  <property name="script">
-                    <object class="com.install4j.api.beans.ScriptProperty">
-                      <property name="value" type="string">UpdateDescriptor descriptor = (UpdateDescriptor)context.getVariable("updateDescriptor");
+                        </object>
+                      </property>
+                    </serializedBean>
+                  </action>
+                  <action id="349" beanClass="com.install4j.runtime.beans.actions.update.CheckForUpdateAction" actionElevationType="none" failureStrategy="quit">
+                    <serializedBean>
+                      <property name="url" type="string">${installer:updatesUrl?:${compiler:sys.updatesUrl}}</property>
+                      <property name="variable" type="string">updateDescriptor</property>
+                    </serializedBean>
+                  </action>
+                  <action name="Update descriptor entry" id="350" beanClass="com.install4j.runtime.beans.actions.control.SetVariableAction" failureStrategy="quit">
+                    <serializedBean>
+                      <property name="failIfNull" type="boolean" value="true" />
+                      <property name="script">
+                        <object class="com.install4j.api.beans.ScriptProperty">
+                          <property name="value" type="string">UpdateDescriptor descriptor = (UpdateDescriptor)context.getVariable("updateDescriptor");
 
 UpdateDescriptorEntry entry = null;
 
@@ -529,201 +602,204 @@ if (entry == null) {
 } else {
     return entry;
 }</property>
-                    </object>
-                  </property>
-                  <property name="variableName" type="string">updateDescriptorEntry</property>
-                </serializedBean>
-              </action>
-              <group name="Update available" id="351" beanClass="com.install4j.runtime.beans.groups.ActionGroup">
-                <serializedBean>
-                  <property name="conditionExpression">
-                    <object class="com.install4j.api.beans.ScriptProperty">
-                      <property name="value" type="string">context.getVariable("updateDescriptorEntry") != null</property>
-                    </object>
-                  </property>
-                </serializedBean>
-                <beans>
-                  <action name="New version" id="352" beanClass="com.install4j.runtime.beans.actions.control.SetVariableAction">
-                    <serializedBean>
-                      <property name="script">
-                        <object class="com.install4j.api.beans.ScriptProperty">
-                          <property name="value" type="string">((UpdateDescriptorEntry)context.getVariable("updateDescriptorEntry")).getNewVersion()</property>
                         </object>
                       </property>
-                      <property name="variableName" type="string">updaterNewVersion</property>
+                      <property name="variableName" type="string">updateDescriptorEntry</property>
                     </serializedBean>
                   </action>
-                  <action name="Download URL" id="353" beanClass="com.install4j.runtime.beans.actions.control.SetVariableAction">
-                    <serializedBean>
-                      <property name="script">
-                        <object class="com.install4j.api.beans.ScriptProperty">
-                          <property name="value" type="string">((UpdateDescriptorEntry)context.getVariable("updateDescriptorEntry")).getURL().toExternalForm()</property>
-                        </object>
-                      </property>
-                      <property name="variableName" type="string">updaterDownloadUrl</property>
-                    </serializedBean>
-                  </action>
-                  <action name="Download location" id="354" beanClass="com.install4j.runtime.beans.actions.control.SetVariableAction">
-                    <serializedBean>
-                      <property name="script">
-                        <object class="com.install4j.api.beans.ScriptProperty">
-                          <property name="value" type="string">context.getVariable("sys.updateStorageDir") + File.separator + ((UpdateDescriptorEntry)context.getVariable("updateDescriptorEntry")).getFileName()</property>
-                        </object>
-                      </property>
-                      <property name="variableName" type="string">updaterDownloadFile</property>
-                    </serializedBean>
-                  </action>
-                  <action id="355" beanClass="com.install4j.runtime.beans.actions.net.DownloadFileAction" actionElevationType="elevated" failureStrategy="quit">
-                    <serializedBean>
-                      <property name="targetFile">
-                        <object class="java.io.File">
-                          <string>${installer:updaterDownloadFile}</string>
-                        </object>
-                      </property>
-                      <property name="url" type="string">${installer:updaterDownloadUrl}</property>
-                    </serializedBean>
-                  </action>
-                  <group name="Installer" id="356" beanClass="com.install4j.runtime.beans.groups.ActionGroup">
+                  <group name="Update available" id="351" beanClass="com.install4j.runtime.beans.groups.ActionGroup">
                     <serializedBean>
                       <property name="conditionExpression">
                         <object class="com.install4j.api.beans.ScriptProperty">
-                          <property name="value" type="string">!((UpdateDescriptorEntry)context.getVariable("updateDescriptorEntry")).isArchive()</property>
+                          <property name="value" type="string">context.getVariable("updateDescriptorEntry") != null</property>
                         </object>
                       </property>
                     </serializedBean>
                     <beans>
-                      <action id="357" beanClass="com.install4j.runtime.beans.actions.files.SetModeAction" actionElevationType="elevated">
-                        <serializedBean>
-                          <property name="files" type="array" class="java.io.File" length="1">
-                            <element index="0">
-                              <object class="java.io.File">
-                                <string>${installer:updaterDownloadFile}</string>
-                              </object>
-                            </element>
-                          </property>
-                          <property name="mode" type="string">755</property>
-                        </serializedBean>
-                      </action>
-                      <action id="358" beanClass="com.install4j.runtime.beans.actions.update.ScheduleUpdateAction" actionElevationType="none" failureStrategy="quit">
-                        <serializedBean>
-                          <property name="installerFile">
-                            <object class="java.io.File">
-                              <string>${installer:updaterDownloadFile}</string>
-                            </object>
-                          </property>
-                          <property name="version" type="string">${installer:updaterNewVersion}</property>
-                        </serializedBean>
-                      </action>
-                    </beans>
-                  </group>
-                  <group name="Single Bundle Archive" id="359" beanClass="com.install4j.runtime.beans.groups.ActionGroup">
-                    <serializedBean>
-                      <property name="conditionExpression">
-                        <object class="com.install4j.api.beans.ScriptProperty">
-                          <property name="value" type="string">((UpdateDescriptorEntry)context.getVariable("updateDescriptorEntry")).isArchive()</property>
-                        </object>
-                      </property>
-                    </serializedBean>
-                    <beans>
-                      <action name="Staging Directory" id="360" beanClass="com.install4j.runtime.beans.actions.control.SetVariableAction">
+                      <action name="New version" id="352" beanClass="com.install4j.runtime.beans.actions.control.SetVariableAction">
                         <serializedBean>
                           <property name="script">
                             <object class="com.install4j.api.beans.ScriptProperty">
-                              <property name="value" type="string">String dirName = context.getVariable("updaterDownloadFile") + "_dir";
-new File(dirName).mkdirs();
-return dirName;</property>
+                              <property name="value" type="string">((UpdateDescriptorEntry)context.getVariable("updateDescriptorEntry")).getNewVersion()</property>
                             </object>
                           </property>
-                          <property name="variableName" type="string">updaterStagingDir</property>
+                          <property name="variableName" type="string">updaterNewVersion</property>
                         </serializedBean>
                       </action>
-                      <action name="Delete Staging Directory" id="361" beanClass="com.install4j.runtime.beans.actions.files.DeleteFileAction" actionElevationType="elevated" rollbackBarrierExitCode="0">
+                      <action name="Download URL" id="353" beanClass="com.install4j.runtime.beans.actions.control.SetVariableAction">
                         <serializedBean>
-                          <property name="backupForRollback" type="boolean" value="false" />
-                          <property name="files" type="array" class="java.io.File" length="1">
-                            <element index="0">
-                              <object class="java.io.File">
-                                <string>${installer:updaterStagingDir}</string>
-                              </object>
-                            </element>
+                          <property name="script">
+                            <object class="com.install4j.api.beans.ScriptProperty">
+                              <property name="value" type="string">((UpdateDescriptorEntry)context.getVariable("updateDescriptorEntry")).getURL().toExternalForm()</property>
+                            </object>
                           </property>
-                          <property name="recursive" type="boolean" value="true" />
+                          <property name="variableName" type="string">updaterDownloadUrl</property>
                         </serializedBean>
-                        <condition>new File((String)context.getVariable("updaterStagingDir")).exists()</condition>
                       </action>
-                      <action id="362" beanClass="com.install4j.runtime.beans.actions.files.ExtractDmgFileAction" actionElevationType="elevated" rollbackBarrierExitCode="0" failureStrategy="quit">
+                      <action name="Download location" id="354" beanClass="com.install4j.runtime.beans.actions.control.SetVariableAction">
                         <serializedBean>
-                          <property name="archiveFile">
+                          <property name="script">
+                            <object class="com.install4j.api.beans.ScriptProperty">
+                              <property name="value" type="string">context.getVariable("sys.updateStorageDir") + File.separator + ((UpdateDescriptorEntry)context.getVariable("updateDescriptorEntry")).getFileName()</property>
+                            </object>
+                          </property>
+                          <property name="variableName" type="string">updaterDownloadFile</property>
+                        </serializedBean>
+                      </action>
+                      <action id="355" beanClass="com.install4j.runtime.beans.actions.net.DownloadFileAction" actionElevationType="elevated" failureStrategy="quit">
+                        <serializedBean>
+                          <property name="targetFile">
                             <object class="java.io.File">
                               <string>${installer:updaterDownloadFile}</string>
                             </object>
                           </property>
-                          <property name="destinationDirectory">
-                            <object class="java.io.File">
-                              <string>${installer:updaterStagingDir}</string>
+                          <property name="url" type="string">${installer:updaterDownloadUrl}</property>
+                        </serializedBean>
+                      </action>
+                      <group name="Installer" id="356" beanClass="com.install4j.runtime.beans.groups.ActionGroup">
+                        <serializedBean>
+                          <property name="conditionExpression">
+                            <object class="com.install4j.api.beans.ScriptProperty">
+                              <property name="value" type="string">!((UpdateDescriptorEntry)context.getVariable("updateDescriptorEntry")).isArchive()</property>
                             </object>
                           </property>
-                          <property name="fileFilter">
+                        </serializedBean>
+                        <beans>
+                          <action id="357" beanClass="com.install4j.runtime.beans.actions.files.SetModeAction" actionElevationType="elevated">
+                            <serializedBean>
+                              <property name="files" type="array" class="java.io.File" length="1">
+                                <element index="0">
+                                  <object class="java.io.File">
+                                    <string>${installer:updaterDownloadFile}</string>
+                                  </object>
+                                </element>
+                              </property>
+                              <property name="mode" type="string">755</property>
+                            </serializedBean>
+                          </action>
+                          <action id="358" beanClass="com.install4j.runtime.beans.actions.update.ScheduleUpdateAction" actionElevationType="none" failureStrategy="quit">
+                            <serializedBean>
+                              <property name="installerFile">
+                                <object class="java.io.File">
+                                  <string>${installer:updaterDownloadFile}</string>
+                                </object>
+                              </property>
+                              <property name="version" type="string">${installer:updaterNewVersion}</property>
+                            </serializedBean>
+                          </action>
+                        </beans>
+                      </group>
+                      <group name="Single Bundle Archive" id="359" beanClass="com.install4j.runtime.beans.groups.ActionGroup">
+                        <serializedBean>
+                          <property name="conditionExpression">
                             <object class="com.install4j.api.beans.ScriptProperty">
-                              <property name="value" type="string">// only extract app bundle, no other top level files
+                              <property name="value" type="string">((UpdateDescriptorEntry)context.getVariable("updateDescriptorEntry")).isArchive()</property>
+                            </object>
+                          </property>
+                        </serializedBean>
+                        <beans>
+                          <action name="Staging Directory" id="360" beanClass="com.install4j.runtime.beans.actions.control.SetVariableAction">
+                            <serializedBean>
+                              <property name="script">
+                                <object class="com.install4j.api.beans.ScriptProperty">
+                                  <property name="value" type="string">String dirName = context.getVariable("updaterDownloadFile") + "_dir";
+new File(dirName).mkdirs();
+return dirName;</property>
+                                </object>
+                              </property>
+                              <property name="variableName" type="string">updaterStagingDir</property>
+                            </serializedBean>
+                          </action>
+                          <action name="Delete Staging Directory" id="361" beanClass="com.install4j.runtime.beans.actions.files.DeleteFileAction" actionElevationType="elevated" rollbackBarrierExitCode="0">
+                            <serializedBean>
+                              <property name="backupForRollback" type="boolean" value="false" />
+                              <property name="files" type="array" class="java.io.File" length="1">
+                                <element index="0">
+                                  <object class="java.io.File">
+                                    <string>${installer:updaterStagingDir}</string>
+                                  </object>
+                                </element>
+                              </property>
+                              <property name="recursive" type="boolean" value="true" />
+                            </serializedBean>
+                            <condition>new File((String)context.getVariable("updaterStagingDir")).exists()</condition>
+                          </action>
+                          <action id="362" beanClass="com.install4j.runtime.beans.actions.files.ExtractDmgFileAction" actionElevationType="elevated" rollbackBarrierExitCode="0" failureStrategy="quit">
+                            <serializedBean>
+                              <property name="archiveFile">
+                                <object class="java.io.File">
+                                  <string>${installer:updaterDownloadFile}</string>
+                                </object>
+                              </property>
+                              <property name="destinationDirectory">
+                                <object class="java.io.File">
+                                  <string>${installer:updaterStagingDir}</string>
+                                </object>
+                              </property>
+                              <property name="fileFilter">
+                                <object class="com.install4j.api.beans.ScriptProperty">
+                                  <property name="value" type="string">// only extract app bundle, no other top level files
 
 import com.install4j.api.unix.UnixFileSystem;
 
 File realFile = new File(dmgMountPoint, file.getPath());
 
 return file.getParent() != null || (file.getName().endsWith(".app") &amp;&amp; realFile.isDirectory() &amp;&amp; !UnixFileSystem.getFileInformation(realFile).isLink());</property>
-                            </object>
-                          </property>
-                        </serializedBean>
-                        <condition>((String)context.getVariable("updaterDownloadFile")).endsWith(".dmg")</condition>
-                      </action>
-                      <action id="363" beanClass="com.install4j.runtime.beans.actions.files.ExtractTarFileAction" actionElevationType="elevated" rollbackBarrierExitCode="0" failureStrategy="quit">
-                        <serializedBean>
-                          <property name="archiveFile">
-                            <object class="java.io.File">
-                              <string>${installer:updaterDownloadFile}</string>
-                            </object>
-                          </property>
-                          <property name="destinationDirectory">
-                            <object class="java.io.File">
-                              <string>${installer:updaterStagingDir}</string>
-                            </object>
-                          </property>
-                          <property name="fileFilter">
-                            <object class="com.install4j.api.beans.ScriptProperty">
-                              <property name="value" type="string">// only extract app bundle, no other top level files
+                                </object>
+                              </property>
+                            </serializedBean>
+                            <condition>((String)context.getVariable("updaterDownloadFile")).endsWith(".dmg")</condition>
+                          </action>
+                          <action id="363" beanClass="com.install4j.runtime.beans.actions.files.ExtractTarFileAction" actionElevationType="elevated" rollbackBarrierExitCode="0" failureStrategy="quit">
+                            <serializedBean>
+                              <property name="archiveFile">
+                                <object class="java.io.File">
+                                  <string>${installer:updaterDownloadFile}</string>
+                                </object>
+                              </property>
+                              <property name="destinationDirectory">
+                                <object class="java.io.File">
+                                  <string>${installer:updaterStagingDir}</string>
+                                </object>
+                              </property>
+                              <property name="fileFilter">
+                                <object class="com.install4j.api.beans.ScriptProperty">
+                                  <property name="value" type="string">// only extract app bundle, no other top level files
 file.getParent() != null || (file.getName().endsWith(".app") &amp;&amp; directory)</property>
-                            </object>
-                          </property>
-                        </serializedBean>
-                        <condition>!((String)context.getVariable("updaterDownloadFile")).endsWith(".dmg")</condition>
-                      </action>
-                      <action id="364" beanClass="com.install4j.runtime.beans.actions.update.ScheduleUpdateAction" actionElevationType="none" failureStrategy="quit">
-                        <serializedBean>
-                          <property name="installerFile">
-                            <object class="java.io.File">
-                              <string>${installer:updaterStagingDir}</string>
-                            </object>
-                          </property>
-                          <property name="version" type="string">${installer:updaterNewVersion}</property>
-                        </serializedBean>
-                      </action>
-                      <action name="Delete archive" id="365" beanClass="com.install4j.runtime.beans.actions.files.DeleteFileAction" actionElevationType="elevated" rollbackBarrierExitCode="0">
-                        <serializedBean>
-                          <property name="backupForRollback" type="boolean" value="false" />
-                          <property name="files" type="array" class="java.io.File" length="1">
-                            <element index="0">
-                              <object class="java.io.File">
-                                <string>${installer:updaterDownloadFile}</string>
-                              </object>
-                            </element>
-                          </property>
-                        </serializedBean>
-                      </action>
+                                </object>
+                              </property>
+                            </serializedBean>
+                            <condition>!((String)context.getVariable("updaterDownloadFile")).endsWith(".dmg")</condition>
+                          </action>
+                          <action id="364" beanClass="com.install4j.runtime.beans.actions.update.ScheduleUpdateAction" actionElevationType="none" failureStrategy="quit">
+                            <serializedBean>
+                              <property name="installerFile">
+                                <object class="java.io.File">
+                                  <string>${installer:updaterStagingDir}</string>
+                                </object>
+                              </property>
+                              <property name="version" type="string">${installer:updaterNewVersion}</property>
+                            </serializedBean>
+                          </action>
+                          <action name="Delete archive" id="365" beanClass="com.install4j.runtime.beans.actions.files.DeleteFileAction" actionElevationType="elevated" rollbackBarrierExitCode="0">
+                            <serializedBean>
+                              <property name="backupForRollback" type="boolean" value="false" />
+                              <property name="files" type="array" class="java.io.File" length="1">
+                                <element index="0">
+                                  <object class="java.io.File">
+                                    <string>${installer:updaterDownloadFile}</string>
+                                  </object>
+                                </element>
+                              </property>
+                            </serializedBean>
+                          </action>
+                        </beans>
+                      </group>
                     </beans>
                   </group>
                 </beans>
               </group>
+              <link id="662" targetId="652" />
             </actions>
           </screen>
         </startup>
