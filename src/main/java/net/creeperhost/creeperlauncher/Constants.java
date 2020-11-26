@@ -3,6 +3,7 @@ package net.creeperhost.creeperlauncher;
 import net.creeperhost.creeperlauncher.os.OSUtils;
 
 import java.io.File;
+import java.nio.file.FileSystems;
 
 public class Constants
 {
@@ -11,7 +12,7 @@ public class Constants
     public static final String DATA_DIR = System.getProperty("user.home") + File.separator + ".ftba";
 
     //Launcher titles
-    public static final String windowTitle = "Modpack Launcher";
+    public static final String windowTitle = "FTBApp";
 
     //Mojang
     public static final String MC_VERSION_MANIFEST = "https://launchermeta.mojang.com/mc/game/version_manifest.json";
@@ -45,10 +46,15 @@ public class Constants
     public static final int WEBSOCKET_PORT = 13377;
     public static final String APPVERSION = "@APPVERSION@";
     public static final String BRANCH = "@BRANCH@";
+    public static final String PLATFORM = FileSystems.getDefault().getPath(".").toAbsolutePath().toString().contains("Overwolf") ? "Overwolf" : "Electron";
 
     //Auth
     public static String KEY = "";
     public static String SECRET = "";
+
+    //MT Identifiers
+    public static String MT_HASH = "";
+    public static String MTCONNECT_DIR = Constants.DATA_DIR + File.separator + "MTConnect";
 
     //S3 Auth
     public static String S3_KEY = "";
@@ -57,11 +63,15 @@ public class Constants
     public static String S3_HOST = "";
 
 
-    public static String getCreeperhostModpackSearch2()
+    public static String getCreeperhostModpackSearch2(boolean _private)
     {
-        if(Constants.KEY.isEmpty() || Constants.SECRET.isEmpty())
+        if(Constants.KEY.isEmpty() || !_private)
         {
             return Constants.CREEPERHOST_MODPACK_SEARCH2;
+        }
+        if(Constants.KEY.isEmpty() && _private)
+        {
+            CreeperLogger.INSTANCE.error("Tried to access a private pack without having configured the secret and key.");
         }
         return Constants.CREEPERHOST_MODPACK + "/" + Constants.KEY + "/modpack/";
     }

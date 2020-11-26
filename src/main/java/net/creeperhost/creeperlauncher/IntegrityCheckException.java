@@ -1,7 +1,5 @@
 package net.creeperhost.creeperlauncher;
 
-import net.creeperhost.creeperlauncher.api.handlers.InstallInstanceHandler;
-
 import java.util.ArrayList;
 import java.util.List;
 

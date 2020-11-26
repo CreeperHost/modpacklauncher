@@ -1,20 +1,27 @@
 package net.creeperhost.creeperlauncher;
 
+import com.google.gson.JsonObject;
 import com.install4j.api.launcher.ApplicationLauncher;
 import com.install4j.api.update.UpdateChecker;
 import net.creeperhost.creeperlauncher.api.WebSocketAPI;
-import net.creeperhost.creeperlauncher.api.data.CloseModalData;
-import net.creeperhost.creeperlauncher.api.data.OpenModalData;
+import net.creeperhost.creeperlauncher.api.data.other.ClientLaunchData;
+import net.creeperhost.creeperlauncher.api.data.other.CloseModalData;
+import net.creeperhost.creeperlauncher.api.data.other.OpenModalData;
 import net.creeperhost.creeperlauncher.install.tasks.FTBModPackInstallerTask;
 import net.creeperhost.creeperlauncher.install.tasks.LocalCache;
+import net.creeperhost.creeperlauncher.minetogether.vpn.MineTogetherConnect;
 import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.os.OSUtils;
 import net.creeperhost.creeperlauncher.util.*;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -40,6 +47,8 @@ public class CreeperLauncher
     public static int websocketPort = WebSocketAPI.generateRandomPort();
     public static final String websocketSecret = WebSocketAPI.generateSecret();
     public static AtomicBoolean isSyncing = new AtomicBoolean(false);
+    public static AtomicReference<List<Process>> mojangProcesses = new AtomicReference<List<Process>>();
+    public static MineTogetherConnect mtConnect;
 
     private static boolean warnedDevelop = false;
 
@@ -181,7 +190,7 @@ public class CreeperLauncher
                             ));
                         }
                     }),
-                    new OpenModalData.ModalButton("No", "red", () -> {})
+                    new OpenModalData.ModalButton("No", "red", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
             ));
             return false;
         });
@@ -287,6 +296,10 @@ public class CreeperLauncher
             CreeperLogger.INSTANCE.info("No PID args");
         }
 
+        if(isDevMode){
+            startProcess = false;
+        }
+
         Settings.webSocketAPI = new WebSocketAPI(new InetSocketAddress(InetAddress.getLoopbackAddress(), defaultWebsocketPort || isDevMode ? Constants.WEBSOCKET_PORT : websocketPort));
         Settings.webSocketAPI.setConnectionLostTimeout(0);
         Settings.webSocketAPI.start();
@@ -298,9 +311,7 @@ public class CreeperLauncher
         if(!dataDirectory.canWrite())
         {
             OpenModalData.openModal("Critical Error", "The FTBApp is unable to write to your selected data directory, this can be caused by file permission errors, anti-virus or any number of other configuration issues.<br />If you continue, the app will not work as intended and you may be unable to install or run any modpacks.", List.of(
-                    new OpenModalData.ModalButton( "Exit", "green", () -> {
-                        CreeperLauncher.exit();
-                    }),
+                    new OpenModalData.ModalButton( "Exit", "green", CreeperLauncher::exit),
                     new OpenModalData.ModalButton("Continue", "", () -> {
                         Settings.webSocketAPI.sendMessage(new CloseModalData());
                     }))
@@ -331,6 +342,79 @@ public class CreeperLauncher
         } catch (Throwable ignored)
         {
         }
+    }
+    public static long unixtimestamp()
+    {
+        return System.currentTimeMillis() / 1000L;
+    }
+    public static Socket listenForClient(int port)
+    {
+        try {
+            ServerSocket serverSocket = new ServerSocket(port);
+            Socket socket = serverSocket.accept();
+            CompletableFuture.runAsync(() -> {
+                String lastInstance = "";
+                ClientLaunchData.Reply reply;
+                try {
+                    BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                    long lastMessageTime = 0;
+                    boolean hasStarted = false;
+                    while (socket.isConnected()) {
+                        String bufferText = "";
+                        try {
+                            bufferText = in.readLine();
+                            if (bufferText.length() == 0) continue;
+                            JsonObject object = GsonUtils.GSON.fromJson(bufferText, JsonObject.class);
+                            Object data = new Object();
+                            if(!hasStarted) hasStarted = (object.has("message") && object.get("message").getAsString().equals("init"));
+                            if(hasStarted) {
+                                if (object.has("data") && object.get("data") != null) {
+                                    data = object.get("data");
+                                }
+                                if (object.has("instance") && object.get("instance").getAsString() != null && object.get("instance").getAsString().length() > 0) {
+                                    lastInstance = object.get("instance").getAsString();
+                                }
+                                boolean isDone = (object.has("message") && object.get("message").getAsString().equals("done"));
+                                if (System.currentTimeMillis() > (lastMessageTime + 200) || isDone) {
+                                    String type = (object.has("type") && object.get("type").getAsString() != null) ? object.get("type").getAsString() : "";
+                                    String message = (object.has("message") && object.get("message").getAsString() != null) ? object.get("message").getAsString() : "";
+                                    reply = new ClientLaunchData.Reply(lastInstance, type, message, data);
+                                    lastMessageTime = System.currentTimeMillis();
+                                    try {
+                                        Settings.webSocketAPI.sendMessage(reply);
+                                    } catch(Throwable t)
+                                    {
+                                        CreeperLogger.INSTANCE.warning("Unable to send MC client loading update to frontend!", t);
+                                    }
+                                }
+                                if (isDone) {
+                                    socket.close();
+                                    break;
+                                }
+                            }
+                        } catch (Throwable e) {
+                            CreeperLogger.INSTANCE.error("Error whilst receiving message from MC client", e);
+                            socket.close();
+                            break;
+                        }
+                    }
+                    if(socket.isConnected()){
+                        socket.close();
+                    }
+                    if(serverSocket != null && !serverSocket.isClosed()) serverSocket.close();
+                } catch (Throwable e) {
+                }
+                if(lastInstance.length() > 0) {
+                    reply = new ClientLaunchData.Reply(lastInstance, "clientDisconnect", new Object());
+                    Settings.webSocketAPI.sendMessage(reply);
+                }
+            });
+            return socket;
+        } catch (Throwable e)
+        {
+            CreeperLogger.INSTANCE.error("Error whilst sending message on to websocket", e);
+        }
+        return null;
     }
 
     private static void startElectron() {
@@ -389,10 +473,14 @@ public class CreeperLauncher
         }
     }
 
-    private static void exit() {
+    public static void exit() {
         try
         {
             Settings.webSocketAPI.stop();
+            if(CreeperLauncher.mtConnect != null && CreeperLauncher.mtConnect.isEnabled() && CreeperLauncher.mtConnect.isConnected())
+            {
+                CreeperLauncher.mtConnect.disconnect();
+            }
         } catch (IOException | InterruptedException e)
         {
             e.printStackTrace();
