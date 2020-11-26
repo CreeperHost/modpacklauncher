@@ -152,12 +152,13 @@ public class ForgeJarModLoader extends ForgeModLoader
 				try
 				{
 					File merged = new File(instMods + File.separator + "merged.jar");
-					FileUtils.removeMeta(merged);
 
 					//Remove the prebuilt jar so we can make a fresh one
 					if(merged.exists()) merged.delete();
 
 					Files.copy(mcFile.toPath(), merged.toPath());
+
+					FileUtils.removeMeta(merged);
 
 					File[] instFiles = instMods.listFiles();
 					File[] jarFiles = jarMods.listFiles();

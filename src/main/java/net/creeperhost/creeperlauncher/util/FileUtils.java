@@ -216,13 +216,38 @@ public class FileUtils
         return result.toString();
     }
 
+    public static void main(String[] args) {
+        File file = new File("C:\\Users\\TravisN\\.ftba\\bin\\versions\\1.4.7-forge1.4.7-6.6.2.534\\1.4.7-forge1.4.7-6.6.2.534.jar");
+        removeMeta(file);
+    }
+
+    //I hate this but its the only way I can get it to work right now
     public static boolean removeMeta(File file)
     {
         if(!file.exists()) return false;
         try (FileSystem fileSystem = FileSystems.newFileSystem(file.toPath(), null))
         {
-            Path meta = fileSystem.getPath("META_INF");
-            FileUtils.deleteDirectory(meta);
+            Path root = fileSystem.getPath("/");
+            Files.walkFileTree(root, new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException
+                {
+                    try
+                    {
+                        if(file.startsWith("/META-INF")) {
+                            CreeperLogger.INSTANCE.error(file.toString());
+                            Files.delete(file);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        e.printStackTrace();
+                    }
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+
+//            FileUtils.deleteDirectory(meta);
             return true;
         } catch (IOException e) { e.printStackTrace(); }
         return false;
