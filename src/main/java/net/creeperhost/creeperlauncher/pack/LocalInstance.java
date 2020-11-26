@@ -8,6 +8,7 @@ import net.creeperhost.creeperlauncher.api.data.other.OpenModalData;
 import net.creeperhost.creeperlauncher.minetogether.cloudsaves.CloudSaveManager;
 import net.creeperhost.creeperlauncher.minetogether.cloudsaves.CloudSyncType;
 import net.creeperhost.creeperlauncher.install.tasks.DownloadTask;
+import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.util.*;
 import oshi.SystemInfo;
 import oshi.hardware.HardwareAbstractionLayer;
@@ -442,58 +443,60 @@ public class LocalInstance implements IPack
 
         this.hasLoadingMod = checkForLaunchMod();
         //TODO: THIS IS FOR TESTING ONLY, PLEASE REMOVE ME IN FUTURE
-        if(!this.hasLoadingMod){
-            if(modLoader.startsWith("1.7.10"))
-            {
-                DownloadUtils.downloadFile(new File(dir,"mods" + File.separator + "launchertray-1.0.jar"), "https://dist.creeper.host/modpacks/maven/com/sun/jna/1.7.10-1.0.0/d4c2da853f1dbc80ab15b128701001fd3af6718f");
-                this.hasLoadingMod = checkForLaunchMod();
-            } else if(modLoader.startsWith("1.12.2")){
-                DownloadUtils.downloadFile(new File(dir,"mods" + File.separator + "launchertray-1.0.jar"), "https://dist.creeper.host/modpacks/maven/net/creeperhost/launchertray/transformer/1.0/381778e244181cc2bb7dd02f03fb745164e87ee0");
-                this.hasLoadingMod = checkForLaunchMod();
-            } else if(modLoader.startsWith("1.15") || modLoader.startsWith("1.16")){
-                DownloadUtils.downloadFile(new File(dir, "mods" + File.separator + "launchertray-1.0.jar"), "https://dist.creeper.host/modpacks/maven/net/creeperhost/traylauncher/1.0/134dd1944e04224ce53ff18750e81f5517704c8e");
-                DownloadUtils.downloadFile(new File(dir, "mods" + File.separator + "launchertray-progress-1.0.jar"), "https://dist.creeper.host/modpacks/maven/net/creeperhost/traylauncher/unknown/74ced30ca35e88b583969b6d74efa0f7c2470e8b");
-                this.hasLoadingMod = checkForLaunchMod();
-            }
-        }
-        //END TESTING CODE
-        if(this.hasLoadingMod)
+        if(OSUtils.getOs() == OS.WIN)
         {
-            if(this.loadingModSocket != null){
-                try {
-                    this.loadingModSocket.close();
-                } catch (IOException ignored) {}
-                this.loadingModSocket = null;
+            if (!this.hasLoadingMod) {
+                if (modLoader.startsWith("1.7.10")) {
+                    DownloadUtils.downloadFile(new File(dir, "mods" + File.separator + "launchertray-1.0.jar"), "https://dist.creeper.host/modpacks/maven/com/sun/jna/1.7.10-1.0.0/d4c2da853f1dbc80ab15b128701001fd3af6718f");
+                    this.hasLoadingMod = checkForLaunchMod();
+                } else if (modLoader.startsWith("1.12.2")) {
+                    DownloadUtils.downloadFile(new File(dir, "mods" + File.separator + "launchertray-1.0.jar"), "https://dist.creeper.host/modpacks/maven/net/creeperhost/launchertray/transformer/1.0/381778e244181cc2bb7dd02f03fb745164e87ee0");
+                    this.hasLoadingMod = checkForLaunchMod();
+                } else if (modLoader.startsWith("1.15") || modLoader.startsWith("1.16")) {
+                    DownloadUtils.downloadFile(new File(dir, "mods" + File.separator + "launchertray-1.0.jar"), "https://dist.creeper.host/modpacks/maven/net/creeperhost/traylauncher/1.0/134dd1944e04224ce53ff18750e81f5517704c8e");
+                    DownloadUtils.downloadFile(new File(dir, "mods" + File.separator + "launchertray-progress-1.0.jar"), "https://dist.creeper.host/modpacks/maven/net/creeperhost/traylauncher/unknown/74ced30ca35e88b583969b6d74efa0f7c2470e8b");
+                    this.hasLoadingMod = checkForLaunchMod();
+                }
             }
-            int retries = 0;
-            AtomicBoolean hasErrored = new AtomicBoolean(true);
-            while(hasErrored.get()) {
-                //Retry ports...
-                hasErrored.set(false);
-                this.loadingModPort = MiscUtils.getRandomNumber(50001,52000);
-                CompletableFuture.runAsync(() -> {
+            //END TESTING CODE
+            if (this.hasLoadingMod) {
+                if (this.loadingModSocket != null) {
                     try {
-
-                        CreeperLogger.INSTANCE.info("Started mod socket on port " + this.loadingModPort);
-                        loadingModSocket = CreeperLauncher.listenForClient(this.loadingModPort);
-                    } catch(Exception err)
-                    {
-                        CreeperLogger.INSTANCE.error("Unable to open loading mod listener on port '"+this.loadingModPort+"'...", err);
-                        loadingModSocket = null;
-                        hasErrored.set(true);
+                        this.loadingModSocket.close();
+                    } catch (IOException ignored) {
                     }
-                });
-                try {
-                    Thread.sleep(100);
-                    if(retries >= 5) break;
-                    retries++;
-                } catch(Exception ignored) {}
-            }
-            if(!hasErrored.get()) {
-                if (extraArgs.length() > 0) extraArgs = extraArgs + " ";
-                extraArgs += "-Dchtray.port=" + this.loadingModPort + " -Dchtray.instance=" + this.uuid.toString() + " ";
-            } else {
-                CreeperLogger.INSTANCE.error("Unable to open loading mod listener port... Tried "+retries+" times.");
+                    this.loadingModSocket = null;
+                }
+                int retries = 0;
+                AtomicBoolean hasErrored = new AtomicBoolean(true);
+                while (hasErrored.get()) {
+                    //Retry ports...
+                    hasErrored.set(false);
+                    this.loadingModPort = MiscUtils.getRandomNumber(50001, 52000);
+                    CompletableFuture.runAsync(() -> {
+                        try {
+
+                            CreeperLogger.INSTANCE.info("Started mod socket on port " + this.loadingModPort);
+                            loadingModSocket = CreeperLauncher.listenForClient(this.loadingModPort);
+                        } catch (Exception err) {
+                            CreeperLogger.INSTANCE.error("Unable to open loading mod listener on port '" + this.loadingModPort + "'...", err);
+                            loadingModSocket = null;
+                            hasErrored.set(true);
+                        }
+                    });
+                    try {
+                        Thread.sleep(100);
+                        if (retries >= 5) break;
+                        retries++;
+                    } catch (Exception ignored) {
+                    }
+                }
+                if (!hasErrored.get()) {
+                    if (extraArgs.length() > 0) extraArgs = extraArgs + " ";
+                    extraArgs += "-Dchtray.port=" + this.loadingModPort + " -Dchtray.instance=" + this.uuid.toString() + " ";
+                } else {
+                    CreeperLogger.INSTANCE.error("Unable to open loading mod listener port... Tried " + retries + " times.");
+                }
             }
         }
 
