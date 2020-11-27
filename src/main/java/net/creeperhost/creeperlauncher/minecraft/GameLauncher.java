@@ -63,7 +63,13 @@ public class GameLauncher
                             return processes;
                         });
                 });
-                if(Settings.settings.getOrDefault("automateMojang", "true").equalsIgnoreCase("true")) tryAutomation(process);
+                if(Settings.settings.getOrDefault("automateMojang", "true").equalsIgnoreCase("true")){
+                    if(process != null) {
+                        tryAutomation(process);
+                    } else {
+                        CreeperLogger.INSTANCE.error("Minecraft Launcher process failed to start could not automate");
+                    }
+                }
 
             } catch (IOException e)
             {
