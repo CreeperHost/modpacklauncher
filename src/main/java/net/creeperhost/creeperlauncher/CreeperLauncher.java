@@ -409,6 +409,17 @@ public class CreeperLauncher
                     Settings.webSocketAPI.sendMessage(reply);
                 }
             });
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                if(socket != null && socket.isConnected()){
+                    try {
+                        JsonObject jsonObject = new JsonObject();
+                        jsonObject.addProperty("message", "show");
+                        socket.getOutputStream().write((jsonObject.toString()+"\n").getBytes());
+                        socket.close();
+                    } catch (IOException ignored) {
+                    }
+                }
+            }));
             return socket;
         } catch (Throwable e)
         {
