@@ -300,9 +300,14 @@ public class CreeperLauncher
             startProcess = false;
         }
 
-        Settings.webSocketAPI = new WebSocketAPI(new InetSocketAddress(InetAddress.getLoopbackAddress(), defaultWebsocketPort || isDevMode ? Constants.WEBSOCKET_PORT : websocketPort));
-        Settings.webSocketAPI.setConnectionLostTimeout(0);
-        Settings.webSocketAPI.start();
+        try {
+            Settings.webSocketAPI = new WebSocketAPI(new InetSocketAddress(InetAddress.getLoopbackAddress(), defaultWebsocketPort || isDevMode ? Constants.WEBSOCKET_PORT : websocketPort));
+            Settings.webSocketAPI.setConnectionLostTimeout(0);
+            Settings.webSocketAPI.start();
+        } catch(Throwtable t)
+        {
+            CreeperLogger.INSTANCE.error("Unable to open websocket port...", t);
+        }
 
         if (startProcess) {
             startElectron();
