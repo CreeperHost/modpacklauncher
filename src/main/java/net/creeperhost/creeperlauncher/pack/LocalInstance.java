@@ -478,6 +478,11 @@ public class LocalInstance implements IPack
 
                             CreeperLogger.INSTANCE.info("Started mod socket on port " + this.loadingModPort);
                             loadingModSocket = CreeperLauncher.listenForClient(this.loadingModPort);
+                            if(loadingModSocket == null)
+                            {
+                                CreeperLogger.INSTANCE.error("Unable to open loading mod listener on port '" + this.loadingModPort + "'...");
+                                hasErrored.set(true);
+                            }
                         } catch (Exception err) {
                             CreeperLogger.INSTANCE.error("Unable to open loading mod listener on port '" + this.loadingModPort + "'...", err);
                             loadingModSocket = null;

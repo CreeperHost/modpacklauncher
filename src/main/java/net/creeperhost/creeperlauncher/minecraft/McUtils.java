@@ -267,8 +267,9 @@ public class McUtils {
             CreeperLogger.INSTANCE.info("Starting download of the vanilla launcher");
             DownloadableFile remoteFile = new DownloadableFile("official", "/", downloadurl, new ArrayList<>(), 0, false, false, 0, "Vanilla", "vanilla", String.valueOf(System.currentTimeMillis() / 1000L));
             File destinationFile = new File(Constants.MINECRAFT_LAUNCHER_LOCATION);
+            File destinationDir = new File(Constants.BIN_LOCATION);
             File moveDestination = null;
-            if(!destinationFile.canWrite())
+            if(!destinationDir.canWrite())
             {
                 moveDestination = destinationFile;
                 destinationFile = new File(tempFolder, UUID.randomUUID().toString());
