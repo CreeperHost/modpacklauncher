@@ -5,6 +5,7 @@ import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.CreeperLauncher;
 import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.Settings;
+import net.creeperhost.creeperlauncher.api.DownloadableFile;
 import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.os.OSUtils;
 import net.creeperhost.creeperlauncher.util.StreamGobblerLog;
@@ -67,7 +68,7 @@ public class GameLauncher
                     if(process != null) {
                         tryAutomation(process);
                     } else {
-                        CreeperLogger.INSTANCE.error("Minecraft Launcher process failed to start could not automate");
+                        CreeperLogger.INSTANCE.error("Minecraft Launcher process failed to start, could not automate.");
                     }
                 }
 
@@ -99,20 +100,33 @@ public class GameLauncher
                 StreamGobblerLog.redirectToLogger(process.getErrorStream(), CreeperLogger.INSTANCE::error);
                 StreamGobblerLog.redirectToLogger(process.getInputStream(), CreeperLogger.INSTANCE::info);
                 File file = new File(Constants.LAUNCHER_PROFILES_JSON);
+                int tryCount = 0;
                 while (!file.exists())
                 {
                     try
                     {
                         Thread.sleep(50);
+                        tryCount++;
                     } catch (InterruptedException e)
                     {
                         e.printStackTrace();
                     }
+                    //3 minutes
+                    //((3 * 60) * 1000) / 50
+                    if(tryCount > 3600) break;
                 }
-                process.destroy();
-                if (process.isAlive())
+                if(process != null) {
+                    process.destroy();
+                    if (process.isAlive()) {
+                        process.destroyForcibly();
+                    }
+                }
+                if(!file.exists())
                 {
-                    process.destroyForcibly();
+                    //Some reason the vanilla launcher is not creating the launcher_profiles.json
+                    DownloadableFile defaultConfig = new DownloadableFile("", file.getAbsolutePath(), "https://apps.modpacks.ch/FTB2/launcher_profiles.json", new ArrayList<>(), 0, true, false, 0, "config", "launcher_profiles.json", "");
+                    defaultConfig.prepare();
+                    defaultConfig.download(file.toPath(), true, false);
                 }
                 String finalExe = exe;
                 //Now we have to do horrible stuff because if the launcher binary we downloaded is older than the latest (Don't know why they do this), the auto updater closes and reopens the launcher thus meaning our process handle is wrong.
@@ -133,7 +147,7 @@ public class GameLauncher
                         }
                     }
                 });
-            } catch (Exception e)
+            } catch (Throwable e)
             {
                 CreeperLogger.INSTANCE.error("Failed ot start the Minecraft launcher " + e.toString());
             }

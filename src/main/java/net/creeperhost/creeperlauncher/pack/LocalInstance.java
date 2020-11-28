@@ -505,6 +505,9 @@ public class LocalInstance implements IPack
         if(!McUtils.injectProfile(new File(Constants.LAUNCHER_PROFILES_JSON), profile, jrePath))
         {
             CreeperLogger.INSTANCE.error("Unable to inject Mojang launcher profile...");
+            OpenModalData.openModal("Error", "Unable to create Mojang launcher profile. Please ensure you do not have any security software blocking access to the FTB App data directories.", List.of(
+                    new OpenModalData.ModalButton("Ok", "red", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
+            ));
             return null;
         }
 

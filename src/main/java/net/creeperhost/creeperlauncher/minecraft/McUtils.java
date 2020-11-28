@@ -21,6 +21,8 @@ import net.creeperhost.creeperlauncher.util.WebUtils;
 import org.apache.commons.compress.archivers.ArchiveException;
 
 import java.io.*;
+import java.net.URL;
+import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -172,7 +174,22 @@ public class McUtils {
             } catch (IOException e) {
                 CreeperLogger.INSTANCE.error("Failed to read " + target);
                 e.printStackTrace();
-                return false;
+                try {
+                    URL url = new URL("https://apps.modpacks.ch/FTB2/launcher_profiles.json");
+                    URLConnection urlConnection = url.openConnection();
+                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
+                    StringBuilder stringBuilder = new StringBuilder();
+                    String buffer;
+                    while((buffer = bufferedReader.readLine()) != null)
+                    {
+                        stringBuilder.append(buffer);
+                    }
+                    json = new JsonParser().parse(buffer).getAsJsonObject();
+                } catch (Throwable t)
+                {
+                    e.printStackTrace();
+                    return false;
+                }
             }
 
             JsonObject _profiles = json.getAsJsonObject("profiles");
@@ -191,7 +208,32 @@ public class McUtils {
             String jstring = GsonUtils.GSON.toJson(json);
             Files.write(target.toPath(), jstring.getBytes(StandardCharsets.UTF_8));
         } catch (IOException e) {
-            CreeperLogger.INSTANCE.error("There was a problem writing the launch profile, is it write protected?");
+            if(!target.canWrite())
+            {
+                CreeperLogger.INSTANCE.error(target.getAbsolutePath() + " is write protected to this process! Security configuration on this system is blocking access.");
+                if(OSUtils.getOs() == OS.WIN)
+                {
+                    try {
+                        CreeperLogger.INSTANCE.warning("=== Process list ===");
+                        Process p = Runtime.getRuntime().exec("tasklist.exe /fo csv /nh");
+                        BufferedReader input = new BufferedReader
+                                (new InputStreamReader(p.getInputStream()));
+                        String line;
+                        while ((line = input.readLine()) != null) {
+                            if (!line.trim().equals("")) {
+                                line = line.substring(1);
+                                CreeperLogger.INSTANCE.warning(line.substring(0, line.indexOf("\"")));
+                            }
+                        }
+                        CreeperLogger.INSTANCE.warning("===================");
+                    } catch(Throwable t)
+                    {
+                        CreeperLogger.INSTANCE.error(t.getMessage());
+                    }
+                }
+            } else {
+                CreeperLogger.INSTANCE.error("There was a problem writing the launch profile, is it write protected?");
+            }
             return false;
         }
         return true;
