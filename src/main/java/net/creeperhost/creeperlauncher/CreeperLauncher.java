@@ -375,8 +375,6 @@ public class CreeperLauncher
          CreeperLauncher.exit();
      });
     }
-    public static Socket listenForClient(int port)
-    {
     public static void listenForClient(int port) throws IOException {
         CreeperLogger.INSTANCE.info("Starting mod socket on port " + port);
         serverSocket = new ServerSocket(port);
