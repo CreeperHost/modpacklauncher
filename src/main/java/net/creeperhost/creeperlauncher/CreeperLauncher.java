@@ -3,10 +3,12 @@ package net.creeperhost.creeperlauncher;
 import com.google.gson.JsonObject;
 import com.install4j.api.launcher.ApplicationLauncher;
 import com.install4j.api.update.UpdateChecker;
+import com.install4j.runtime.beans.actions.desktop.CreateProgramGroupAction;
 import net.creeperhost.creeperlauncher.api.WebSocketAPI;
 import net.creeperhost.creeperlauncher.api.data.other.ClientLaunchData;
 import net.creeperhost.creeperlauncher.api.data.other.CloseModalData;
 import net.creeperhost.creeperlauncher.api.data.other.OpenModalData;
+import net.creeperhost.creeperlauncher.api.data.other.PingLauncherData;
 import net.creeperhost.creeperlauncher.install.tasks.FTBModPackInstallerTask;
 import net.creeperhost.creeperlauncher.install.tasks.LocalCache;
 import net.creeperhost.creeperlauncher.minetogether.vpn.MineTogetherConnect;
@@ -28,6 +30,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class CreeperLauncher
 {
     public static HashMap<String, String> javaVersions;
+    public static int missedPings = 0;
     private static boolean failedInitialMigration; // todo: use this to pop up stuff if failed
     public static ServerSocket serverSocket = null;
     public static Socket socket = null;
@@ -305,6 +308,7 @@ public class CreeperLauncher
             Settings.webSocketAPI = new WebSocketAPI(new InetSocketAddress(InetAddress.getLoopbackAddress(), defaultWebsocketPort || isDevMode ? Constants.WEBSOCKET_PORT : websocketPort));
             Settings.webSocketAPI.setConnectionLostTimeout(0);
             Settings.webSocketAPI.start();
+            pingPong();
         } catch(Throwable t)
         {
             CreeperLogger.INSTANCE.error("Unable to open websocket port...", t);
@@ -353,6 +357,26 @@ public class CreeperLauncher
     {
         return System.currentTimeMillis() / 1000L;
     }
+    private static void pingPong()
+    {
+     CompletableFuture.runAsync(() -> {
+       while(CreeperLauncher.missedPings < 10)
+       {
+           try {
+               PingLauncherData ping = new PingLauncherData();
+               CreeperLauncher.missedPings++;
+               Settings.webSocketAPI.sendMessage(ping);
+           } catch(Exception ignored) {}
+           try {
+               Thread.sleep(3000);
+           } catch(Exception ignored) {}
+       }
+     }).thenRun(() -> {
+         CreeperLauncher.exit();
+     });
+    }
+    public static Socket listenForClient(int port)
+    {
     public static void listenForClient(int port) throws IOException {
         CreeperLogger.INSTANCE.info("Starting mod socket on port " + port);
         serverSocket = new ServerSocket(port);
