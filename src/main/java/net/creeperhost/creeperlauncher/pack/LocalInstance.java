@@ -75,7 +75,6 @@ public class LocalInstance implements IPack
     transient private Runnable preUninstall;
     transient private boolean preUninstallAsync;
     transient private AtomicBoolean inUse = new AtomicBoolean(false);
-    transient public Socket loadingModSocket;
     transient private HashMap<String, instanceEvent> gameCloseEvents = new HashMap<>();
 
     public LocalInstance(FTBPack pack, long versionId)
@@ -460,13 +459,7 @@ public class LocalInstance implements IPack
             }
             //END TESTING CODE
             if (this.hasLoadingMod) {
-                if (this.loadingModSocket != null) {
-                    try {
-                        this.loadingModSocket.close();
-                    } catch (IOException ignored) {
-                    }
-                    this.loadingModSocket = null;
-                }
+                CreeperLauncher.closeOldClient();
                 int retries = 0;
                 AtomicBoolean hasErrored = new AtomicBoolean(true);
                 while (hasErrored.get()) {
@@ -475,18 +468,17 @@ public class LocalInstance implements IPack
                     this.loadingModPort = MiscUtils.getRandomNumber(50001, 52000);
                     CompletableFuture.runAsync(() -> {
                         try {
-
-                            CreeperLogger.INSTANCE.info("Started mod socket on port " + this.loadingModPort);
-                            loadingModSocket = CreeperLauncher.listenForClient(this.loadingModPort);
-                            if(loadingModSocket == null)
-                            {
-                                CreeperLogger.INSTANCE.error("Unable to open loading mod listener on port '" + this.loadingModPort + "'...");
-                                hasErrored.set(true);
-                            }
+                            CreeperLauncher.listenForClient(this.loadingModPort);
                         } catch (Exception err) {
-                            CreeperLogger.INSTANCE.error("Unable to open loading mod listener on port '" + this.loadingModPort + "'...", err);
-                            loadingModSocket = null;
-                            hasErrored.set(true);
+                            if (!CreeperLauncher.opened)
+                            {
+                                CreeperLogger.INSTANCE.error("Error whilst starting mod socket on port '" + this.loadingModPort + "'...", err);
+                                hasErrored.set(true);
+                            } else {
+                                CreeperLogger.INSTANCE.warning("Error whilst handling message from mod socket - probably nothing!", err);
+                                CreeperLauncher.opened = false;
+                            }
+
                         }
                     });
                     try {

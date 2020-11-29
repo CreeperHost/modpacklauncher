@@ -14,10 +14,7 @@ import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.os.OSUtils;
 import net.creeperhost.creeperlauncher.util.*;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -32,6 +29,10 @@ public class CreeperLauncher
 {
     public static HashMap<String, String> javaVersions;
     private static boolean failedInitialMigration; // todo: use this to pop up stuff if failed
+    public static ServerSocket serverSocket = null;
+    public static Socket socket = null;
+    public static OutputStream socketWrite = null;
+    public static boolean opened = false;
 
     static
     {
@@ -352,85 +353,99 @@ public class CreeperLauncher
     {
         return System.currentTimeMillis() / 1000L;
     }
-    public static Socket listenForClient(int port)
-    {
+    public static void listenForClient(int port) throws IOException {
+        CreeperLogger.INSTANCE.info("Starting mod socket on port " + port);
+        serverSocket = new ServerSocket(port);
+        opened = true;
+        socket = serverSocket.accept();
+        socketWrite = socket.getOutputStream();
+        CreeperLogger.INSTANCE.info("Connection received");
+        Runtime.getRuntime().addShutdownHook(new Thread(CreeperLauncher::closeOldClient));
+        String lastInstance = "";
+        ClientLaunchData.Reply reply;
+        BufferedReader in = null;
         try {
-            ServerSocket serverSocket = new ServerSocket(port);
-            Socket socket = serverSocket.accept();
-            CompletableFuture.runAsync(() -> {
-                String lastInstance = "";
-                ClientLaunchData.Reply reply;
-                try {
-                    BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                    long lastMessageTime = 0;
-                    boolean hasStarted = false;
-                    while (socket.isConnected()) {
-                        String bufferText = "";
+            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            long lastMessageTime = 0;
+            boolean hasStarted = false;
+            while (socket.isConnected()) {
+                String bufferText = "";
+                bufferText = in.readLine();
+                if (bufferText.length() == 0) continue;
+                JsonObject object = GsonUtils.GSON.fromJson(bufferText, JsonObject.class);
+                Object data = new Object();
+                if(!hasStarted) hasStarted = (object.has("message") && object.get("message").getAsString().equals("init"));
+                if(hasStarted) {
+                    if (object.has("data") && object.get("data") != null) {
+                        data = object.get("data");
+                    }
+                    if (object.has("instance") && object.get("instance").getAsString() != null && object.get("instance").getAsString().length() > 0) {
+                        lastInstance = object.get("instance").getAsString();
+                    }
+                    boolean isDone = (object.has("message") && object.get("message").getAsString().equals("done"));
+                    if (System.currentTimeMillis() > (lastMessageTime + 200) || isDone) {
+                        String type = (object.has("type") && object.get("type").getAsString() != null) ? object.get("type").getAsString() : "";
+                        String message = (object.has("message") && object.get("message").getAsString() != null) ? object.get("message").getAsString() : "";
+                        reply = new ClientLaunchData.Reply(lastInstance, type, message, data);
+                        lastMessageTime = System.currentTimeMillis();
                         try {
-                            bufferText = in.readLine();
-                            if (bufferText.length() == 0) continue;
-                            JsonObject object = GsonUtils.GSON.fromJson(bufferText, JsonObject.class);
-                            Object data = new Object();
-                            if(!hasStarted) hasStarted = (object.has("message") && object.get("message").getAsString().equals("init"));
-                            if(hasStarted) {
-                                if (object.has("data") && object.get("data") != null) {
-                                    data = object.get("data");
-                                }
-                                if (object.has("instance") && object.get("instance").getAsString() != null && object.get("instance").getAsString().length() > 0) {
-                                    lastInstance = object.get("instance").getAsString();
-                                }
-                                boolean isDone = (object.has("message") && object.get("message").getAsString().equals("done"));
-                                if (System.currentTimeMillis() > (lastMessageTime + 200) || isDone) {
-                                    String type = (object.has("type") && object.get("type").getAsString() != null) ? object.get("type").getAsString() : "";
-                                    String message = (object.has("message") && object.get("message").getAsString() != null) ? object.get("message").getAsString() : "";
-                                    reply = new ClientLaunchData.Reply(lastInstance, type, message, data);
-                                    lastMessageTime = System.currentTimeMillis();
-                                    try {
-                                        Settings.webSocketAPI.sendMessage(reply);
-                                    } catch(Throwable t)
-                                    {
-                                        CreeperLogger.INSTANCE.warning("Unable to send MC client loading update to frontend!", t);
-                                    }
-                                }
-                                if (isDone) {
-                                    socket.close();
-                                    break;
-                                }
-                            }
-                        } catch (Throwable e) {
-                            CreeperLogger.INSTANCE.error("Error whilst receiving message from MC client", e);
-                            socket.close();
-                            break;
+                            Settings.webSocketAPI.sendMessage(reply);
+                        } catch(Throwable t)
+                        {
+                            CreeperLogger.INSTANCE.warning("Unable to send MC client loading update to frontend!", t);
                         }
                     }
-                    if(socket.isConnected()){
-                        socket.close();
-                    }
-                    if(serverSocket != null && !serverSocket.isClosed()) serverSocket.close();
-                } catch (Throwable e) {
-                }
-                if(lastInstance.length() > 0) {
-                    reply = new ClientLaunchData.Reply(lastInstance, "clientDisconnect", new Object());
-                    Settings.webSocketAPI.sendMessage(reply);
-                }
-            });
-            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                if(socket != null && socket.isConnected()){
-                    try {
-                        JsonObject jsonObject = new JsonObject();
-                        jsonObject.addProperty("message", "show");
-                        socket.getOutputStream().write((jsonObject.toString()+"\n").getBytes());
-                        socket.close();
-                    } catch (IOException ignored) {
+                    if (isDone) {
+                        closeSockets();
                     }
                 }
-            }));
-            return socket;
-        } catch (Throwable e)
-        {
-            CreeperLogger.INSTANCE.error("Error whilst sending message on to websocket", e);
+            }
+            closeSockets();
+        } catch (Throwable e) {
+            if(lastInstance.length() > 0) {
+                reply = new ClientLaunchData.Reply(lastInstance, "clientDisconnect", new Object());
+                Settings.webSocketAPI.sendMessage(reply);
+            }
+
+            closeSockets();
+
+            throw e;
+        } finally {
+            if (in != null) in.close();
         }
-        return null;
+    }
+
+    private static void closeSockets() {
+        try {
+            if (socket != null) socket.close();
+        } catch (IOException ignored) {
+        }
+
+        try {
+            if (serverSocket != null) serverSocket.close();
+        } catch (IOException ignored) {
+        }
+
+        try {
+            if (socketWrite != null) socketWrite.close();
+        } catch (IOException ignored) {
+        }
+
+        socket = null;
+        serverSocket = null;
+        socketWrite = null;
+    }
+
+    public static void closeOldClient() {
+        if(socket != null && socket.isConnected()) {
+            try {
+                JsonObject jsonObject = new JsonObject();
+                jsonObject.addProperty("message", "show");
+                socket.getOutputStream().write((jsonObject.toString() + "\n").getBytes());
+                closeSockets();
+            } catch (IOException ignored) {
+            }
+        }
     }
 
     private static void startElectron() {
