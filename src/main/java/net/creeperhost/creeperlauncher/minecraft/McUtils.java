@@ -247,13 +247,13 @@ public class McUtils {
             if (!binfolder.mkdir()) {
                 if(!binfolder.canWrite())
                 {
-                    CreeperLogger.INSTANCE.error("Cannot write to data directory "+Constants.DATA_DIR+".");
+                    CreeperLogger.INSTANCE.error("Cannot write to data directory "+Constants.getDataDir()+".");
                     return;
                 } else {
                     OpenModalData.openModal("Error", "Data directory does not exist.", List.of(
                             new OpenModalData.ModalButton("Ok", "red", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
                     ));
-                    CreeperLogger.INSTANCE.error("Data directory " + Constants.DATA_DIR + " does not exist.");
+                    CreeperLogger.INSTANCE.error("Data directory " + Constants.getDataDir() + " does not exist.");
                     return;
                 }
             }
@@ -273,7 +273,7 @@ public class McUtils {
             {
                 moveDestination = destinationFile;
                 destinationFile = new File(tempFolder, UUID.randomUUID().toString());
-                CreeperLogger.INSTANCE.error("Cannot write Minecraft launcher to data directory '"+Constants.DATA_DIR+"', File '"+moveDestination.getAbsolutePath().toString()+"', trying temporary file '"+destinationFile.getAbsolutePath().toString()+".");
+                CreeperLogger.INSTANCE.error("Cannot write Minecraft launcher to data directory '"+Constants.getDataDir()+"', File '"+moveDestination.getAbsolutePath().toString()+"', trying temporary file '"+destinationFile.getAbsolutePath().toString()+".");
             }
             DownloadTask task = new DownloadTask(remoteFile, destinationFile.toPath());
             task.execute().join();

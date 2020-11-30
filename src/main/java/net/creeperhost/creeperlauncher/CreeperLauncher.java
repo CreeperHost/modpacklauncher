@@ -36,6 +36,7 @@ public class CreeperLauncher
     public static Socket socket = null;
     public static OutputStream socketWrite = null;
     public static boolean opened = false;
+    private static boolean websocketDisconnect=false;
 
     static
     {
@@ -311,13 +312,14 @@ public class CreeperLauncher
             pingPong();
         } catch(Throwable t)
         {
-            CreeperLogger.INSTANCE.error("Unable to open websocket port...", t);
+            websocketDisconnect=true;
+            CreeperLogger.INSTANCE.error("Unable to open websocket port or websocket has disconnected...", t);
         }
 
         if (startProcess) {
             startElectron();
         }
-        File dataDirectory = new File(Constants.DATA_DIR);
+        File dataDirectory = new File(Constants.getDataDir());
         if(!dataDirectory.canWrite())
         {
             OpenModalData.openModal("Critical Error", "The FTBApp is unable to write to your selected data directory, this can be caused by file permission errors, anti-virus or any number of other configuration issues.<br />If you continue, the app will not work as intended and you may be unable to install or run any modpacks.", List.of(
@@ -360,7 +362,7 @@ public class CreeperLauncher
     private static void pingPong()
     {
      CompletableFuture.runAsync(() -> {
-       while(CreeperLauncher.missedPings < 10)
+       while(CreeperLauncher.missedPings < 20)
        {
            try {
                PingLauncherData ping = new PingLauncherData();
@@ -372,7 +374,12 @@ public class CreeperLauncher
            } catch(Exception ignored) {}
        }
      }).thenRun(() -> {
-         CreeperLauncher.exit();
+         if(websocketDisconnect) {
+             CreeperLogger.INSTANCE.error("Closed backend due to no response from frontend for " + (missedPings * 3) + " seconds...");
+             CreeperLauncher.exit();
+         } else {
+             CreeperLogger.INSTANCE.error("Websocket ping/pong monitor has ended abruptly!");
+         }
      });
     }
     public static void listenForClient(int port) throws IOException {

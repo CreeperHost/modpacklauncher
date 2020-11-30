@@ -11,7 +11,7 @@ public class CreeperLogger
 {
     public static CreeperLogger INSTANCE = new CreeperLogger();
     private static Logger logger;
-    private String filename = Constants.DATA_DIR + File.separator + "ftbapp.log";
+    private String filename = Constants.getDataDir() + File.separator + "ftbapp.log";
     private FileHandler fileHandler;
     private final int limit = 1024 * 10000; //10 MB
     private SimpleFormatter simpleFormatter;
