@@ -24,7 +24,6 @@ import net.creeperhost.creeperlauncher.os.OSUtils;
 import java.awt.*;
 import java.io.*;
 import java.net.MalformedURLException;
-import java.net.Socket;
 import java.nio.channels.FileLock;
 import java.nio.file.*;
 import java.util.*;
