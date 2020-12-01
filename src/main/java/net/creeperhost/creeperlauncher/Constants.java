@@ -88,4 +88,8 @@ public class Constants
         }
         return DATA_DIR;
     }
+
+    public static String getDataDirOld() {
+        return DATA_DIR;
+    }
 }

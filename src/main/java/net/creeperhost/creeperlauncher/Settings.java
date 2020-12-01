@@ -28,11 +28,16 @@ public class Settings
         } catch (Exception ignored) {}
     }
 
-    public static void  loadSettings()
+    public static void loadSettings()
+    {
+        loadSettings(new File(Constants.BIN_LOCATION, "settings.json"), true);
+    }
+
+    // Only use directly during migrate logic to avoid saving settings immediately
+    public static void  loadSettings(File json, boolean save)
     {
         try
         {
-            File json = new File(Constants.BIN_LOCATION, "settings.json");
 
             if (json.exists()) {
                 Gson gson = new Gson();
@@ -44,15 +49,20 @@ public class Settings
                 }
             } else {
                 Settings.settings = new HashMap<>();
-                json.createNewFile();
             }
             Settings.settings.put("instanceLocation", Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC));
-            saveSettings();
+            if (save)
+            {
+                saveSettings();
+            }
         } catch (Exception err)
         {
             Settings.settings = new HashMap<>();
             Settings.settings.put("instanceLocation", Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC));
-            saveSettings();
+            if (save)
+            {
+                saveSettings();
+            }
         }
     }
 

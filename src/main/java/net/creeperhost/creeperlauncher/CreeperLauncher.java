@@ -68,18 +68,13 @@ public class CreeperLauncher
         boolean migrate = false;
         if (!json.exists())
         {
-            try {
-                Files.createDirectories(Path.of(Constants.BIN_LOCATION));
-            } catch (IOException ignored) {
-                // shrug
-            }
-            File jsonOld = new File(Constants.BIN_LOCATION_OURS, "settings.json");
+            File jsonOld = Path.of(Constants.getDataDirOld(), "bin", "settings.json").toFile();
 
             if (jsonOld.exists()) {
-                json.getParentFile().mkdirs();
+//                json.getParentFile().mkdirs();
                 try {
-                    Files.copy(jsonOld.toPath(), json.toPath());
-                    Files.delete(jsonOld.toPath());
+//                    Files.copy(jsonOld.toPath(), json.toPath());
+//                    Files.delete(jsonOld.toPath());
                 } catch (Exception e) {
                     // shrug
                 }
@@ -87,45 +82,71 @@ public class CreeperLauncher
             }
         }
 
-        Settings.loadSettings();
+        if (migrate)
+        {
+            Settings.loadSettings(Path.of(Constants.getDataDirOld(), "bin", "settings.json").toFile(), false);
+        } else {
+            Settings.loadSettings();
+        }
 
         verbose = Settings.settings.getOrDefault("verbose", "false").equals("true");
 
-        File oldInstances = new File(Constants.WORKING_DIR, "instances");
+        File oldInstances = new File(Constants.getDataDirOld(), "instances");
 
         boolean migrateInstances = false;
 
         if (oldInstances.exists()) {
-            if (Settings.settings.getOrDefault("instanceLocation", "").isBlank()) {
-                File[] files = oldInstances.listFiles();
-                migrate = migrate && files != null && files.length > 0;
-                migrateInstances = migrate;
+            String oldInstanceLocation = Settings.settings.getOrDefault("instanceLocation", "");
+            if (oldInstanceLocation.equals(oldInstances.getAbsolutePath())) {
+                migrateInstances = true;
             }
         }
 
         FileUtils.deleteDirectory(Path.of(Constants.WORKING_DIR, ".localCache"));
         FileUtils.deleteDirectory(Path.of(Constants.OLD_CACHE_LOCATION));
 
+        boolean migrateError = false;
+
         if (migrate)
         {
-            FileUtils.move(Path.of(Constants.BIN_LOCATION_OURS, "launcher." + OSUtils.getExtension()), Path.of(Constants.MINECRAFT_LAUNCHER_LOCATION));
+            if (migrateInstances)
+            {
+                // try delete cache as faster move
+                FileUtils.deleteDirectory(Path.of(Constants.getDataDirOld(), "instances", ".localcache"));
+            }
+/*            FileUtils.move(Path.of(Constants.BIN_LOCATION_OURS, "launcher." + OSUtils.getExtension()), Path.of(Constants.MINECRAFT_LAUNCHER_LOCATION));
             FileUtils.move(Path.of(Constants.BIN_LOCATION_OURS, "Minecraft.app"), Path.of(Constants.BIN_LOCATION, "Minecraft.app"));
             FileUtils.move(Path.of(Constants.BIN_LOCATION_OURS, "minecraft-launcher"), Path.of(Constants.BIN_LOCATION, "minecraft-launcher"));
             FileUtils.move(Path.of(Constants.BIN_LOCATION_OURS, "versions"), Path.of(Constants.VERSIONS_FOLDER_LOC));
             FileUtils.move(Path.of(Constants.BIN_LOCATION_OURS, "launcher_profiles.json"), Path.of(Constants.LAUNCHER_PROFILES_JSON));
             FileUtils.move(Path.of(Constants.BIN_LOCATION_OURS, "launcher_settings.json"), Path.of(Constants.LAUNCHER_PROFILES_JSON));
-            FileUtils.move(Path.of(Constants.BIN_LOCATION_OURS, "libraries"), Path.of(Constants.LIBRARY_LOCATION));
+            FileUtils.move(Path.of(Constants.BIN_LOCATION_OURS, "libraries"), Path.of(Constants.LIBRARY_LOCATION));*/
+            CreeperLogger.INSTANCE.close(); // close so we can move the existing logs and everything
+            HashMap<Pair<Path, Path>, IOException> move = FileUtils.move(Path.of(Constants.getDataDirOld()), Path.of(Constants.getDataDir()), false, false);
+            CreeperLogger.INSTANCE.reinitialise(); // try re-open logger
+            if (move.size() > 0)
+            {
+                migrateError = true;
+                StringBuilder errorString = new StringBuilder("Errors occurred whilst migrating to a new folder structure. It may still be fine, but please contact FTB support if you have issues!\n");
+                for(Map.Entry<Pair<Path, Path>, IOException> entry : move.entrySet()) {
+                    errorString.append(entry.getKey().getLeft()).append(" ").append(entry.getKey().getRight()).append(":").append(entry.getValue().getMessage()).append("\n");
+                }
+                CreeperLogger.INSTANCE.warning(errorString.toString());
+            }
             if (migrateInstances)
             {
-                HashMap<Pair<Path, Path>, IOException> moveResult = FileUtils.move(Path.of(Constants.WORKING_DIR, "instanceLocation"), Path.of(Constants.INSTANCES_FOLDER_LOC));
+                /*HashMap<Pair<Path, Path>, IOException> moveResult = FileUtils.move(Path.of(Constants.WORKING_DIR, "instanceLocation"), Path.of(Constants.INSTANCES_FOLDER_LOC));
                 if (!moveResult.isEmpty()) {
                     CreeperLogger.INSTANCE.error("Error occurred whilst migrating instances to the new location. Errors follow.");
                     moveResult.forEach((key, value) -> {
                         CreeperLogger.INSTANCE.error("Moving " + key.getLeft() + " to " + key.getRight() + " failed:", value);
                     });
                     failedInitialMigration = true;
-                }
+                }*/
+                Settings.settings.remove("instanceLocation");
+                Settings.settings.put("instanceLocation", Path.of(Constants.INSTANCES_FOLDER_LOC).toAbsolutePath().toString());
             }
+            Settings.saveSettings();
         }
 
         doUpdate(args);
@@ -206,12 +227,12 @@ public class CreeperLauncher
             if (Constants.BRANCH.equals("release") || Constants.BRANCH.equals("preview"))
             {
                 OpenModalData.openModal("Update", "Do you wish to change to this branch now?", List.of(
-                        new OpenModalData.ModalButton( "Yes", "green", () -> {
-                            doUpdate(args);
-                        }),
-                        new OpenModalData.ModalButton( "No", "red", () -> {
-                            Settings.webSocketAPI.sendMessage(new CloseModalData());
-                        })
+                    new OpenModalData.ModalButton( "Yes", "green", () -> {
+                        doUpdate(args);
+                    }),
+                    new OpenModalData.ModalButton( "No", "red", () -> {
+                        Settings.webSocketAPI.sendMessage(new CloseModalData());
+                    })
                 ));
                 return true;
             } else {
@@ -219,7 +240,7 @@ public class CreeperLauncher
                 {
                     warnedDevelop = true;
                     OpenModalData.openModal("Update", "Unable to switch from branch " + Constants.BRANCH + " via this toggle.", List.of(
-                            new OpenModalData.ModalButton("Ok", "red", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
+                        new OpenModalData.ModalButton("Ok", "red", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
                     ));
                 }
                 return false;
@@ -245,7 +266,7 @@ public class CreeperLauncher
         /*
         Borrowed from ModpackServerDownloader project
          */
-        HashMap<String, String> Args = new HashMap<String, String>();
+        HashMap<String, String> Args = new HashMap<>();
         String argName = null;
         for(String arg : args)
         {
@@ -324,6 +345,15 @@ public class CreeperLauncher
         {
             OpenModalData.openModal("Critical Error", "The FTBApp is unable to write to your selected data directory, this can be caused by file permission errors, anti-virus or any number of other configuration issues.<br />If you continue, the app will not work as intended and you may be unable to install or run any modpacks.", List.of(
                     new OpenModalData.ModalButton( "Exit", "green", CreeperLauncher::exit),
+                    new OpenModalData.ModalButton("Continue", "", () -> {
+                        Settings.webSocketAPI.sendMessage(new CloseModalData());
+                    }))
+            );
+        }
+
+        if (migrateError)
+        {
+            OpenModalData.openModal("Warning", "An error occurred whilst migrating your FTB App to a new data structure. Things may still work, but if you have issues, please contact FTB support for assistance.", List.of(
                     new OpenModalData.ModalButton("Continue", "", () -> {
                         Settings.webSocketAPI.sendMessage(new CloseModalData());
                     }))

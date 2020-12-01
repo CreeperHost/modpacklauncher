@@ -1,6 +1,7 @@
 package net.creeperhost.creeperlauncher;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
@@ -12,6 +13,7 @@ public class CreeperLogger
     public static CreeperLogger INSTANCE = new CreeperLogger();
     private static Logger logger;
     private String filename = Constants.getDataDir() + File.separator + "ftbapp.log";
+    private String oldFilename = Constants.getDataDirOld() + File.separator + "ftbapp.log";
     private FileHandler fileHandler;
     private final int limit = 1024 * 10000; //10 MB
     private SimpleFormatter simpleFormatter;
@@ -29,8 +31,40 @@ public class CreeperLogger
             fileHandler.setFormatter(simpleFormatter);
         } catch (Exception e)
         {
-            e.printStackTrace();
+            try {
+                fileHandler = new FileHandler(oldFilename, limit, 1, true);
+                logger.addHandler(fileHandler);
+                simpleFormatter = new SimpleFormatter();
+                fileHandler.setFormatter(simpleFormatter);
+            } catch (Exception e2) {
+                try {
+                    new File(filename).getParentFile().mkdirs();
+                    fileHandler = new FileHandler(filename, limit, 1, true);
+                    logger.addHandler(fileHandler);
+                    simpleFormatter = new SimpleFormatter();
+                    fileHandler.setFormatter(simpleFormatter);
+                } catch (Exception e3) {
+                    error("You'll probably never see this, but there was an error creating the log - tried everything!", e3);
+                }
+            }
+
         }
+    }
+
+    public void reinitialise()
+    {
+        try {
+            fileHandler = new FileHandler(filename, limit, 1, true);
+            fileHandler.setFormatter(simpleFormatter);
+            logger.addHandler(fileHandler);
+        } catch (Exception e) {
+            INSTANCE = new CreeperLogger(); // try recreating entire thing
+        }
+    }
+
+    public void close() {
+        fileHandler.close();
+        logger.removeHandler(fileHandler);
     }
 
     public void info(String input)
