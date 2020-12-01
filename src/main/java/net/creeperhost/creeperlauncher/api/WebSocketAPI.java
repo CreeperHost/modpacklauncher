@@ -51,6 +51,8 @@ public class WebSocketAPI extends WebSocketServer
                 stop();
             } catch (Exception ignored) {}
             return;
+        } else {
+            CreeperLauncher.websocketDisconnect = false;
         }
 
         CreeperLogger.INSTANCE.info("Front end connected: " + conn.getRemoteSocketAddress());
@@ -59,6 +61,7 @@ public class WebSocketAPI extends WebSocketServer
     @Override
     public void onClose(WebSocket conn, int code, String reason, boolean remote)
     {
+        CreeperLauncher.websocketDisconnect = true;
         CreeperLogger.INSTANCE.info("closed " + conn.getRemoteSocketAddress() + " with exit code " + code + " additional info: " + reason);
     }
 
@@ -78,6 +81,7 @@ public class WebSocketAPI extends WebSocketServer
     {
         try
         {
+            CreeperLauncher.websocketDisconnect = true;
             CreeperLogger.INSTANCE.error("an error occurred on connection " + conn.getRemoteSocketAddress() + ":" + ex, ex);
         } catch (NullPointerException ignored)
         {

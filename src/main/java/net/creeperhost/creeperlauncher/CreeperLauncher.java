@@ -36,7 +36,6 @@ public class CreeperLauncher
     public static Socket socket = null;
     public static OutputStream socketWrite = null;
     public static boolean opened = false;
-    private static boolean websocketDisconnect=false;
 
     static
     {
@@ -51,6 +50,7 @@ public class CreeperLauncher
     public static boolean defaultWebsocketPort = false;
     public static int websocketPort = WebSocketAPI.generateRandomPort();
     public static final String websocketSecret = WebSocketAPI.generateSecret();
+    public static boolean websocketDisconnect=false;
     public static AtomicBoolean isSyncing = new AtomicBoolean(false);
     public static AtomicReference<List<Process>> mojangProcesses = new AtomicReference<List<Process>>();
     public static MineTogetherConnect mtConnect;
@@ -362,7 +362,7 @@ public class CreeperLauncher
     private static void pingPong()
     {
      CompletableFuture.runAsync(() -> {
-       while(CreeperLauncher.missedPings < 20)
+       while(true)
        {
            try {
                PingLauncherData ping = new PingLauncherData();
@@ -372,14 +372,19 @@ public class CreeperLauncher
            try {
                Thread.sleep(3000);
            } catch(Exception ignored) {}
+           //15 minutes without ping/pong or an explicit disconnect event happened...
+           if(missedPings > 300 || websocketDisconnect)
+           {
+               break;
+           }
        }
      }).thenRun(() -> {
-         if(websocketDisconnect) {
+         if(!websocketDisconnect) {
              CreeperLogger.INSTANCE.error("Closed backend due to no response from frontend for " + (missedPings * 3) + " seconds...");
-             CreeperLauncher.exit();
          } else {
-             CreeperLogger.INSTANCE.error("Websocket ping/pong monitor has ended abruptly!");
+             CreeperLogger.INSTANCE.error("Closed backend due to websocket error! Also no messages from frontend for "+(missedPings * 3) + " seconds.");
          }
+         CreeperLauncher.exit();
      });
     }
     public static void listenForClient(int port) throws IOException {
