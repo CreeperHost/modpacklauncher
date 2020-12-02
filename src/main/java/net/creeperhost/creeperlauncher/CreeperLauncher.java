@@ -403,7 +403,7 @@ public class CreeperLauncher
                Thread.sleep(3000);
            } catch(Exception ignored) {}
            //15 minutes without ping/pong or an explicit disconnect event happened...
-           if(missedPings > 300 || websocketDisconnect)
+           if(missedPings > 300 || websocketDisconnect && missedPings > 3)
            {
                break;
            }

@@ -24,6 +24,8 @@ public class WebSocketAPI extends WebSocketServer
         super(address);
     }
 
+    int connections = 0;
+
     private ConcurrentLinkedQueue<String> notConnectedQueue = new ConcurrentLinkedQueue<>();
 
     public static Random random = new Random();
@@ -56,13 +58,15 @@ public class WebSocketAPI extends WebSocketServer
         }
 
         CreeperLogger.INSTANCE.info("Front end connected: " + conn.getRemoteSocketAddress());
+        connections++;
         notConnectedQueue.forEach(conn::send);
     }
 
     @Override
     public void onClose(WebSocket conn, int code, String reason, boolean remote)
     {
-        CreeperLauncher.websocketDisconnect = true;
+        connections--;
+        if (connections == 0) CreeperLauncher.websocketDisconnect = true;
         CreeperLogger.INSTANCE.info("closed " + conn.getRemoteSocketAddress() + " with exit code " + code + " additional info: " + reason);
     }
 
