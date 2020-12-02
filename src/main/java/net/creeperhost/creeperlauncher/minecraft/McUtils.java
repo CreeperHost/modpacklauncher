@@ -216,8 +216,7 @@ public class McUtils {
                     try {
                         CreeperLogger.INSTANCE.warning("=== Process list ===");
                         Process p = Runtime.getRuntime().exec("tasklist.exe /fo csv /nh");
-                        BufferedReader input = new BufferedReader
-                                (new InputStreamReader(p.getInputStream()));
+                        BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()));
                         String line;
                         while ((line = input.readLine()) != null) {
                             if (!line.trim().equals("")) {
@@ -395,6 +394,10 @@ public class McUtils {
                 }
             }
         }
+        try
+        {
+            versionReader.close();
+        } catch (IOException e) { e.printStackTrace(); }
         return targetList;
     }
 }

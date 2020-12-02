@@ -72,7 +72,7 @@ public class GameLauncher
                     }
                 }
 
-            } catch (IOException e)
+            } catch (IOException ignored)
             {
             }
         }).join();

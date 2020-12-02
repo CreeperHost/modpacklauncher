@@ -284,6 +284,9 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                 }
             }
         }
+        try {
+            versionReader.close();
+        } catch (IOException e) { e.printStackTrace(); }
         return downloadableFileList;
     }
 
@@ -440,6 +443,10 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                     }
                 }
             }
+            try
+            {
+                reader.close();
+            } catch (IOException e) { e.printStackTrace(); }
         }
         try
         {

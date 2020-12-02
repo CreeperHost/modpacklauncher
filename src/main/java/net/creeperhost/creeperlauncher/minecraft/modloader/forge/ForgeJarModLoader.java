@@ -122,8 +122,8 @@ public class ForgeJarModLoader extends ForgeModLoader
 
 	public static void prePlay(LocalInstance instance)
 	{
-		try {
-
+		try
+		{
 			CreeperLogger.INSTANCE.info("Pre-Play started");
 			String newname = instance.getMcVersion() + "-forge" + instance.getMcVersion() + "-" + instance.getModLoader();
 
