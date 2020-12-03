@@ -12,7 +12,7 @@ import java.io.IOException;
 
 public class GsonUtils
 {
-    public static Gson GSON = new GsonBuilder().setPrettyPrinting()
+    public static Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping()
             .registerTypeAdapter(Artifact.class, new Artifact.Adapter())
             .create();
 }
