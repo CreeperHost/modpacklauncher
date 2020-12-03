@@ -42,7 +42,13 @@ public class GameLauncher
             }
             try
             {
-                ProcessBuilder builder = new ProcessBuilder(exe, "--workDir", Constants.BIN_LOCATION);
+                String command = exe;
+                if(os == OS.MAC)
+                {
+                    command = "open " + Constants.MINECRAFT_MAC_LAUNCHER_APP;
+                }
+
+                ProcessBuilder builder = new ProcessBuilder(command, "--workDir", Constants.BIN_LOCATION);
                 Map<String, String> environment = builder.environment();
                 // clear JAVA_OPTIONS so that they don't interfere
                 environment.remove("_JAVA_OPTIONS");
