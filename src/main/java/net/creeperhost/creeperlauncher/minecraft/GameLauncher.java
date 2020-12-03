@@ -43,12 +43,12 @@ public class GameLauncher
             try
             {
                 String command = exe;
+                ProcessBuilder builder = new ProcessBuilder(command, "--workDir", Constants.BIN_LOCATION);
                 if(os == OS.MAC)
                 {
-                    command = "open " + Constants.MINECRAFT_MAC_LAUNCHER_APP;
+                    builder = new ProcessBuilder("/usr/bin/open", Constants.MINECRAFT_MAC_LAUNCHER_APP, "--workDir", Constants.BIN_LOCATION);
                 }
 
-                ProcessBuilder builder = new ProcessBuilder(command, "--workDir", Constants.BIN_LOCATION);
                 Map<String, String> environment = builder.environment();
                 // clear JAVA_OPTIONS so that they don't interfere
                 environment.remove("_JAVA_OPTIONS");
@@ -84,8 +84,9 @@ public class GameLauncher
                     }
                 }
 
-            } catch (IOException ignored)
+            } catch (IOException e)
             {
+                CreeperLogger.INSTANCE.error("Unable to launch vanilla launcher! ", e);
             }
         }).join();
     }

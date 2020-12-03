@@ -86,7 +86,7 @@ public class Constants
             return System.getenv("LOCALAPPDATA") + File.separator + INNER_DATA_DIR;
         } else if (OSUtils.getOs() == OS.MAC)
         {
-            return System.getProperty("user.home") + File.separator + "/Library/Application Support";
+            return System.getProperty("user.home") + File.separator + "/Library/Application Support" + File.separator + INNER_DATA_DIR;
         }
         return DATA_DIR;
     }
