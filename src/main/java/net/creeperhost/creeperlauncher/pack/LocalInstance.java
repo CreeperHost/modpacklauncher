@@ -429,6 +429,7 @@ public class LocalInstance implements IPack
                 }
             });
         }
+        McUtils.verifyJson(new File(Constants.LAUNCHER_PROFILES_JSON));
         this.lastPlayed = CreeperLauncher.unixtimestamp();
         CreeperLogger.INSTANCE.debug("Sending play request to API");
         Analytics.sendPlayRequest(this.getId(), this.getVersionId());

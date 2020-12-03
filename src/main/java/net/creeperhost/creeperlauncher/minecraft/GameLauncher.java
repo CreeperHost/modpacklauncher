@@ -19,6 +19,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -47,6 +48,11 @@ public class GameLauncher
                 environment.remove("_JAVA_OPTIONS");
                 environment.remove("JAVA_TOOL_OPTIONS");
                 environment.remove("JAVA_OPTIONS");
+                if(Locale.getDefault() == null)
+                {
+                    Locale.setDefault(Locale.US);
+                }
+                CreeperLogger.INSTANCE.error(Locale.getDefault().toString());
                 process = builder.start();
                 process.onExit().thenRunAsync(() -> {
                         CreeperLauncher.mojangProcesses.getAndUpdate((List<Process> processes) -> {

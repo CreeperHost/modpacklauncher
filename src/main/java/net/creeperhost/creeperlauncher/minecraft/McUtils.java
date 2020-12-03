@@ -1,9 +1,6 @@
 package net.creeperhost.creeperlauncher.minecraft;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.*;
 import com.google.gson.stream.JsonReader;
 import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.CreeperLogger;
@@ -14,10 +11,7 @@ import net.creeperhost.creeperlauncher.api.data.other.OpenModalData;
 import net.creeperhost.creeperlauncher.install.tasks.DownloadTask;
 import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.os.OSUtils;
-import net.creeperhost.creeperlauncher.util.FileUtils;
-import net.creeperhost.creeperlauncher.util.GsonUtils;
-import net.creeperhost.creeperlauncher.util.LoaderTarget;
-import net.creeperhost.creeperlauncher.util.WebUtils;
+import net.creeperhost.creeperlauncher.util.*;
 import org.apache.commons.compress.archivers.ArchiveException;
 
 import java.io.*;
@@ -25,8 +19,6 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.attribute.PosixFilePermissions;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -122,6 +114,36 @@ public class McUtils {
         return false;
     }
 
+    public static void verifyJson(File target)
+    {
+        if(target.exists())
+        {
+            try (InputStream stream = new FileInputStream(target))
+            {
+                JsonObject json = null;
+                try
+                {
+                    json = new JsonParser().parse(new InputStreamReader(stream, StandardCharsets.UTF_8)).getAsJsonObject();
+                }
+                catch (JsonSyntaxException e)
+                {
+                    stream.close();
+                    CreeperLogger.INSTANCE.error(e.getMessage());
+                    //Json is malformed
+                    if(target.delete())
+                    {
+                        CreeperLogger.INSTANCE.info("launcher_profiles.json removed, Attempting to download new launcher_profiles.json");
+                        DownloadUtils.downloadFile(target, "https://apps.modpacks.ch/FTB2/launcher_profiles.json");
+                    }
+                }
+            }
+            catch (IOException e)
+            {
+                CreeperLogger.INSTANCE.error(e.getMessage());
+            }
+        }
+    }
+
     public static boolean clearProfiles(File target) {
         try {
             JsonObject json = null;
@@ -130,7 +152,8 @@ public class McUtils {
             } catch (IOException e) {
                 CreeperLogger.INSTANCE.error("Failed to read " + target);
                 e.printStackTrace();
-                try {
+                try
+                {
                     URL url = new URL("https://apps.modpacks.ch/FTB2/launcher_profiles.json");
                     URLConnection urlConnection = url.openConnection();
                     BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
@@ -143,6 +166,7 @@ public class McUtils {
                     json = new JsonParser().parse(buffer).getAsJsonObject();
                 } catch (Throwable t)
                 {
+                    CreeperLogger.INSTANCE.error(e.getMessage());
                     e.printStackTrace();
                     return false;
                 }
