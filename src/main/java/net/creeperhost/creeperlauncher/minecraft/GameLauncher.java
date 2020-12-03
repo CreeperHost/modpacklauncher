@@ -46,7 +46,8 @@ public class GameLauncher
                 ProcessBuilder builder = new ProcessBuilder(command, "--workDir", Constants.BIN_LOCATION);
                 if(os == OS.MAC)
                 {
-                    builder = new ProcessBuilder("/usr/bin/open", Constants.MINECRAFT_MAC_LAUNCHER_APP, "--workDir", Constants.BIN_LOCATION);
+                    CreeperLogger.INSTANCE.warning("/usr/bin/open " + Constants.MINECRAFT_MAC_LAUNCHER_APP + " --args --workDir " + Constants.BIN_LOCATION);
+                    builder = new ProcessBuilder("/usr/bin/open", Constants.MINECRAFT_MAC_LAUNCHER_APP, "--args", "--workDir", Constants.BIN_LOCATION);
                 }
 
                 Map<String, String> environment = builder.environment();
