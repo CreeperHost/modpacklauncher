@@ -83,7 +83,22 @@ public class McUtils {
             } catch (IOException e) {
                 CreeperLogger.INSTANCE.error("Failed to read " + target);
                 e.printStackTrace();
-                return false;
+                try {
+                    URL url = new URL("https://apps.modpacks.ch/FTB2/launcher_profiles.json");
+                    URLConnection urlConnection = url.openConnection();
+                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
+                    StringBuilder stringBuilder = new StringBuilder();
+                    String buffer;
+                    while((buffer = bufferedReader.readLine()) != null)
+                    {
+                        stringBuilder.append(buffer);
+                    }
+                    json = new JsonParser().parse(buffer).getAsJsonObject();
+                } catch (Throwable t)
+                {
+                    e.printStackTrace();
+                    return false;
+                }
             }
 
             JsonObject _profiles = json.getAsJsonObject("profiles");
@@ -115,7 +130,22 @@ public class McUtils {
             } catch (IOException e) {
                 CreeperLogger.INSTANCE.error("Failed to read " + target);
                 e.printStackTrace();
-                return false;
+                try {
+                    URL url = new URL("https://apps.modpacks.ch/FTB2/launcher_profiles.json");
+                    URLConnection urlConnection = url.openConnection();
+                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
+                    StringBuilder stringBuilder = new StringBuilder();
+                    String buffer;
+                    while((buffer = bufferedReader.readLine()) != null)
+                    {
+                        stringBuilder.append(buffer);
+                    }
+                    json = new JsonParser().parse(buffer).getAsJsonObject();
+                } catch (Throwable t)
+                {
+                    e.printStackTrace();
+                    return false;
+                }
             }
             json.remove("profiles");
             JsonObject _profiles = new JsonObject();
@@ -139,7 +169,22 @@ public class McUtils {
             } catch (IOException e) {
                 CreeperLogger.INSTANCE.error("Failed to read " + target);
                 e.printStackTrace();
-                return false;
+                try {
+                    URL url = new URL("https://apps.modpacks.ch/FTB2/launcher_profiles.json");
+                    URLConnection urlConnection = url.openConnection();
+                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
+                    StringBuilder stringBuilder = new StringBuilder();
+                    String buffer;
+                    while((buffer = bufferedReader.readLine()) != null)
+                    {
+                        stringBuilder.append(buffer);
+                    }
+                    json = new JsonParser().parse(buffer).getAsJsonObject();
+                } catch (Throwable t)
+                {
+                    e.printStackTrace();
+                    return false;
+                }
             }
 
             JsonObject _profiles = json.getAsJsonObject("profiles");
