@@ -249,15 +249,23 @@ public class GameLauncher
 
                             try {
                                 Thread.sleep(80);
-                            } catch (InterruptedException e) {
-                            }
+                            } catch (InterruptedException ignored) {}
 
                             robot.keyPress(KeyEvent.VK_SHIFT);
                             robot.keyPress(KeyEvent.VK_TAB);
                             robot.keyRelease(KeyEvent.VK_TAB);
                             robot.keyRelease(KeyEvent.VK_SHIFT);
+
+                            robot.keyPress(KeyEvent.VK_SHIFT);
+                            robot.keyPress(KeyEvent.VK_TAB);
+                            robot.keyRelease(KeyEvent.VK_TAB);
+                            robot.keyRelease(KeyEvent.VK_SHIFT);
+
                             robot.keyPress(KeyEvent.VK_SPACE);
                             robot.keyRelease(KeyEvent.VK_SPACE);
+                            robot.keyPress(KeyEvent.VK_SPACE);
+                            robot.keyRelease(KeyEvent.VK_SPACE);
+
                             //window.setPos(buttonCentre, yMove);
                             break outer;
                         } catch (AWTException e) {
