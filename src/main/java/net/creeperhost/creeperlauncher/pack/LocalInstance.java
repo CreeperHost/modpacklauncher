@@ -24,7 +24,6 @@ import net.creeperhost.creeperlauncher.os.OSUtils;
 import java.awt.*;
 import java.io.*;
 import java.net.MalformedURLException;
-import java.net.Socket;
 import java.nio.channels.FileLock;
 import java.nio.file.*;
 import java.util.*;
@@ -75,7 +74,6 @@ public class LocalInstance implements IPack
     transient private Runnable preUninstall;
     transient private boolean preUninstallAsync;
     transient private AtomicBoolean inUse = new AtomicBoolean(false);
-    transient public Socket loadingModSocket;
     transient private HashMap<String, instanceEvent> gameCloseEvents = new HashMap<>();
 
     public LocalInstance(FTBPack pack, long versionId)
@@ -431,6 +429,7 @@ public class LocalInstance implements IPack
                 }
             });
         }
+        McUtils.verifyJson(new File(Constants.LAUNCHER_PROFILES_JSON));
         this.lastPlayed = CreeperLauncher.unixtimestamp();
         CreeperLogger.INSTANCE.debug("Sending play request to API");
         Analytics.sendPlayRequest(this.getId(), this.getVersionId());
@@ -460,13 +459,7 @@ public class LocalInstance implements IPack
             }
             //END TESTING CODE
             if (this.hasLoadingMod) {
-                if (this.loadingModSocket != null) {
-                    try {
-                        this.loadingModSocket.close();
-                    } catch (IOException ignored) {
-                    }
-                    this.loadingModSocket = null;
-                }
+                CreeperLauncher.closeOldClient();
                 int retries = 0;
                 AtomicBoolean hasErrored = new AtomicBoolean(true);
                 while (hasErrored.get()) {
@@ -475,13 +468,17 @@ public class LocalInstance implements IPack
                     this.loadingModPort = MiscUtils.getRandomNumber(50001, 52000);
                     CompletableFuture.runAsync(() -> {
                         try {
-
-                            CreeperLogger.INSTANCE.info("Started mod socket on port " + this.loadingModPort);
-                            loadingModSocket = CreeperLauncher.listenForClient(this.loadingModPort);
+                            CreeperLauncher.listenForClient(this.loadingModPort);
                         } catch (Exception err) {
-                            CreeperLogger.INSTANCE.error("Unable to open loading mod listener on port '" + this.loadingModPort + "'...", err);
-                            loadingModSocket = null;
-                            hasErrored.set(true);
+                            if (!CreeperLauncher.opened)
+                            {
+                                CreeperLogger.INSTANCE.error("Error whilst starting mod socket on port '" + this.loadingModPort + "'...", err);
+                                hasErrored.set(true);
+                            } else {
+                                CreeperLogger.INSTANCE.warning("Error whilst handling message from mod socket - probably nothing!", err);
+                                CreeperLauncher.opened = false;
+                            }
+
                         }
                     });
                     try {
@@ -505,6 +502,9 @@ public class LocalInstance implements IPack
         if(!McUtils.injectProfile(new File(Constants.LAUNCHER_PROFILES_JSON), profile, jrePath))
         {
             CreeperLogger.INSTANCE.error("Unable to inject Mojang launcher profile...");
+            OpenModalData.openModal("Error", "Unable to create Mojang launcher profile. Please ensure you do not have any security software blocking access to the FTB App data directories.", List.of(
+                    new OpenModalData.ModalButton("Ok", "red", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
+            ));
             return null;
         }
 

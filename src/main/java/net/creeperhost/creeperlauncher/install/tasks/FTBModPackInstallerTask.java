@@ -23,6 +23,7 @@ import net.creeperhost.creeperlauncher.util.*;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -283,6 +284,9 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                 }
             }
         }
+        try {
+            versionReader.close();
+        } catch (IOException e) { e.printStackTrace(); }
         return downloadableFileList;
     }
 
@@ -439,7 +443,15 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                     }
                 }
             }
+            try
+            {
+                reader.close();
+            } catch (IOException e) { e.printStackTrace(); }
         }
+        try
+        {
+            versionReader.close();
+        } catch (IOException e) { e.printStackTrace(); }
         return downloadableFileList;
     }
 
@@ -534,6 +546,10 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                 }
             }
         }
+        try
+        {
+            versionReader.close();
+        } catch (IOException e) { e.printStackTrace(); }
         return targetList;
     }
 
