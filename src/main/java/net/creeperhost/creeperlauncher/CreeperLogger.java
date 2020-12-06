@@ -20,6 +20,14 @@ public class CreeperLogger
 
     public CreeperLogger()
     {
+        try {
+            //Logger is initialized before data directory is created on first run...
+            File logDir = new File(Constants.getDataDir());
+            logDir.mkdirs();
+        } catch(Exception e)
+        {
+            System.out.println(e);
+        }
         logger = Logger.getLogger("ftbapp.log");
 
         simpleFormatter = new SimpleFormatter();

@@ -261,7 +261,7 @@ public class CreeperLauncher
             localCache.clean();
         });
 
-        boolean startProcess = !isDevMode;
+
 
         /*
         Borrowed from ModpackServerDownloader project
@@ -293,6 +293,8 @@ public class CreeperLauncher
          */
 
         isDevMode = Args.containsKey("dev");
+
+        boolean startProcess = !isDevMode;
 
         if(Args.containsKey("pid") && !isDevMode)
         {
