@@ -19,6 +19,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -41,12 +42,24 @@ public class GameLauncher
             }
             try
             {
-                ProcessBuilder builder = new ProcessBuilder(exe, "--workDir", Constants.BIN_LOCATION);
+                String command = exe;
+                ProcessBuilder builder = new ProcessBuilder(command, "--workDir", Constants.BIN_LOCATION);
+                if(os == OS.MAC)
+                {
+                    CreeperLogger.INSTANCE.warning("/usr/bin/open " + Constants.MINECRAFT_MAC_LAUNCHER_APP + " --args --workDir " + Constants.BIN_LOCATION);
+                    builder = new ProcessBuilder("/usr/bin/open", Constants.MINECRAFT_MAC_LAUNCHER_APP, "--args", "--workDir", Constants.BIN_LOCATION);
+                }
+
                 Map<String, String> environment = builder.environment();
                 // clear JAVA_OPTIONS so that they don't interfere
                 environment.remove("_JAVA_OPTIONS");
                 environment.remove("JAVA_TOOL_OPTIONS");
                 environment.remove("JAVA_OPTIONS");
+                if(Locale.getDefault() == null)
+                {
+                    Locale.setDefault(Locale.US);
+                }
+                CreeperLogger.INSTANCE.error(Locale.getDefault().toString());
                 process = builder.start();
                 process.onExit().thenRunAsync(() -> {
                         CreeperLauncher.mojangProcesses.getAndUpdate((List<Process> processes) -> {
@@ -74,6 +87,7 @@ public class GameLauncher
 
             } catch (IOException e)
             {
+                CreeperLogger.INSTANCE.error("Unable to launch vanilla launcher! ", e);
             }
         }).join();
     }
@@ -243,15 +257,23 @@ public class GameLauncher
 
                             try {
                                 Thread.sleep(80);
-                            } catch (InterruptedException e) {
-                            }
+                            } catch (InterruptedException ignored) {}
 
                             robot.keyPress(KeyEvent.VK_SHIFT);
                             robot.keyPress(KeyEvent.VK_TAB);
                             robot.keyRelease(KeyEvent.VK_TAB);
                             robot.keyRelease(KeyEvent.VK_SHIFT);
+
+                            robot.keyPress(KeyEvent.VK_SHIFT);
+                            robot.keyPress(KeyEvent.VK_TAB);
+                            robot.keyRelease(KeyEvent.VK_TAB);
+                            robot.keyRelease(KeyEvent.VK_SHIFT);
+
                             robot.keyPress(KeyEvent.VK_SPACE);
                             robot.keyRelease(KeyEvent.VK_SPACE);
+                            robot.keyPress(KeyEvent.VK_SPACE);
+                            robot.keyRelease(KeyEvent.VK_SPACE);
+
                             //window.setPos(buttonCentre, yMove);
                             break outer;
                         } catch (AWTException e) {
