@@ -306,10 +306,13 @@ public class McUtils {
         }
         return true;
     }
-
-    public static void downloadVanillaLauncher() {
+    public static void downloadVanillaLauncher()
+    {
+        downloadVanillaLauncher(Constants.BIN_LOCATION);
+    }
+    public static void downloadVanillaLauncher(String destination) {
         String downloadurl = OSUtils.getMinecraftLauncherURL();
-        File binfolder = new File(Constants.BIN_LOCATION);
+        File binfolder = new File(destination);
         File tempFolder = new File(System.getProperty("java.io.tmpdir"));
         if(!binfolder.exists()) {
             if (!binfolder.mkdir()) {
@@ -334,8 +337,9 @@ public class McUtils {
         if (!file.exists()) {
             CreeperLogger.INSTANCE.info("Starting download of the vanilla launcher");
             DownloadableFile remoteFile = new DownloadableFile("official", "/", downloadurl, new ArrayList<>(), 0, false, false, 0, "Vanilla", "vanilla", String.valueOf(System.currentTimeMillis() / 1000L));
-            File destinationFile = new File(Constants.MINECRAFT_LAUNCHER_LOCATION);
-            File destinationDir = new File(Constants.BIN_LOCATION);
+
+            File destinationDir = new File(destination);
+            File destinationFile = new File(destinationDir + File.separator + Constants.MINECRAFT_LAUNCHER_NAME);
             File moveDestination = null;
             if(!destinationDir.canWrite())
             {
@@ -369,25 +373,31 @@ public class McUtils {
             if (!osConfig) CreeperLogger.INSTANCE.error("Failed to configure Vanilla launcher for this OS!");
         }
     }
-
     public static boolean prepareVanillaLauncher() throws IOException, InterruptedException {
+        return prepareVanillaLauncher(Constants.MINECRAFT_LAUNCHER_LOCATION);
+    }
+    public static boolean prepareVanillaLauncher(String path) throws IOException, InterruptedException {
         OS os = OSUtils.getOs();
         //All OS's are not equal, sometimes we need to unpackage the launcher.
         boolean success = false;
         switch (os) {
             case MAC:
-                File installer = new File(Constants.MINECRAFT_LAUNCHER_LOCATION);
-                String[] mcommand = {"/usr/bin/hdiutil", "attach", Constants.MINECRAFT_LAUNCHER_LOCATION};
+                File installer = new File(path);
+                String[] mcommand = {"/usr/bin/hdiutil", "attach", path};
                 Process mount = Runtime.getRuntime().exec(mcommand);
                 OutputStream stdout = mount.getOutputStream();
-                while (mount.isAlive()) {
+                int loop = 0;
+                while (mount.isAlive() && loop < 5000) {
                     Thread.sleep(500);
+                    loop++;
                 }
                 if (mount.exitValue() == 0) {
                     String[] ccommand = {"/bin/cp", "-R", Constants.MINECRAFT_MAC_LAUNCHER_VOLUME + File.separator + "/Minecraft.app", Constants.BIN_LOCATION + File.separator};
                     Process copy = Runtime.getRuntime().exec(ccommand);
-                    while (copy.isAlive()) {
+                    loop = 0;
+                    while (copy.isAlive() && loop < 30000) {
                         Thread.sleep(500);
+                        loop++;
                     }
                     if (copy.exitValue() == 0) {
                         success = true;
@@ -399,8 +409,10 @@ public class McUtils {
                 }
                 String[] ucommand = {"/usr/bin/hdiutil", "unmount", Constants.MINECRAFT_MAC_LAUNCHER_VOLUME};
                 Process unmount = Runtime.getRuntime().exec(ucommand);
-                while (unmount.isAlive()) {
+                loop = 0;
+                while (unmount.isAlive() && loop < 5000) {
                     Thread.sleep(500);
+                    loop++;
                 }
                 if (unmount.exitValue() != 0) {
                     CreeperLogger.INSTANCE.error("Somehow failed to clean up after sorting the Vanilla launcher on MacOS.");
@@ -409,13 +421,13 @@ public class McUtils {
                 }
                 break;
             case LINUX:
-                File installergzip = new File(Constants.MINECRAFT_LAUNCHER_LOCATION);
-                File tar = new File(Constants.BIN_LOCATION + File.separator + "launcher.tar");
+                File installergzip = new File(path);
+                File tar = new File(path + File.separator + "launcher.tar");
                 FileUtils.unGzip(installergzip, tar);
                 if (tar.exists()) {
                     try {
-                        FileUtils.unTar(tar, new File(Constants.BIN_LOCATION));
-                        FileUtils.setFilePermissions(new File(Constants.MINECRAFT_LINUX_LAUNCHER_EXECUTABLE));
+                        FileUtils.unTar(tar, new File(path));
+                        FileUtils.setFilePermissions(new File(path + File.separator + Constants.MINECRAFT_LAUNCHER_NAME));
                         installergzip.delete();
                         success = true;
                     } catch (ArchiveException e) {

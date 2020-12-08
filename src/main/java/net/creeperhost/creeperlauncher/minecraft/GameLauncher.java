@@ -8,6 +8,7 @@ import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.DownloadableFile;
 import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.os.OSUtils;
+import net.creeperhost.creeperlauncher.util.FileUtils;
 import net.creeperhost.creeperlauncher.util.StreamGobblerLog;
 import net.creeperhost.creeperlauncher.util.window.IMonitor;
 import net.creeperhost.creeperlauncher.util.window.IWindow;
@@ -17,6 +18,8 @@ import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -26,28 +29,53 @@ import java.util.concurrent.CompletableFuture;
 public class GameLauncher
 {
     public Process process;
+    public String prepareGame()
+    {
+        try {
+            Path stored = Path.of(Constants.BIN_LOCATION);
+            File test = new File(stored.toString() + File.separator + Constants.MINECRAFT_LAUNCHER_NAME);
+            Path exec = Files.createTempDirectory("ftba");
+            if(!test.exists())
+            {
+                //If we don't have it in our bin dir... Let's download it to where we need it, this is terrible but I don't care if it works and we can iterate its design later
+                McUtils.downloadVanillaLauncher(exec.toString());
+                McUtils.prepareVanillaLauncher(exec.toString());
+            } else {
+                FileUtils.copyDirectory(stored, exec);
+            }
+            return exec.toString();
+        } catch(Exception err)
+        {
+            CreeperLogger.INSTANCE.warning("Unable to copy Mojang launcher.", err);
+        }
+        return null;
+    }
     public void launchGame()
+    {
+        launchGame(Constants.BIN_LOCATION);
+    }
+    public void launchGame(String path)
     {
         CompletableFuture.runAsync(() ->
         {
-            String exe = Constants.MINECRAFT_LAUNCHER_LOCATION;
+            String exe = path + File.separator + Constants.MINECRAFT_LAUNCHER_NAME;
             OS os = OSUtils.getOs();
             if (os == OS.MAC)
             {
-                exe = Constants.MINECRAFT_MAC_LAUNCHER_EXECUTABLE;
+                exe = path + File.separator + "Minecraft.app" + File.separator + "Contents" + File.separator + "MacOS" + File.separator + "launcher";
             }
             if (os == OS.LINUX)
             {
-                exe = Constants.MINECRAFT_LINUX_LAUNCHER_EXECUTABLE;
+                exe = path + File.separator + "minecraft-launcher" + File.separator + "minecraft-launcher";
             }
             try
             {
                 String command = exe;
-                ProcessBuilder builder = new ProcessBuilder(command, "--workDir", Constants.BIN_LOCATION);
+                ProcessBuilder builder = new ProcessBuilder(command, "--workDir", path);
                 if(os == OS.MAC)
                 {
-                    CreeperLogger.INSTANCE.warning("/usr/bin/open " + Constants.MINECRAFT_MAC_LAUNCHER_APP + " --args --workDir " + Constants.BIN_LOCATION);
-                    builder = new ProcessBuilder("/usr/bin/open", Constants.MINECRAFT_MAC_LAUNCHER_APP, "--args", "--workDir", Constants.BIN_LOCATION);
+                    CreeperLogger.INSTANCE.warning("/usr/bin/open " + path + File.separator + "Minecraft.app" + " --args --workDir " + path);
+                    builder = new ProcessBuilder("/usr/bin/open", path + File.separator + "Minecraft.app", "--args", "--workDir", path);
                 }
 
                 Map<String, String> environment = builder.environment();
@@ -55,6 +83,7 @@ public class GameLauncher
                 environment.remove("_JAVA_OPTIONS");
                 environment.remove("JAVA_TOOL_OPTIONS");
                 environment.remove("JAVA_OPTIONS");
+                //TODO: This is pointless as this sets our JVM's locale not the system locale
                 if(Locale.getDefault() == null)
                 {
                     Locale.setDefault(Locale.US);
@@ -91,8 +120,11 @@ public class GameLauncher
             }
         }).join();
     }
-
     public static void launchGameAndClose()
+    {
+        launchGameAndClose(Constants.BIN_LOCATION);
+    }
+    public static void launchGameAndClose(String path)
     {
         CompletableFuture.runAsync(() ->
         {
@@ -108,7 +140,7 @@ public class GameLauncher
             }
             try
             {
-                ProcessBuilder builder = new ProcessBuilder(exe, "--workDir", Constants.BIN_LOCATION);
+                ProcessBuilder builder = new ProcessBuilder(exe, "--workDir", path);
                 CreeperLogger.INSTANCE.info("Launching Vanilla launcher and closing - path and args: " + exe + " --workDir " + Constants.BIN_LOCATION);
                 Process process = builder.start();
                 StreamGobblerLog.redirectToLogger(process.getErrorStream(), CreeperLogger.INSTANCE::error);

@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.jar.JarFile;
 import java.util.zip.GZIPInputStream;
 
 public class FileUtils
@@ -74,7 +73,20 @@ public class FileUtils
         inputStream.close();
         outputStream.close();
     }
-
+    public static boolean copyDirectory(Path sourceDir, Path destinationDir) throws IOException
+    {
+        AtomicBoolean error = new AtomicBoolean(false);
+        Files.walk(sourceDir).forEach(sourcePath -> {
+            try {
+                Path targetPath = destinationDir.resolve(sourceDir.relativize(sourcePath));
+                Files.copy(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException ex) {
+                CreeperLogger.INSTANCE.error("File copy I/O error: ", ex);
+                error.set(true);
+            }
+        });
+        return !error.get();
+    }
     public static void fileFromZip(File zip, File dest, String fileName) throws IOException
     {
         try (java.nio.file.FileSystem fileSystem = FileSystems.newFileSystem(zip.toPath(), null))
