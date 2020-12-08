@@ -412,6 +412,19 @@ public class McUtils {
                             CreeperLogger.INSTANCE.error("Failed extracting mac Mojang launcher!", e);
                         }
                     });
+                    if(success.get() == false)
+                    {
+                        String[] ccommand = {"/usr/bin/unzip", "-o", launcherFile.toString(), "-d", launcherFile.toPath().getParent().toString()};
+                        CreeperLogger.INSTANCE.error("Failed extraction... Trying via shell...");
+                        CreeperLogger.INSTANCE.warning(String.join(" ", ccommand));
+                        Process copy = Runtime.getRuntime().exec(ccommand);
+                        InputStream stdout = copy.getInputStream();
+                        BufferedReader br = new BufferedReader(new InputStreamReader(stdout));
+                        String str;
+                        while ((str = br.readLine()) != null) {
+                            CreeperLogger.INSTANCE.info(str);
+                        }
+                    }
                     launcherFile.delete();
                 } else {
                     CreeperLogger.INSTANCE.error("Launcher does not exist at '"+(path)+"'...");

@@ -28,8 +28,8 @@ import java.util.concurrent.CompletableFuture;
 
 public class GameLauncher
 {
-    public Process process;
-    public String prepareGame()
+    public static Process process;
+    public static String prepareGame()
     {
         try {
             Path stored = Path.of(Constants.BIN_LOCATION);
@@ -54,71 +54,69 @@ public class GameLauncher
     {
         launchGame(Constants.BIN_LOCATION);
     }
-    public void launchGame(String path)
+    public static Process launchGame(String path)
     {
-        CompletableFuture.runAsync(() ->
+        String exe = path + File.separator + Constants.MINECRAFT_LAUNCHER_NAME;
+        OS os = OSUtils.getOs();
+        if (os == OS.MAC)
         {
-            String exe = path + File.separator + Constants.MINECRAFT_LAUNCHER_NAME;
-            OS os = OSUtils.getOs();
-            if (os == OS.MAC)
+            exe = path + File.separator + "Minecraft.app" + File.separator + "Contents" + File.separator + "MacOS" + File.separator + "launcher";
+        }
+        if (os == OS.LINUX)
+        {
+            exe = path + File.separator + "minecraft-launcher" + File.separator + "minecraft-launcher";
+        }
+        try
+        {
+            String command = exe;
+            ProcessBuilder builder = new ProcessBuilder(command, "--workDir", path);
+            if(os == OS.MAC)
             {
-                exe = path + File.separator + "Minecraft.app" + File.separator + "Contents" + File.separator + "MacOS" + File.separator + "launcher";
+                CreeperLogger.INSTANCE.warning("/usr/bin/open " + path + File.separator + "Minecraft.app" + " --args --workDir " + path);
+                builder = new ProcessBuilder("/usr/bin/open", path + File.separator + "Minecraft.app", "--args", "--workDir", path);
             }
-            if (os == OS.LINUX)
-            {
-                exe = path + File.separator + "minecraft-launcher" + File.separator + "minecraft-launcher";
-            }
-            try
-            {
-                String command = exe;
-                ProcessBuilder builder = new ProcessBuilder(command, "--workDir", path);
-                if(os == OS.MAC)
-                {
-                    CreeperLogger.INSTANCE.warning("/usr/bin/open " + path + File.separator + "Minecraft.app" + " --args --workDir " + path);
-                    builder = new ProcessBuilder("/usr/bin/open", path + File.separator + "Minecraft.app", "--args", "--workDir", path);
-                }
 
-                Map<String, String> environment = builder.environment();
-                // clear JAVA_OPTIONS so that they don't interfere
-                environment.remove("_JAVA_OPTIONS");
-                environment.remove("JAVA_TOOL_OPTIONS");
-                environment.remove("JAVA_OPTIONS");
-                //TODO: This is pointless as this sets our JVM's locale not the system locale
-                if(Locale.getDefault() == null)
-                {
-                    Locale.setDefault(Locale.US);
-                }
-                CreeperLogger.INSTANCE.error(Locale.getDefault().toString());
-                process = builder.start();
-                process.onExit().thenRunAsync(() -> {
-                        CreeperLauncher.mojangProcesses.getAndUpdate((List<Process> processes) -> {
-                            if(processes != null) {
-                                List<Process> toRemove = new ArrayList<Process>();
-                                for (Process loopProcess : processes) {
-                                    if (loopProcess.pid() == process.pid()) {
-                                        toRemove.add(process);
-                                    }
-                                }
-                                for (Process remove : toRemove) {
-                                    processes.remove(remove);
+            Map<String, String> environment = builder.environment();
+            // clear JAVA_OPTIONS so that they don't interfere
+            environment.remove("_JAVA_OPTIONS");
+            environment.remove("JAVA_TOOL_OPTIONS");
+            environment.remove("JAVA_OPTIONS");
+            //TODO: This is pointless as this sets our JVM's locale not the system locale
+            if(Locale.getDefault() == null)
+            {
+                Locale.setDefault(Locale.US);
+            }
+            CreeperLogger.INSTANCE.error(Locale.getDefault().toString());
+            process = builder.start();
+            process.onExit().thenRunAsync(() -> {
+                    CreeperLauncher.mojangProcesses.getAndUpdate((List<Process> processes) -> {
+                        if(processes != null) {
+                            List<Process> toRemove = new ArrayList<Process>();
+                            for (Process loopProcess : processes) {
+                                if (loopProcess.pid() == process.pid()) {
+                                    toRemove.add(process);
                                 }
                             }
-                            return processes;
-                        });
-                });
-                if(Settings.settings.getOrDefault("automateMojang", "true").equalsIgnoreCase("true")){
-                    if(process != null) {
-                        tryAutomation(process);
-                    } else {
-                        CreeperLogger.INSTANCE.error("Minecraft Launcher process failed to start, could not automate.");
-                    }
+                            for (Process remove : toRemove) {
+                                processes.remove(remove);
+                            }
+                        }
+                        return processes;
+                    });
+            });
+            if(Settings.settings.getOrDefault("automateMojang", "true").equalsIgnoreCase("true")){
+                if(process != null) {
+                    tryAutomation(process);
+                } else {
+                    CreeperLogger.INSTANCE.error("Minecraft Launcher process failed to start, could not automate.");
                 }
-
-            } catch (IOException e)
-            {
-                CreeperLogger.INSTANCE.error("Unable to launch vanilla launcher! ", e);
             }
-        }).join();
+            return process;
+        } catch (IOException e)
+        {
+            CreeperLogger.INSTANCE.error("Unable to launch vanilla launcher! ", e);
+            return null;
+        }
     }
     public static void launchGameAndClose()
     {
@@ -140,11 +138,7 @@ public class GameLauncher
             }
             try
             {
-                ProcessBuilder builder = new ProcessBuilder(exe, "--workDir", path);
-                CreeperLogger.INSTANCE.info("Launching Vanilla launcher and closing - path and args: " + exe + " --workDir " + Constants.BIN_LOCATION);
-                Process process = builder.start();
-                StreamGobblerLog.redirectToLogger(process.getErrorStream(), CreeperLogger.INSTANCE::error);
-                StreamGobblerLog.redirectToLogger(process.getInputStream(), CreeperLogger.INSTANCE::info);
+                Process process = launchGame(path);
                 File file = new File(Constants.LAUNCHER_PROFILES_JSON);
                 int tryCount = 0;
                 while (!file.exists())
@@ -159,7 +153,11 @@ public class GameLauncher
                     }
                     //3 minutes
                     //((3 * 60) * 1000) / 50
-                    if(tryCount > 3600) break;
+                    if(tryCount > 3600)
+                    {
+                        CreeperLogger.INSTANCE.warning("Timed out waiting for Mojang launcher...");
+                        break;
+                    }
                 }
                 if(process != null) {
                     process.destroy();
@@ -200,7 +198,7 @@ public class GameLauncher
         }).join();
     }
 
-    private void tryAutomation(Process start) {
+    private static void tryAutomation(Process start) {
         long pid = start.pid();
         if (WindowUtils.isSupported())
         {

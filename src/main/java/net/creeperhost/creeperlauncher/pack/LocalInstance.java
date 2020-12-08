@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -390,11 +391,11 @@ public class LocalInstance implements IPack
         if(totalArgs.length() > 0 && extraArgs.length() > 0) totalArgs = totalArgs.trim() + " " + extraArgs.trim();
         return new Profile(getUuid().toString(), getName(), getMcVersion(), modLoader, MiscUtils.getDateAndTime(), "custom", dir, art, totalArgs, memory, width, height);
     }
-    public GameLauncher play()
+    public Process play()
     {
         return play("");
     }
-    public GameLauncher play(String extraArgs)
+    public Process play(String extraArgs)
     {
         List<Process> processes = CreeperLauncher.mojangProcesses.get();
         if(processes != null) {
@@ -500,12 +501,11 @@ public class LocalInstance implements IPack
         }
 
         Profile profile = (extraArgs.length() > 0) ? this.toProfile(extraArgs) : this.toProfile();
-        GameLauncher launcher = new GameLauncher();
         tempLauncherPath = Constants.BIN_LOCATION;
         if(!McUtils.injectProfile(new File(tempLauncherPath + File.separator + "launcher_profiles.json"), profile, jrePath))
         {
             //Can't write to our normal directory, so we'll copy the launcher to a temporary directory and try there!
-            tempLauncherPath = launcher.prepareGame();
+            tempLauncherPath = GameLauncher.prepareGame();
             if(!McUtils.injectProfile(new File(tempLauncherPath + File.separator + "launcher_profiles.json"), profile, jrePath))
             {
 
@@ -527,12 +527,15 @@ public class LocalInstance implements IPack
         }
 
         CreeperLogger.INSTANCE.debug("Starting Mojang launcher");
-        launcher.launchGame(tempLauncherPath);
-        CreeperLauncher.mojangProcesses.getAndUpdate((List<Process> _processes) -> {
-            if(_processes == null) _processes = new ArrayList<Process>();
-            if(launcher != null && launcher.process != null) _processes.add(launcher.process);
-            return _processes;
-        });
+        AtomicReference<Process> launcher = new AtomicReference<>();
+        CompletableFuture.runAsync(() -> {
+            launcher.set(GameLauncher.launchGame(tempLauncherPath));
+            CreeperLauncher.mojangProcesses.getAndUpdate((List<Process> _processes) -> {
+                if (_processes == null) _processes = new ArrayList<Process>();
+                if (launcher != null) _processes.add(launcher.get());
+                return _processes;
+            });
+        }).join();
         if(CreeperLauncher.mtConnect != null) {
             if (CreeperLauncher.mtConnect.isEnabled()) {
                 try {
@@ -567,10 +570,10 @@ public class LocalInstance implements IPack
         }
         if (launcherWait != null && (!launcherWait.isDone())) launcherWait.cancel(true);
         launcherWait = CompletableFuture.runAsync(() -> {
-           inUseCheck(launcher.process);
+           inUseCheck(launcher.get());
         });
 
-        return launcher;
+        return launcher.get();
     }
     private transient CompletableFuture launcherWait;
     public void setPostInstall(Runnable lambda, boolean async)
