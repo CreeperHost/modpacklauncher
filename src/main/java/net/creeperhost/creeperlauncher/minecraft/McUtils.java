@@ -386,7 +386,7 @@ public class McUtils {
         boolean success = false;
         switch (os) {
             case MAC:
-                File launcherFile = new File(path + File.separator + "launcher.zip");
+                File launcherFile = new File(path);
                 if(launcherFile.exists()) {
                     ZipFile zipFile = new ZipFile(launcherFile);
                     zipFile.stream().map(ZipEntry::getName).forEach((ze) -> {
@@ -395,13 +395,15 @@ public class McUtils {
                         try {
                             InputStream inputStream = zipFile.getInputStream(entry);
                             byte[] bytes = inputStream.readAllBytes();
-                            CreeperLogger.INSTANCE.warning("Writing to "+path + File.separator + entry.getName());
-                            Files.write(Path.of(path + File.separator + entry.getName()), bytes);
+                            CreeperLogger.INSTANCE.warning("Writing to "+Path.of(Path.of(path).getParent().toString() + File.separator + entry.getName()).toString());
+                            Files.write(Path.of(Path.of(path).getParent().toString() + File.separator + entry.getName()), bytes);
                         } catch (Exception e) {
                             CreeperLogger.INSTANCE.error("Failed extracting mac Mojang launcher!", e);
                         }
 
                     });
+                } else {
+                    CreeperLogger.INSTANCE.error("Launcher does not exist at '"+(path)+"'...");
                 }
                 break;
             /*case MAC:
@@ -468,13 +470,13 @@ public class McUtils {
                 }
                 break;*/
             case LINUX:
-                File installergzip = new File(path + File.separator + "launcher.tar.gz");
-                File tar = new File(path + File.separator + "launcher.tar");
+                File installergzip = new File(path);
+                File tar = new File(Path.of(path).getParent().toString() + File.separator + "launcher.tar");
                 FileUtils.unGzip(installergzip, tar);
                 if (tar.exists()) {
                     try {
                         FileUtils.unTar(tar, new File(path));
-                        FileUtils.setFilePermissions(new File(path + File.separator + Constants.MINECRAFT_LAUNCHER_NAME));
+                        FileUtils.setFilePermissions(new File(Path.of(path).getParent().toString() + File.separator + Constants.MINECRAFT_LAUNCHER_NAME));
                         installergzip.delete();
                         success = true;
                     } catch (ArchiveException e) {

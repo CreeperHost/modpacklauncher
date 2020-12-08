@@ -39,7 +39,7 @@ public class GameLauncher
             {
                 //If we don't have it in our bin dir... Let's download it to where we need it, this is terrible but I don't care if it works and we can iterate its design later
                 McUtils.downloadVanillaLauncher(exec.toString());
-                McUtils.prepareVanillaLauncher(exec.toString());
+                McUtils.prepareVanillaLauncher(exec.toString() + File.separator + Constants.MINECRAFT_LAUNCHER_NAME);
             } else {
                 FileUtils.copyDirectory(stored, exec);
             }
