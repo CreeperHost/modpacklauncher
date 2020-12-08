@@ -23,9 +23,9 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
-import java.util.zip.ZipInputStream;
 
 public class McUtils {
     public static String getMinecraftJsonForVersion(String version) {
@@ -351,8 +351,15 @@ public class McUtils {
                 destinationFile = new File(tempFolder, UUID.randomUUID().toString());
                 CreeperLogger.INSTANCE.error("Cannot write Minecraft launcher to data directory '"+Constants.getDataDir()+"', File '"+moveDestination.getAbsolutePath().toString()+"', trying temporary file '"+destinationFile.getAbsolutePath().toString()+".");
             }
-            DownloadTask task = new DownloadTask(remoteFile, destinationFile.toPath());
-            task.execute().join();
+            DownloadableFile file1 = new DownloadableFile("latest", destinationDir.toString(), downloadurl, new ArrayList<>(), 0, false, false, 0, "MojangLauncher", "launcher", "now");
+            try {
+                file1.prepare();
+                CreeperLogger.INSTANCE.info("Downloading Mojang launcher from '"+downloadurl+"' to '"+ destinationFile.toPath().toString()+"'...");
+                file1.download(destinationFile.toPath(), true, false);
+            } catch(Throwable errrrrrrrr)
+            {
+                CreeperLogger.INSTANCE.error("Failed to download Vanilla launcher!", errrrrrrrr);
+            }
             if(moveDestination != null)
             {
                 if(!destinationFile.renameTo(moveDestination))
@@ -383,7 +390,7 @@ public class McUtils {
     public static boolean prepareVanillaLauncher(String path) throws IOException, InterruptedException {
         OS os = OSUtils.getOs();
         //All OS's are not equal, sometimes we need to unpackage the launcher.
-        boolean success = false;
+        AtomicBoolean success = new AtomicBoolean(false);
         switch (os) {
             case MAC:
                 File launcherFile = new File(path);
@@ -397,13 +404,17 @@ public class McUtils {
                             byte[] bytes = inputStream.readAllBytes();
                             CreeperLogger.INSTANCE.warning("Writing to "+Path.of(Path.of(path).getParent().toString() + File.separator + entry.getName()).toString());
                             Files.write(Path.of(Path.of(path).getParent().toString() + File.separator + entry.getName()), bytes);
+                            inputStream.close();
+                            success.set(true);
                         } catch (Exception e) {
+                            success.set(false);
                             CreeperLogger.INSTANCE.error("Failed extracting mac Mojang launcher!", e);
                         }
-
                     });
+                    launcherFile.delete();
                 } else {
                     CreeperLogger.INSTANCE.error("Launcher does not exist at '"+(path)+"'...");
+                    success.set(false);
                 }
                 break;
             /*case MAC:
@@ -478,17 +489,17 @@ public class McUtils {
                         FileUtils.unTar(tar, new File(path));
                         FileUtils.setFilePermissions(new File(Path.of(path).getParent().toString() + File.separator + Constants.MINECRAFT_LAUNCHER_NAME));
                         installergzip.delete();
-                        success = true;
+                        success.set(true);
                     } catch (ArchiveException e) {
                         e.printStackTrace();
-                        success = false;
+                        success.set(false);
                     }
                 }
                 break;
             default:
-                success = true;
+                success.set(true);
         }
-        return success;
+        return success.get();
     }
 
     public static int parseMinorVersion(String minecraftVersion) {
