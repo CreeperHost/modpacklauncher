@@ -19,6 +19,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -366,7 +367,7 @@ public class McUtils {
             }
             boolean osConfig = false;
             try {
-                osConfig = McUtils.prepareVanillaLauncher();
+                osConfig = McUtils.prepareVanillaLauncher(destinationFile.toString());
             } catch (Exception err) {
                 err.printStackTrace();
             }
@@ -383,7 +384,9 @@ public class McUtils {
         switch (os) {
             case MAC:
                 File installer = new File(path);
-                String[] mcommand = {"/usr/bin/hdiutil", "attach", path};
+                String[] mcommand = {"/usr/bin/hdiutil", "attach", path + File.separator + "launcher.dmg"};
+                CreeperLogger.INSTANCE.info("Mounting "+path + File.separator+"launcher.dmg");
+                CreeperLogger.INSTANCE.info(String.join(" ", mcommand));
                 Process mount = Runtime.getRuntime().exec(mcommand);
                 OutputStream stdout = mount.getOutputStream();
                 int loop = 0;
@@ -392,7 +395,15 @@ public class McUtils {
                     loop++;
                 }
                 if (mount.exitValue() == 0) {
-                    String[] ccommand = {"/bin/cp", "-R", Constants.MINECRAFT_MAC_LAUNCHER_VOLUME + File.separator + "/Minecraft.app", Constants.BIN_LOCATION + File.separator};
+                    try {
+                        FileUtils.copyDirectory(Path.of(Constants.MINECRAFT_MAC_LAUNCHER_VOLUME + File.separator), Path.of(path));
+                        success = true;
+                    } catch(Exception er)
+                    {
+                        CreeperLogger.INSTANCE.error("Error extracting Mojang launcher!", er);
+                        success=false;
+                    }
+                    /*String[] ccommand = {"/bin/cp", "-R", Constants.MINECRAFT_MAC_LAUNCHER_VOLUME + File.separator + "/Minecraft.app", Constants.BIN_LOCATION + File.separator};
                     Process copy = Runtime.getRuntime().exec(ccommand);
                     loop = 0;
                     while (copy.isAlive() && loop < 30000) {
@@ -401,13 +412,14 @@ public class McUtils {
                     }
                     if (copy.exitValue() == 0) {
                         success = true;
-                    }
+                    }*/
                 } else {
                     System.out.print(stdout);
                     CreeperLogger.INSTANCE.error("Failed to mount the Vanilla installer on MacOS.");
                     success = false;
                 }
                 String[] ucommand = {"/usr/bin/hdiutil", "unmount", Constants.MINECRAFT_MAC_LAUNCHER_VOLUME};
+                CreeperLogger.INSTANCE.info(String.join(" ", ucommand));
                 Process unmount = Runtime.getRuntime().exec(ucommand);
                 loop = 0;
                 while (unmount.isAlive() && loop < 5000) {

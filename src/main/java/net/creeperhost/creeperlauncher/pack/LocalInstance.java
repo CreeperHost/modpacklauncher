@@ -502,7 +502,7 @@ public class LocalInstance implements IPack
         Profile profile = (extraArgs.length() > 0) ? this.toProfile(extraArgs) : this.toProfile();
         GameLauncher launcher = new GameLauncher();
         tempLauncherPath = Constants.BIN_LOCATION;
-        if(true)//!McUtils.injectProfile(new File(tempLauncherPath + File.separator + "launcher_profiles.json"), profile, jrePath))
+        if(!McUtils.injectProfile(new File(tempLauncherPath + File.separator + "launcher_profiles.json"), profile, jrePath))
         {
             //Can't write to our normal directory, so we'll copy the launcher to a temporary directory and try there!
             tempLauncherPath = launcher.prepareGame();
