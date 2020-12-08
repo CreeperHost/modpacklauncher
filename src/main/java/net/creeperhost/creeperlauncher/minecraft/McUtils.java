@@ -402,7 +402,9 @@ public class McUtils {
                             InputStream inputStream = zipFile.getInputStream(entry);
                             byte[] bytes = inputStream.readAllBytes();
                             CreeperLogger.INSTANCE.warning("Writing to "+Path.of(Path.of(path).getParent().toString() + File.separator + entry.getName()).toString());
-                            Files.write(Path.of(Path.of(path).getParent().toString() + File.separator + entry.getName()), bytes);
+                            Path DestFile = Path.of(Path.of(path).getParent().toString() + File.separator + entry.getName());
+                            DestFile.getParent().toFile().mkdirs();
+                            Files.write(DestFile, bytes);
                             inputStream.close();
                             success.set(true);
                         } catch (Exception e) {
