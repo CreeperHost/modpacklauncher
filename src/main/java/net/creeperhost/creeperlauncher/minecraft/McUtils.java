@@ -23,6 +23,9 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipInputStream;
 
 public class McUtils {
     public static String getMinecraftJsonForVersion(String version) {
@@ -383,6 +386,25 @@ public class McUtils {
         boolean success = false;
         switch (os) {
             case MAC:
+                File launcherFile = new File(path + File.separator + "launcher.zip");
+                if(launcherFile.exists()) {
+                    ZipFile zipFile = new ZipFile(launcherFile);
+                    zipFile.stream().map(ZipEntry::getName).forEach((ze) -> {
+                        CreeperLogger.INSTANCE.warning("Extracting '"+ze+"'...");
+                        ZipEntry entry = zipFile.getEntry(ze);
+                        try {
+                            InputStream inputStream = zipFile.getInputStream(entry);
+                            byte[] bytes = inputStream.readAllBytes();
+                            CreeperLogger.INSTANCE.warning("Writing to "+path + File.separator + entry.getName());
+                            Files.write(Path.of(path + File.separator + entry.getName()), bytes);
+                        } catch (Exception e) {
+                            CreeperLogger.INSTANCE.error("Failed extracting mac Mojang launcher!", e);
+                        }
+
+                    });
+                }
+                break;
+            /*case MAC:
                 File installer = new File(path);
                 String[] mcommand = {"/usr/bin/hdiutil", "attach", path + File.separator + "launcher.dmg"};
                 CreeperLogger.INSTANCE.info("Mounting "+path + File.separator+"launcher.dmg");
@@ -444,7 +466,7 @@ public class McUtils {
                 } else {
                     installer.delete();
                 }
-                break;
+                break;*/
             case LINUX:
                 File installergzip = new File(path + File.separator + "launcher.tar.gz");
                 File tar = new File(path + File.separator + "launcher.tar");
