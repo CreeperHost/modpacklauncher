@@ -388,12 +388,18 @@ public class McUtils {
                 CreeperLogger.INSTANCE.info("Mounting "+path + File.separator+"launcher.dmg");
                 CreeperLogger.INSTANCE.info(String.join(" ", mcommand));
                 Process mount = Runtime.getRuntime().exec(mcommand);
-                OutputStream stdout = mount.getOutputStream();
+                InputStream stdout = mount.getInputStream();
+                BufferedReader br = new BufferedReader(new InputStreamReader(stdout));
+                String str;
+                while ((str = br.readLine()) != null) {
+                    CreeperLogger.INSTANCE.info(str);
+                }
                 int loop = 0;
                 while (mount.isAlive() && loop < 5000) {
                     Thread.sleep(500);
                     loop++;
                 }
+
                 if (mount.exitValue() == 0) {
                     try {
                         FileUtils.copyDirectory(Path.of(Constants.MINECRAFT_MAC_LAUNCHER_VOLUME + File.separator), Path.of(path));
@@ -403,16 +409,23 @@ public class McUtils {
                         CreeperLogger.INSTANCE.error("Error extracting Mojang launcher!", er);
                         success=false;
                     }
-                    /*String[] ccommand = {"/bin/cp", "-R", Constants.MINECRAFT_MAC_LAUNCHER_VOLUME + File.separator + "/Minecraft.app", Constants.BIN_LOCATION + File.separator};
-                    Process copy = Runtime.getRuntime().exec(ccommand);
-                    loop = 0;
-                    while (copy.isAlive() && loop < 30000) {
-                        Thread.sleep(500);
-                        loop++;
+                    if(!success) {
+                        String[] ccommand = {"/bin/cp", "-R", Constants.MINECRAFT_MAC_LAUNCHER_VOLUME + File.separator + "/Minecraft.app", Constants.BIN_LOCATION + File.separator};
+                        Process copy = Runtime.getRuntime().exec(ccommand);
+                        stdout = copy.getInputStream();
+                        br = new BufferedReader(new InputStreamReader(stdout));
+                        while ((str = br.readLine()) != null) {
+                            CreeperLogger.INSTANCE.info(str);
+                        }
+                        loop = 0;
+                        while (copy.isAlive() && loop < 30000) {
+                            Thread.sleep(500);
+                            loop++;
+                        }
+                        if (copy.exitValue() == 0) {
+                            success = true;
+                        }
                     }
-                    if (copy.exitValue() == 0) {
-                        success = true;
-                    }*/
                 } else {
                     System.out.print(stdout);
                     CreeperLogger.INSTANCE.error("Failed to mount the Vanilla installer on MacOS.");
@@ -433,7 +446,7 @@ public class McUtils {
                 }
                 break;
             case LINUX:
-                File installergzip = new File(path);
+                File installergzip = new File(path + File.separator + "launcher.tar.gz");
                 File tar = new File(path + File.separator + "launcher.tar");
                 FileUtils.unGzip(installergzip, tar);
                 if (tar.exists()) {
