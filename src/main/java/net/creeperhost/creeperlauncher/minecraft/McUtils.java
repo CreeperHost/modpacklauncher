@@ -351,11 +351,10 @@ public class McUtils {
                 destinationFile = new File(tempFolder, UUID.randomUUID().toString());
                 CreeperLogger.INSTANCE.error("Cannot write Minecraft launcher to data directory '"+Constants.getDataDir()+"', File '"+moveDestination.getAbsolutePath().toString()+"', trying temporary file '"+destinationFile.getAbsolutePath().toString()+".");
             }
-            DownloadableFile vanillaLauncher = new DownloadableFile("latest", destinationDir.toString(), downloadurl, new ArrayList<String>(), 0, false, false, 0, "MojangLauncher", "launcher", "0");
             try {
-                vanillaLauncher.prepare();
+                remoteFile.prepare();
                 CreeperLogger.INSTANCE.info("Downloading Mojang launcher from '"+downloadurl+"' to '"+ destinationFile.toPath().toString()+"'...");
-                vanillaLauncher.download(destinationFile.toPath(), true, false);
+                remoteFile.download(destinationFile.toPath(), true, false);
             } catch(Throwable errrrrrrrr)
             {
                 CreeperLogger.INSTANCE.error("Failed to download Vanilla launcher!", errrrrrrrr);
