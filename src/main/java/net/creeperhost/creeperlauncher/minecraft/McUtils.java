@@ -313,7 +313,7 @@ public class McUtils {
         downloadVanillaLauncher(Constants.BIN_LOCATION);
     }
     public static void downloadVanillaLauncher(String destination) {
-        CreeperLogger.INSTANCE.debug("Downloading Vanilla Launcher");
+        CreeperLogger.INSTANCE.info("Downloading Vanilla Launcher");
         String downloadurl = OSUtils.getMinecraftLauncherURL();
         File binfolder = new File(destination);
         File tempFolder = new File(System.getProperty("java.io.tmpdir"));
@@ -386,7 +386,7 @@ public class McUtils {
         return prepareVanillaLauncher(Constants.MINECRAFT_LAUNCHER_LOCATION);
     }
     public static boolean prepareVanillaLauncher(String path) throws IOException, InterruptedException {
-        CreeperLogger.INSTANCE.debug("Preparing Vanilla Launcher");
+        CreeperLogger.INSTANCE.info("Preparing Vanilla Launcher");
         OS os = OSUtils.getOs();
         //All OS's are not equal, sometimes we need to unpackage the launcher.
         AtomicBoolean success = new AtomicBoolean(false);
