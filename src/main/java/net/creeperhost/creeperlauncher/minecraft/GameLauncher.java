@@ -118,6 +118,27 @@ public class GameLauncher
             return null;
         }
     }
+
+    public static void downloadLauncherProfiles()
+    {
+        downloadLauncherProfiles(Constants.BIN_LOCATION);
+    }
+    public static void downloadLauncherProfiles(String path)
+    {
+        try {
+            File file = new File(Constants.LAUNCHER_PROFILES_JSON);
+            if(!file.exists())
+            {
+                //Some reason the vanilla launcher is not creating the launcher_profiles.json
+                DownloadableFile defaultConfig = new DownloadableFile("", file.getAbsolutePath(), "https://apps.modpacks.ch/FTB2/launcher_profiles.json", new ArrayList<>(), 0, true, false, 0, "config", "launcher_profiles.json", "");
+                defaultConfig.prepare();
+                defaultConfig.download(file.toPath(), true, false);
+            }
+        } catch (Throwable ignored) {
+        }
+
+    }
+
     public static void launchGameAndClose()
     {
         launchGameAndClose(Constants.BIN_LOCATION);
@@ -160,8 +181,10 @@ public class GameLauncher
                     }
                 }
                 if(process != null) {
+                    CreeperLogger.INSTANCE.debug("Destroy instance calling");
                     process.destroy();
                     if (process.isAlive()) {
+                        CreeperLogger.INSTANCE.debug("Destroy instance forcibly calling");
                         process.destroyForcibly();
                     }
                 }
@@ -182,9 +205,11 @@ public class GameLauncher
                         if (processh.info().commandLine().toString().contains(finalExe))
                         {
                             //It's the process we're looking for...
+                            CreeperLogger.INSTANCE.debug("Destroy instance calling");
                             processh.destroy();
                             if (processh.isAlive())
                             {
+                                CreeperLogger.INSTANCE.debug("Destroy instance forcibly calling");
                                 processh.destroyForcibly();
                             }
                             return;
