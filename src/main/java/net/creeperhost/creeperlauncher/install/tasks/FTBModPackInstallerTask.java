@@ -6,6 +6,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.stream.JsonReader;
 import net.creeperhost.creeperlauncher.Constants;
+import net.creeperhost.creeperlauncher.CreeperLauncher;
 import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.DownloadableFile;
@@ -76,8 +77,10 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
     @Override
     public CompletableFuture<Void> execute()
     {
+        CreeperLogger.INSTANCE.info("Running install execute");
         return currentTask = CompletableFuture.runAsync(() ->
         {
+            CreeperLogger.INSTANCE.info("Actually running install execute");
             currentStage = Stage.INIT;
             overallBytes.set(0);
             currentBytes.set(0);
@@ -103,7 +106,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
             currentStage = Stage.DOWNLOADS;
             downloadFiles(instanceDir, forgeJson);
             currentStage = Stage.POSTINSTALL;
-        });
+        }, CreeperLauncher.taskExeggutor);
     }
 
     public boolean cancel()
@@ -458,7 +461,6 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
         return downloadableFileList;
     }
 
-    @SuppressWarnings("unchecked")
     void downloadFiles(File instanceDir, File forgeLibs)
     {
         CreeperLogger.INSTANCE.info("Attempting to downloaded required files");
