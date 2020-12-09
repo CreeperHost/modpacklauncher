@@ -21,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -394,25 +395,8 @@ public class McUtils {
             case MAC:
                 File launcherFile = new File(path);
                 if(launcherFile.exists()) {
-                    ZipFile zipFile = new ZipFile(launcherFile);
-                    zipFile.stream().map(ZipEntry::getName).forEach((ze) -> {
-                        CreeperLogger.INSTANCE.warning("Extracting '"+ze+"'...");
-                        ZipEntry entry = zipFile.getEntry(ze);
-                        try {
-                            InputStream inputStream = zipFile.getInputStream(entry);
-                            byte[] bytes = inputStream.readAllBytes();
-                            CreeperLogger.INSTANCE.warning("Writing to "+Path.of(Path.of(path).getParent().toString() + File.separator + entry.getName()).toString());
-                            Path DestFile = Path.of(Path.of(path).getParent().toString() + File.separator + entry.getName());
-                            DestFile.getParent().toFile().mkdirs();
-                            Files.write(DestFile, bytes);
-                            inputStream.close();
-                            success.set(true);
-                        } catch (Exception e) {
-                            success.set(false);
-                            CreeperLogger.INSTANCE.error("Failed extracting mac Mojang launcher!", e);
-                        }
-                    });
-                    if(success.get() == false)
+                    HashMap<String, Exception> errors = FileUtils.extractZip2ElectricBoogaloo(launcherFile, launcherFile.toPath().getParent().toString());
+                    if(!errors.isEmpty())
                     {
                         String[] ccommand = {"/usr/bin/unzip", "-o", launcherFile.toString(), "-d", launcherFile.toPath().getParent().toString()};
                         CreeperLogger.INSTANCE.error("Failed extraction... Trying via shell...");
