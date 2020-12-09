@@ -20,10 +20,7 @@ import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -396,7 +393,7 @@ public class McUtils {
                 File launcherFile = new File(path);
                 if(launcherFile.exists()) {
                     HashMap<String, Exception> errors = FileUtils.extractZip2ElectricBoogaloo(launcherFile, launcherFile.toPath().getParent().toString());
-                    if(!errors.isEmpty())
+                    /*if(!errors.isEmpty())
                     {
                         String[] ccommand = {"/usr/bin/unzip", "-o", launcherFile.toString(), "-d", launcherFile.toPath().getParent().toString()};
                         CreeperLogger.INSTANCE.error("Failed extraction... Trying via shell...");
@@ -408,6 +405,14 @@ public class McUtils {
                         while ((str = br.readLine()) != null) {
                             CreeperLogger.INSTANCE.info(str);
                         }
+                    }*/
+                    if (!errors.isEmpty())
+                    {
+                        Set<String> strings = errors.keySet();
+                        StringBuilder builder = new StringBuilder();
+                        strings.forEach((str) -> builder.append(str).append("\n"));
+                        CreeperLogger.INSTANCE.error("Errors extracting these files from zip: \n" + builder.toString());
+                        success.set(false);
                     }
                     launcherFile.delete();
                     String tempPath = launcherFile.getParentFile().getAbsolutePath();
@@ -417,6 +422,7 @@ public class McUtils {
                         boolean b = executableFilePath.toFile().setExecutable(true);
                         if (!b) CreeperLogger.INSTANCE.warning("Unable to set \"" + executableFilePath + "\" to executable");
                     }
+                    success.set(true);
                 } else {
                     CreeperLogger.INSTANCE.error("Launcher does not exist at '"+(path)+"'...");
                     success.set(false);
