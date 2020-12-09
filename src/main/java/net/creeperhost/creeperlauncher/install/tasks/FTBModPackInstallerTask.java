@@ -77,10 +77,10 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
     @Override
     public CompletableFuture<Void> execute()
     {
-        CreeperLogger.INSTANCE.info("Running install execute");
+        CreeperLogger.INSTANCE.debug("Running install execute");
         return currentTask = CompletableFuture.runAsync(() ->
         {
-            CreeperLogger.INSTANCE.info("Actually running install execute");
+            CreeperLogger.INSTANCE.debug("Actually running install execute");
             currentStage = Stage.INIT;
             overallBytes.set(0);
             currentBytes.set(0);
@@ -90,12 +90,12 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
             CreeperLogger.INSTANCE.info(instance.getName() + " " + instance.getId() + " " + instance.getVersionId());
             File instanceRoot = new File(Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC));
             instanceRoot.mkdir();
-            CreeperLogger.INSTANCE.info("Setting stage to VANILLA");
+            CreeperLogger.INSTANCE.debug("Setting stage to VANILLA");
             currentStage = Stage.VANILLA;
-            CreeperLogger.INSTANCE.info("About to download launcher");
+            CreeperLogger.INSTANCE.debug("About to download launcher");
             McUtils.downloadVanillaLauncher();
             File profileJson = new File(Constants.LAUNCHER_PROFILES_JSON);
-            CreeperLogger.INSTANCE.info("Launching game and close");
+            CreeperLogger.INSTANCE.debug("Launching game and close");
             if (!profileJson.exists()) GameLauncher.launchGameAndClose();
             File instanceDir = new File(instance.getDir());
             instanceDir.mkdir();

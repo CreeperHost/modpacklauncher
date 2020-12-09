@@ -29,7 +29,7 @@ public class InstallInstanceHandler implements IMessageHandler<InstallInstanceDa
     @Override
     public void handle(InstallInstanceData data)
     {
-        CreeperLogger.INSTANCE.info("Received install pack message");
+        CreeperLogger.INSTANCE.debug("Received install pack message");
         hasError.set(false);
         if (CreeperLauncher.isInstalling.get())
         {
@@ -57,12 +57,11 @@ public class InstallInstanceHandler implements IMessageHandler<InstallInstanceDa
             instance = new LocalInstance(pack, data.version);
             Instances.addInstance(instance.getUuid(), instance);
             data.uuid = instance.getUuid().toString();
-            CreeperLogger.INSTANCE.info("Running install task");
+            CreeperLogger.INSTANCE.debug("Running install task");
             install = instance.install();
         }
         install.currentTask.exceptionally((t) ->
         {
-            CreeperLogger.INSTANCE.info("Error in install");
             if (t != null)
             {
                 if (t instanceof CompletionException) t = t.getCause();
