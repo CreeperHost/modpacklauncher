@@ -24,7 +24,7 @@ public class InstallInstanceHandler implements IMessageHandler<InstallInstanceDa
 {
     //TODO: Make these local instead of static once Exceptions work properly again
     public static AtomicBoolean hasError = new AtomicBoolean(false);
-    public static AtomicReference<String> lastError = new AtomicReference<String>();
+    public static AtomicReference<String> lastError = new AtomicReference<>();
     FTBModPackInstallerTask install;
 
     @Override
@@ -63,6 +63,7 @@ public class InstallInstanceHandler implements IMessageHandler<InstallInstanceDa
         }
         install.currentTask.exceptionally((t) ->
         {
+            CreeperLogger.INSTANCE.info("Error in install");
             if (t != null)
             {
                 if (t instanceof CompletionException) t = t.getCause();

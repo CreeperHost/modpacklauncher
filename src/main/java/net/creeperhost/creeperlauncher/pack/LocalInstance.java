@@ -306,6 +306,7 @@ public class LocalInstance implements IPack
             Analytics.sendInstallRequest(this.getId(), this.getVersionId());
             installer.execute().thenRunAsync(() ->
             {
+                CreeperLogger.INSTANCE.info("Running installer task");
                 if (this.postInstall != null && this.postInstall.size() > 0)
                 {
                     ArrayList<CompletableFuture> futures = new ArrayList<>();

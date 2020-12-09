@@ -87,9 +87,12 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
             CreeperLogger.INSTANCE.info(instance.getName() + " " + instance.getId() + " " + instance.getVersionId());
             File instanceRoot = new File(Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC));
             instanceRoot.mkdir();
+            CreeperLogger.INSTANCE.info("Setting stage to VANILLA");
             currentStage = Stage.VANILLA;
+            CreeperLogger.INSTANCE.info("About to download launcher");
             McUtils.downloadVanillaLauncher();
             File profileJson = new File(Constants.LAUNCHER_PROFILES_JSON);
+            CreeperLogger.INSTANCE.info("Launching game and close");
             if (!profileJson.exists()) GameLauncher.launchGameAndClose();
             File instanceDir = new File(instance.getDir());
             instanceDir.mkdir();
