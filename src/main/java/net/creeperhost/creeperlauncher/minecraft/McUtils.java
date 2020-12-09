@@ -410,6 +410,13 @@ public class McUtils {
                         }
                     }
                     launcherFile.delete();
+                    String tempPath = launcherFile.getParentFile().getAbsolutePath();
+                    String[] executableFiles = new String[] {"Minecraft.app/Contents/MacOS/launcher", "Minecraft.app/Contents/Minecraft Updater.app/Contents/MacOS/nativeUpdater"};
+                    for(String filePath: executableFiles) {
+                        Path executableFilePath = Path.of(tempPath, filePath);
+                        boolean b = executableFilePath.toFile().setExecutable(true);
+                        if (!b) CreeperLogger.INSTANCE.warning("Unable to set \"" + executableFilePath + "\" to executable");
+                    }
                 } else {
                     CreeperLogger.INSTANCE.error("Launcher does not exist at '"+(path)+"'...");
                     success.set(false);
