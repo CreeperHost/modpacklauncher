@@ -78,6 +78,7 @@ public class CreeperLogger
     public void info(String input)
     {
         logger.info(input);
+        fileHandler.flush();
     }
 
     private String throwableToString(Throwable ex)
@@ -94,6 +95,7 @@ public class CreeperLogger
     public void warning(String input)
     {
         logger.warning(input);
+        fileHandler.flush();
     }
 
     public void warning(String input, Throwable ex)
@@ -105,6 +107,7 @@ public class CreeperLogger
     {
         String caller = getCaller("error");
         logger.severe(caller + (caller.isEmpty() ? "" : "\n") + input);
+        fileHandler.flush();
     }
 
     public void error(String input, Throwable ex)
