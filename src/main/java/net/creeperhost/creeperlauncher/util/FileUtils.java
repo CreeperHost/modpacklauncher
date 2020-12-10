@@ -17,13 +17,11 @@ import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.security.MessageDigest;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.jar.JarFile;
 import java.util.zip.GZIPInputStream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 public class FileUtils
 {
@@ -74,7 +72,20 @@ public class FileUtils
         inputStream.close();
         outputStream.close();
     }
-
+    public static boolean copyDirectory(Path sourceDir, Path destinationDir) throws IOException
+    {
+        AtomicBoolean error = new AtomicBoolean(false);
+        Files.walk(sourceDir).forEach(sourcePath -> {
+            try {
+                Path targetPath = destinationDir.resolve(sourceDir.relativize(sourcePath));
+                Files.copy(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException ex) {
+                CreeperLogger.INSTANCE.error("File copy I/O error: ", ex);
+                error.set(true);
+            }
+        });
+        return !error.get();
+    }
     public static void fileFromZip(File zip, File dest, String fileName) throws IOException
     {
         try (java.nio.file.FileSystem fileSystem = FileSystems.newFileSystem(zip.toPath(), null))
@@ -82,6 +93,54 @@ public class FileUtils
             Path fileToExtract = fileSystem.getPath(fileName);
             Files.copy(fileToExtract, dest.toPath());
         }
+    }
+
+    public static void main(String[] args) {
+        extractZip2ElectricBoogaloo(new File(args[0]), args[1]);
+    }
+
+    public static HashMap<String, Exception> extractZip2ElectricBoogaloo(File launcherFile, String destination)
+    {
+        return extractZip2ElectricBoogaloo(launcherFile, destination, true);
+    }
+
+    public static HashMap<String, Exception> extractZip2ElectricBoogaloo(File launcherFile, String destination, boolean continueOnError)
+    {
+        HashMap<String, Exception> errors = new HashMap<>();
+        ZipFile zipFile;
+        try {
+            zipFile = new ZipFile(launcherFile);
+            ZipFile finalZipFile = zipFile;
+            ArrayList<String> entries = new ArrayList<>();
+            zipFile.stream().map(ZipEntry::getName).forEach(entries::add);
+            for(String ze : entries) {
+                CreeperLogger.INSTANCE.debug("Extracting '" + ze + "'...");
+                ZipEntry entry = finalZipFile.getEntry(ze);
+                try {
+                    Path DestFile = Path.of(Path.of(destination).toString() + File.separator + entry.getName());
+                    if (entry.isDirectory())
+                    {
+                        DestFile.getParent().toFile().mkdir();
+                        continue;
+                    }
+                    DestFile.getParent().toFile().mkdirs();
+                    InputStream inputStream = finalZipFile.getInputStream(entry);
+                    byte[] bytes = inputStream.readAllBytes();
+                    CreeperLogger.INSTANCE.debug("Writing to " + Path.of(Path.of(destination).toString() + File.separator + entry.getName()).toString());
+                    Files.write(DestFile, bytes);
+                    inputStream.close();
+                } catch (Exception e) {
+                    CreeperLogger.INSTANCE.debug("Failed extracting file " + entry.getName(), e);
+                    errors.put(entry.getName(), e);
+                    if (!continueOnError) {
+                        return errors;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return errors;
     }
 
     public static <FileSystem> void removeFileFromZip(File zip, String fileName) throws IOException
@@ -214,11 +273,6 @@ public class FileUtils
             result.append(Integer.toString((value & 0xff) + 0x100, 16).substring(1));
         }
         return result.toString();
-    }
-
-    public static void main(String[] args) {
-        File file = new File("C:\\Users\\TravisN\\.ftba\\bin\\versions\\1.4.7-forge1.4.7-6.6.2.534\\1.4.7-forge1.4.7-6.6.2.534.jar");
-        removeMeta(file);
     }
 
     //I hate this but its the only way I can get it to work right now

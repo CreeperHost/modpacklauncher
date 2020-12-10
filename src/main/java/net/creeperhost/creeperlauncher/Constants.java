@@ -35,8 +35,10 @@ public class Constants
     public static final String BIN_LOCATION_OURS = WORKING_DIR + File.separator + "bin";
     public static final String BIN_LOCATION = getDataDir() + File.separator + "bin";
     public static final String MINECRAFT_LAUNCHER_LOCATION = BIN_LOCATION + File.separator + "launcher." + OSUtils.getExtension();
+    public static final String MINECRAFT_LAUNCHER_NAME = "launcher."+OSUtils.getExtension();
     public static final String MINECRAFT_MAC_LAUNCHER_EXECUTABLE = getDataDir() + File.separator + "bin" + File.separator + "Minecraft.app" + File.separator + "Contents" + File.separator + "MacOS" + File.separator + "launcher";
     public static final String MINECRAFT_MAC_LAUNCHER_APP = getDataDir() + File.separator + "bin" + File.separator + "Minecraft.app";
+    public static final String MINECRAFT_MAC_LAUNCHER_NAME = "Minecraft.app";
 
     public static final String MINECRAFT_MAC_LAUNCHER_VOLUME = "/Volumes/Minecraft";
     public static final String MINECRAFT_LINUX_LAUNCHER_EXECUTABLE = getDataDir() + File.separator + "bin" + File.separator + "minecraft-launcher" + File.separator + "minecraft-launcher";
