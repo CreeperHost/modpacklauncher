@@ -21,7 +21,7 @@ public class UploadLogsHandler implements IMessageHandler<UploadLogsData> {
 
     public static void uploadLogs(String uiVersion, String frontendLogs, int requestId)
     {
-        Path logFile = Path.of(Constants.DATA_DIR + File.separator + "ftbapp.log");//Path.of("./launcher.log");
+        Path logFile = Path.of(Constants.getDataDir() + File.separator + "ftbapp.log");//Path.of("./launcher.log");
         Path errorLogFile = Path.of("./error.log");
 
         String launcherLog = null;

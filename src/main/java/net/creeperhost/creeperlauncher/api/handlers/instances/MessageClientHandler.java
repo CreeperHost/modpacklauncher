@@ -15,14 +15,12 @@ public class MessageClientHandler implements IMessageHandler<MessageClientData> 
     @Override
     public void handle(MessageClientData data) {
         try {
-            LocalInstance instance = Instances.getInstance(UUID.fromString(data.uuid));
-            if (instance.loadingModSocket != null && instance.loadingModSocket.isConnected())
+            if (CreeperLauncher.socket != null && CreeperLauncher.socket.isConnected())
             {
-                OutputStream outputStream = instance.loadingModSocket.getOutputStream();
                 JsonObject jsonObject = new JsonObject();
                 jsonObject.addProperty("instance", data.uuid);
                 jsonObject.addProperty("message", data.message);
-                outputStream.write((jsonObject.toString()+"\n").getBytes());
+                CreeperLauncher.socketWrite.write((jsonObject.toString()+"\n").getBytes());
             }
         } catch (Throwable e) {
             CreeperLogger.INSTANCE.warning("Error sending message to Minecraft client", e);

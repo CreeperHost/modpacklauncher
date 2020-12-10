@@ -3,10 +3,12 @@ package net.creeperhost.creeperlauncher;
 import com.google.gson.JsonObject;
 import com.install4j.api.launcher.ApplicationLauncher;
 import com.install4j.api.update.UpdateChecker;
+import com.install4j.runtime.beans.actions.desktop.CreateProgramGroupAction;
 import net.creeperhost.creeperlauncher.api.WebSocketAPI;
 import net.creeperhost.creeperlauncher.api.data.other.ClientLaunchData;
 import net.creeperhost.creeperlauncher.api.data.other.CloseModalData;
 import net.creeperhost.creeperlauncher.api.data.other.OpenModalData;
+import net.creeperhost.creeperlauncher.api.data.other.PingLauncherData;
 import net.creeperhost.creeperlauncher.install.tasks.FTBModPackInstallerTask;
 import net.creeperhost.creeperlauncher.install.tasks.LocalCache;
 import net.creeperhost.creeperlauncher.minetogether.vpn.MineTogetherConnect;
@@ -14,10 +16,7 @@ import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.os.OSUtils;
 import net.creeperhost.creeperlauncher.util.*;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -25,13 +24,20 @@ import java.net.Socket;
 import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class CreeperLauncher
 {
     public static HashMap<String, String> javaVersions;
-    private static boolean failedInitialMigration; // todo: use this to pop up stuff if failed
+    public static int missedPings = 0;
+    public static ServerSocket serverSocket = null;
+    public static Socket socket = null;
+    public static OutputStream socketWrite = null;
+    public static boolean opened = false;
+    public static Executor taskExeggutor = Executors.newWorkStealingPool();
 
     static
     {
@@ -46,6 +52,7 @@ public class CreeperLauncher
     public static boolean defaultWebsocketPort = false;
     public static int websocketPort = WebSocketAPI.generateRandomPort();
     public static final String websocketSecret = WebSocketAPI.generateSecret();
+    public static boolean websocketDisconnect=false;
     public static AtomicBoolean isSyncing = new AtomicBoolean(false);
     public static AtomicReference<List<Process>> mojangProcesses = new AtomicReference<List<Process>>();
     public static MineTogetherConnect mtConnect;
@@ -63,18 +70,13 @@ public class CreeperLauncher
         boolean migrate = false;
         if (!json.exists())
         {
-            try {
-                Files.createDirectories(Path.of(Constants.BIN_LOCATION));
-            } catch (IOException ignored) {
-                // shrug
-            }
-            File jsonOld = new File(Constants.BIN_LOCATION_OURS, "settings.json");
+            File jsonOld = Path.of(Constants.getDataDirOld(), "bin", "settings.json").toFile();
 
             if (jsonOld.exists()) {
-                json.getParentFile().mkdirs();
+//                json.getParentFile().mkdirs();
                 try {
-                    Files.copy(jsonOld.toPath(), json.toPath());
-                    Files.delete(jsonOld.toPath());
+//                    Files.copy(jsonOld.toPath(), json.toPath());
+//                    Files.delete(jsonOld.toPath());
                 } catch (Exception e) {
                     // shrug
                 }
@@ -82,45 +84,71 @@ public class CreeperLauncher
             }
         }
 
-        Settings.loadSettings();
+        if (migrate)
+        {
+            Settings.loadSettings(Path.of(Constants.getDataDirOld(), "bin", "settings.json").toFile(), false);
+        } else {
+            Settings.loadSettings();
+        }
 
         verbose = Settings.settings.getOrDefault("verbose", "false").equals("true");
 
-        File oldInstances = new File(Constants.WORKING_DIR, "instances");
+        File oldInstances = new File(Constants.getDataDirOld(), "instances");
 
         boolean migrateInstances = false;
 
         if (oldInstances.exists()) {
-            if (Settings.settings.getOrDefault("instanceLocation", "").isBlank()) {
-                File[] files = oldInstances.listFiles();
-                migrate = migrate && files != null && files.length > 0;
-                migrateInstances = migrate;
+            String oldInstanceLocation = Settings.settings.getOrDefault("instanceLocation", "");
+            if (oldInstanceLocation.equals(oldInstances.getAbsolutePath())) {
+                migrateInstances = true;
             }
         }
 
         FileUtils.deleteDirectory(Path.of(Constants.WORKING_DIR, ".localCache"));
         FileUtils.deleteDirectory(Path.of(Constants.OLD_CACHE_LOCATION));
 
+        boolean migrateError = false;
+
         if (migrate)
         {
-            FileUtils.move(Path.of(Constants.BIN_LOCATION_OURS, "launcher." + OSUtils.getExtension()), Path.of(Constants.MINECRAFT_LAUNCHER_LOCATION));
+            if (migrateInstances)
+            {
+                // try delete cache as faster move
+                FileUtils.deleteDirectory(Path.of(Constants.getDataDirOld(), "instances", ".localcache"));
+            }
+/*            FileUtils.move(Path.of(Constants.BIN_LOCATION_OURS, "launcher." + OSUtils.getExtension()), Path.of(Constants.MINECRAFT_LAUNCHER_LOCATION));
             FileUtils.move(Path.of(Constants.BIN_LOCATION_OURS, "Minecraft.app"), Path.of(Constants.BIN_LOCATION, "Minecraft.app"));
             FileUtils.move(Path.of(Constants.BIN_LOCATION_OURS, "minecraft-launcher"), Path.of(Constants.BIN_LOCATION, "minecraft-launcher"));
             FileUtils.move(Path.of(Constants.BIN_LOCATION_OURS, "versions"), Path.of(Constants.VERSIONS_FOLDER_LOC));
             FileUtils.move(Path.of(Constants.BIN_LOCATION_OURS, "launcher_profiles.json"), Path.of(Constants.LAUNCHER_PROFILES_JSON));
             FileUtils.move(Path.of(Constants.BIN_LOCATION_OURS, "launcher_settings.json"), Path.of(Constants.LAUNCHER_PROFILES_JSON));
-            FileUtils.move(Path.of(Constants.BIN_LOCATION_OURS, "libraries"), Path.of(Constants.LIBRARY_LOCATION));
+            FileUtils.move(Path.of(Constants.BIN_LOCATION_OURS, "libraries"), Path.of(Constants.LIBRARY_LOCATION));*/
+            CreeperLogger.INSTANCE.close(); // close so we can move the existing logs and everything
+            HashMap<Pair<Path, Path>, IOException> move = FileUtils.move(Path.of(Constants.getDataDirOld()), Path.of(Constants.getDataDir()), false, false);
+            CreeperLogger.INSTANCE.reinitialise(); // try re-open logger
+            if (move.size() > 0)
+            {
+                migrateError = true;
+                StringBuilder errorString = new StringBuilder("Errors occurred whilst migrating to a new folder structure. It may still be fine, but please contact FTB support if you have issues!\n");
+                for(Map.Entry<Pair<Path, Path>, IOException> entry : move.entrySet()) {
+                    errorString.append(entry.getKey().getLeft()).append(" ").append(entry.getKey().getRight()).append(":").append(entry.getValue().getMessage()).append("\n");
+                }
+                CreeperLogger.INSTANCE.warning(errorString.toString());
+            }
             if (migrateInstances)
             {
-                HashMap<Pair<Path, Path>, IOException> moveResult = FileUtils.move(Path.of(Constants.WORKING_DIR, "instanceLocation"), Path.of(Constants.INSTANCES_FOLDER_LOC));
+                /*HashMap<Pair<Path, Path>, IOException> moveResult = FileUtils.move(Path.of(Constants.WORKING_DIR, "instanceLocation"), Path.of(Constants.INSTANCES_FOLDER_LOC));
                 if (!moveResult.isEmpty()) {
                     CreeperLogger.INSTANCE.error("Error occurred whilst migrating instances to the new location. Errors follow.");
                     moveResult.forEach((key, value) -> {
                         CreeperLogger.INSTANCE.error("Moving " + key.getLeft() + " to " + key.getRight() + " failed:", value);
                     });
                     failedInitialMigration = true;
-                }
+                }*/
+                Settings.settings.remove("instanceLocation");
+                Settings.settings.put("instanceLocation", Path.of(Constants.INSTANCES_FOLDER_LOC).toAbsolutePath().toString());
             }
+            Settings.saveSettings();
         }
 
         doUpdate(args);
@@ -201,12 +229,12 @@ public class CreeperLauncher
             if (Constants.BRANCH.equals("release") || Constants.BRANCH.equals("preview"))
             {
                 OpenModalData.openModal("Update", "Do you wish to change to this branch now?", List.of(
-                        new OpenModalData.ModalButton( "Yes", "green", () -> {
-                            doUpdate(args);
-                        }),
-                        new OpenModalData.ModalButton( "No", "red", () -> {
-                            Settings.webSocketAPI.sendMessage(new CloseModalData());
-                        })
+                    new OpenModalData.ModalButton( "Yes", "green", () -> {
+                        doUpdate(args);
+                    }),
+                    new OpenModalData.ModalButton( "No", "red", () -> {
+                        Settings.webSocketAPI.sendMessage(new CloseModalData());
+                    })
                 ));
                 return true;
             } else {
@@ -214,7 +242,7 @@ public class CreeperLauncher
                 {
                     warnedDevelop = true;
                     OpenModalData.openModal("Update", "Unable to switch from branch " + Constants.BRANCH + " via this toggle.", List.of(
-                            new OpenModalData.ModalButton("Ok", "red", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
+                        new OpenModalData.ModalButton("Ok", "red", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
                     ));
                 }
                 return false;
@@ -235,12 +263,12 @@ public class CreeperLauncher
             localCache.clean();
         });
 
-        boolean startProcess = !isDevMode;
+
 
         /*
         Borrowed from ModpackServerDownloader project
          */
-        HashMap<String, String> Args = new HashMap<String, String>();
+        HashMap<String, String> Args = new HashMap<>();
         String argName = null;
         for(String arg : args)
         {
@@ -267,6 +295,8 @@ public class CreeperLauncher
          */
 
         isDevMode = Args.containsKey("dev");
+
+        boolean startProcess = !isDevMode;
 
         if(Args.containsKey("pid") && !isDevMode)
         {
@@ -300,18 +330,34 @@ public class CreeperLauncher
             startProcess = false;
         }
 
-        Settings.webSocketAPI = new WebSocketAPI(new InetSocketAddress(InetAddress.getLoopbackAddress(), defaultWebsocketPort || isDevMode ? Constants.WEBSOCKET_PORT : websocketPort));
-        Settings.webSocketAPI.setConnectionLostTimeout(0);
-        Settings.webSocketAPI.start();
+        try {
+            Settings.webSocketAPI = new WebSocketAPI(new InetSocketAddress(InetAddress.getLoopbackAddress(), defaultWebsocketPort || isDevMode ? Constants.WEBSOCKET_PORT : websocketPort));
+            Settings.webSocketAPI.setConnectionLostTimeout(0);
+            Settings.webSocketAPI.start();
+            if(OSUtils.getOs() == OS.WIN) pingPong();
+        } catch(Throwable t)
+        {
+            websocketDisconnect=true;
+            CreeperLogger.INSTANCE.error("Unable to open websocket port or websocket has disconnected...", t);
+        }
 
         if (startProcess) {
             startElectron();
         }
-        File dataDirectory = new File(Constants.DATA_DIR);
+        File dataDirectory = new File(Constants.getDataDir());
         if(!dataDirectory.canWrite())
         {
             OpenModalData.openModal("Critical Error", "The FTBApp is unable to write to your selected data directory, this can be caused by file permission errors, anti-virus or any number of other configuration issues.<br />If you continue, the app will not work as intended and you may be unable to install or run any modpacks.", List.of(
                     new OpenModalData.ModalButton( "Exit", "green", CreeperLauncher::exit),
+                    new OpenModalData.ModalButton("Continue", "", () -> {
+                        Settings.webSocketAPI.sendMessage(new CloseModalData());
+                    }))
+            );
+        }
+
+        if (migrateError)
+        {
+            OpenModalData.openModal("Warning", "An error occurred whilst migrating your FTB App to a new data structure. Things may still work, but if you have issues, please contact FTB support for assistance.", List.of(
                     new OpenModalData.ModalButton("Continue", "", () -> {
                         Settings.webSocketAPI.sendMessage(new CloseModalData());
                     }))
@@ -347,74 +393,127 @@ public class CreeperLauncher
     {
         return System.currentTimeMillis() / 1000L;
     }
-    public static Socket listenForClient(int port)
+    private static void pingPong()
     {
+     CompletableFuture.runAsync(() -> {
+       while(true)
+       {
+           try {
+               PingLauncherData ping = new PingLauncherData();
+               CreeperLauncher.missedPings++;
+               Settings.webSocketAPI.sendMessage(ping);
+           } catch(Exception ignored) {}
+           try {
+               Thread.sleep(3000);
+           } catch(Exception ignored) {}
+           //15 minutes without ping/pong or an explicit disconnect event happened...
+           if(missedPings > 300 || websocketDisconnect && missedPings > 3)
+           {
+               break;
+           }
+       }
+     }).thenRun(() -> {
+         if(!websocketDisconnect) {
+             CreeperLogger.INSTANCE.error("Closed backend due to no response from frontend for " + (missedPings * 3) + " seconds...");
+         } else {
+             CreeperLogger.INSTANCE.error("Closed backend due to websocket error! Also no messages from frontend for "+(missedPings * 3) + " seconds.");
+         }
+         CreeperLauncher.exit();
+     });
+    }
+    public static void listenForClient(int port) throws IOException {
+        CreeperLogger.INSTANCE.info("Starting mod socket on port " + port);
+        serverSocket = new ServerSocket(port);
+        opened = true;
+        socket = serverSocket.accept();
+        socketWrite = socket.getOutputStream();
+        CreeperLogger.INSTANCE.info("Connection received");
+        Runtime.getRuntime().addShutdownHook(new Thread(CreeperLauncher::closeOldClient));
+        String lastInstance = "";
+        ClientLaunchData.Reply reply;
+        BufferedReader in = null;
         try {
-            ServerSocket serverSocket = new ServerSocket(port);
-            Socket socket = serverSocket.accept();
-            CompletableFuture.runAsync(() -> {
-                String lastInstance = "";
-                ClientLaunchData.Reply reply;
-                try {
-                    BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                    long lastMessageTime = 0;
-                    boolean hasStarted = false;
-                    while (socket.isConnected()) {
-                        String bufferText = "";
+            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            long lastMessageTime = 0;
+            boolean hasStarted = false;
+            while (socket.isConnected()) {
+                String bufferText = "";
+                bufferText = in.readLine();
+                if (bufferText.length() == 0) continue;
+                JsonObject object = GsonUtils.GSON.fromJson(bufferText, JsonObject.class);
+                Object data = new Object();
+                if(!hasStarted) hasStarted = (object.has("message") && object.get("message").getAsString().equals("init"));
+                if(hasStarted) {
+                    if (object.has("data") && object.get("data") != null) {
+                        data = object.get("data");
+                    }
+                    if (object.has("instance") && object.get("instance").getAsString() != null && object.get("instance").getAsString().length() > 0) {
+                        lastInstance = object.get("instance").getAsString();
+                    }
+                    boolean isDone = (object.has("message") && object.get("message").getAsString().equals("done"));
+                    if (System.currentTimeMillis() > (lastMessageTime + 200) || isDone) {
+                        String type = (object.has("type") && object.get("type").getAsString() != null) ? object.get("type").getAsString() : "";
+                        String message = (object.has("message") && object.get("message").getAsString() != null) ? object.get("message").getAsString() : "";
+                        reply = new ClientLaunchData.Reply(lastInstance, type, message, data);
+                        lastMessageTime = System.currentTimeMillis();
                         try {
-                            bufferText = in.readLine();
-                            if (bufferText.length() == 0) continue;
-                            JsonObject object = GsonUtils.GSON.fromJson(bufferText, JsonObject.class);
-                            Object data = new Object();
-                            if(!hasStarted) hasStarted = (object.has("message") && object.get("message").getAsString().equals("init"));
-                            if(hasStarted) {
-                                if (object.has("data") && object.get("data") != null) {
-                                    data = object.get("data");
-                                }
-                                if (object.has("instance") && object.get("instance").getAsString() != null && object.get("instance").getAsString().length() > 0) {
-                                    lastInstance = object.get("instance").getAsString();
-                                }
-                                boolean isDone = (object.has("message") && object.get("message").getAsString().equals("done"));
-                                if (System.currentTimeMillis() > (lastMessageTime + 200) || isDone) {
-                                    String type = (object.has("type") && object.get("type").getAsString() != null) ? object.get("type").getAsString() : "";
-                                    String message = (object.has("message") && object.get("message").getAsString() != null) ? object.get("message").getAsString() : "";
-                                    reply = new ClientLaunchData.Reply(lastInstance, type, message, data);
-                                    lastMessageTime = System.currentTimeMillis();
-                                    try {
-                                        Settings.webSocketAPI.sendMessage(reply);
-                                    } catch(Throwable t)
-                                    {
-                                        CreeperLogger.INSTANCE.warning("Unable to send MC client loading update to frontend!", t);
-                                    }
-                                }
-                                if (isDone) {
-                                    socket.close();
-                                    break;
-                                }
-                            }
-                        } catch (Throwable e) {
-                            CreeperLogger.INSTANCE.error("Error whilst receiving message from MC client", e);
-                            socket.close();
-                            break;
+                            Settings.webSocketAPI.sendMessage(reply);
+                        } catch(Throwable t)
+                        {
+                            CreeperLogger.INSTANCE.warning("Unable to send MC client loading update to frontend!", t);
                         }
                     }
-                    if(socket.isConnected()){
-                        socket.close();
+                    if (isDone) {
+                        closeSockets();
                     }
-                    if(serverSocket != null && !serverSocket.isClosed()) serverSocket.close();
-                } catch (Throwable e) {
                 }
-                if(lastInstance.length() > 0) {
-                    reply = new ClientLaunchData.Reply(lastInstance, "clientDisconnect", new Object());
-                    Settings.webSocketAPI.sendMessage(reply);
-                }
-            });
-            return socket;
-        } catch (Throwable e)
-        {
-            CreeperLogger.INSTANCE.error("Error whilst sending message on to websocket", e);
+            }
+            closeSockets();
+        } catch (Throwable e) {
+            if(lastInstance.length() > 0) {
+                reply = new ClientLaunchData.Reply(lastInstance, "clientDisconnect", new Object());
+                Settings.webSocketAPI.sendMessage(reply);
+            }
+
+            closeSockets();
+
+            throw e;
+        } finally {
+            if (in != null) in.close();
         }
-        return null;
+    }
+
+    private static void closeSockets() {
+        try {
+            if (socket != null) socket.close();
+        } catch (IOException ignored) {
+        }
+
+        try {
+            if (serverSocket != null) serverSocket.close();
+        } catch (IOException ignored) {
+        }
+
+        try {
+            if (socketWrite != null) socketWrite.close();
+        } catch (IOException ignored) {
+        }
+
+        socket = null;
+        serverSocket = null;
+        socketWrite = null;
+    }
+
+    public static void closeOldClient() {
+        if(socket != null && socket.isConnected()) {
+            try {
+                JsonObject jsonObject = new JsonObject();
+                jsonObject.addProperty("message", "show");
+                socket.getOutputStream().write((jsonObject.toString() + "\n").getBytes());
+                closeSockets();
+            } catch (IOException ignored) {
+            }
+        }
     }
 
     private static void startElectron() {

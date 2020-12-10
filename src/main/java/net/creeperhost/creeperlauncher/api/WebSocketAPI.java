@@ -7,10 +7,7 @@ import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.data.BaseData;
 import net.creeperhost.creeperlauncher.util.GsonUtils;
 import org.java_websocket.WebSocket;
-import org.java_websocket.drafts.Draft;
-import org.java_websocket.exceptions.InvalidDataException;
 import org.java_websocket.handshake.ClientHandshake;
-import org.java_websocket.handshake.ServerHandshakeBuilder;
 import org.java_websocket.server.WebSocketServer;
 
 import java.net.InetAddress;
@@ -18,6 +15,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class WebSocketAPI extends WebSocketServer
 {
@@ -25,6 +23,10 @@ public class WebSocketAPI extends WebSocketServer
     {
         super(address);
     }
+
+    int connections = 0;
+
+    private ConcurrentLinkedQueue<String> notConnectedQueue = new ConcurrentLinkedQueue<>();
 
     public static Random random = new Random();
 
@@ -51,14 +53,20 @@ public class WebSocketAPI extends WebSocketServer
                 stop();
             } catch (Exception ignored) {}
             return;
+        } else {
+            CreeperLauncher.websocketDisconnect = false;
         }
 
         CreeperLogger.INSTANCE.info("Front end connected: " + conn.getRemoteSocketAddress());
+        connections++;
+        notConnectedQueue.forEach(conn::send);
     }
 
     @Override
     public void onClose(WebSocket conn, int code, String reason, boolean remote)
     {
+        connections--;
+        if (connections == 0) CreeperLauncher.websocketDisconnect = true;
         CreeperLogger.INSTANCE.info("closed " + conn.getRemoteSocketAddress() + " with exit code " + code + " additional info: " + reason);
     }
 
@@ -78,6 +86,7 @@ public class WebSocketAPI extends WebSocketServer
     {
         try
         {
+            CreeperLauncher.websocketDisconnect = true;
             CreeperLogger.INSTANCE.error("an error occurred on connection " + conn.getRemoteSocketAddress() + ":" + ex, ex);
         } catch (NullPointerException ignored)
         {
@@ -93,6 +102,12 @@ public class WebSocketAPI extends WebSocketServer
     // TODO: ensure thread safety
     public void sendMessage(BaseData data)
     {
-        getConnections().forEach((client) -> client.send(GsonUtils.GSON.toJson(data)));
+        String s = GsonUtils.GSON.toJson(data);
+        if (getConnections().isEmpty())
+        {
+            notConnectedQueue.add(s);
+        } else {
+            getConnections().forEach((client) -> client.send(s));
+        }
     }
 }

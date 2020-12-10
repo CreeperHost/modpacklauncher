@@ -87,6 +87,9 @@ public class WebSocketMessengerHandler
         registerHandler(InstanceModsData.class, new InstanceModsHandler());
         registerDataMap("yeetLauncher", YeetLauncherData.class);
         registerHandler(YeetLauncherData.class, new YeetLauncherHandler());
+        registerDataMap("pong", PongLauncherData.class);
+        registerHandler(PongLauncherData.class, new PongLauncherHandler());
+        registerDataMap("ping", PingLauncherData.class);
         registerDataMap("messageClient", MessageClientData.class);
         registerHandler(MessageClientData.class, new MessageClientHandler());
     }
@@ -120,7 +123,7 @@ public class WebSocketMessengerHandler
                     try {
                         BaseData parsedData = gson.fromJson(data, typeToken.getType());
                         if (CreeperLauncher.isDevMode || (parsedData.secret != null && parsedData.secret.equals(CreeperLauncher.websocketSecret))) {
-                            CompletableFuture.runAsync(() -> iMessageHandler.handle(parsedData)).exceptionally((t) -> {
+                            CompletableFuture.runAsync(() -> iMessageHandler.handle(parsedData), CreeperLauncher.taskExeggutor).exceptionally((t) -> {
                                 CreeperLogger.INSTANCE.debug("Error handling message", t.getCause());
                                 t.printStackTrace();
                                 return null;
