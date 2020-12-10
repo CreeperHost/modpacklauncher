@@ -64,7 +64,7 @@ public class SyncInstanceHandler implements IMessageHandler<InstallInstanceData>
 
                             McUtils.downloadVanillaLauncher();
                             File profileJson = new File(Constants.LAUNCHER_PROFILES_JSON);
-                            if (!profileJson.exists()) GameLauncher.launchGameAndClose();
+                            if (!profileJson.exists()) GameLauncher.downloadLauncherProfiles();
                         }
                     }).thenRun(() ->
                     {

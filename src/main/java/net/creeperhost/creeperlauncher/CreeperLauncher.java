@@ -24,6 +24,8 @@ import java.net.Socket;
 import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -31,11 +33,11 @@ public class CreeperLauncher
 {
     public static HashMap<String, String> javaVersions;
     public static int missedPings = 0;
-    private static boolean failedInitialMigration; // todo: use this to pop up stuff if failed
     public static ServerSocket serverSocket = null;
     public static Socket socket = null;
     public static OutputStream socketWrite = null;
     public static boolean opened = false;
+    public static Executor taskExeggutor = Executors.newWorkStealingPool();
 
     static
     {
@@ -332,7 +334,7 @@ public class CreeperLauncher
             Settings.webSocketAPI = new WebSocketAPI(new InetSocketAddress(InetAddress.getLoopbackAddress(), defaultWebsocketPort || isDevMode ? Constants.WEBSOCKET_PORT : websocketPort));
             Settings.webSocketAPI.setConnectionLostTimeout(0);
             Settings.webSocketAPI.start();
-            pingPong();
+            if(OSUtils.getOs() == OS.WIN) pingPong();
         } catch(Throwable t)
         {
             websocketDisconnect=true;

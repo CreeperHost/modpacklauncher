@@ -165,10 +165,19 @@ public class DownloadableFile
         {
             dirPath.mkdirs();
         }
+        long speedLimit = 0;
+        try {
+            String speedLimit1 = Settings.settings.putIfAbsent("speedLimit", "0");
+            if(speedLimit1 == null)
+                speedLimit1 = "0";
+            speedLimit = Long.parseLong(speedLimit1);
+        } catch (Exception ignored) {
+        }
+
         DownloadedFile send = client.doDownload(this.downloadUrl, destination, (downloaded, delta, total, done) ->
         {
             FTBModPackInstallerTask.currentBytes.addAndGet(delta);
-        }, digest, Long.parseLong(Settings.settings.putIfAbsent("speedLimit", "0")) * 1000l); // not really async - our client will run async things on same thread. bit of a hack, but async just froze.
+        }, digest, speedLimit * 1000L); // not really async - our client will run async things on same thread. bit of a hack, but async just froze.
         Path body = send.getDestination();
         sha1 = send.getChecksum();
         File file = body.toFile();
