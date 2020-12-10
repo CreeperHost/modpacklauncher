@@ -15,7 +15,6 @@ import net.creeperhost.creeperlauncher.util.MiscUtils;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -24,12 +23,13 @@ public class InstallInstanceHandler implements IMessageHandler<InstallInstanceDa
 {
     //TODO: Make these local instead of static once Exceptions work properly again
     public static AtomicBoolean hasError = new AtomicBoolean(false);
-    public static AtomicReference<String> lastError = new AtomicReference<String>();
+    public static AtomicReference<String> lastError = new AtomicReference<>();
     FTBModPackInstallerTask install;
 
     @Override
     public void handle(InstallInstanceData data)
     {
+        CreeperLogger.INSTANCE.debug("Received install pack message");
         hasError.set(false);
         if (CreeperLauncher.isInstalling.get())
         {
@@ -57,6 +57,7 @@ public class InstallInstanceHandler implements IMessageHandler<InstallInstanceDa
             instance = new LocalInstance(pack, data.version);
             Instances.addInstance(instance.getUuid(), instance);
             data.uuid = instance.getUuid().toString();
+            CreeperLogger.INSTANCE.debug("Running install task");
             install = instance.install();
         }
         install.currentTask.exceptionally((t) ->
@@ -80,107 +81,102 @@ public class InstallInstanceHandler implements IMessageHandler<InstallInstanceDa
             }
             return null;
         });
-        FTBModPackInstallerTask finalInstall = install;
-        CompletableFuture.runAsync(() ->
+        if (install != null)
         {
-            if (finalInstall != null)
+            double curProgress;
+            long lastBytes = 0;
+            long lastTime = System.currentTimeMillis() / 1000L;
+            long lastSpeed = 0;
+            int sinceLastChange = 0;
+            long lastAverage = 0;
+            double lastProgress = 0.00d;
+            boolean sentHundred = false;
+            while (((curProgress = install.getProgress()) <= 100) && (hasError.get() == false))
             {
-                Double curProgress = 0.00d;
-                long lastBytes = 0;
-                long lastTime = System.currentTimeMillis() / 1000L;
-                long lastSpeed = 0;
-                int sinceLastChange = 0;
-                long lastAverage = 0;
-                double lastProgress = 0.00d;
-                Boolean sentHundred=false;
-                while (((curProgress = finalInstall.getProgress()) <= 100) && (hasError.get() == false))
+                long time = System.currentTimeMillis() / 1000L;
+                long speed = 0;
+                long averageSpeed = 0;
+                long curBytes = FTBModPackInstallerTask.currentBytes.get();
+                if ((curBytes > 0) && ((time - lastTime) > 0))
                 {
-                    long time = System.currentTimeMillis() / 1000L;
-                    long speed = 0;
-                    long averageSpeed = 0;
-                    long curBytes = FTBModPackInstallerTask.currentBytes.get();
-                    if ((curBytes > 0) && ((time - lastTime) > 0))
-                    {
-                        speed = ((curBytes - lastBytes) / (time - lastTime)) * 8;
-                        long runtime = MiscUtils.unixtime() - FTBModPackInstallerTask.startTime.get();
-                        averageSpeed = (curBytes / runtime) * 8;
-                        if (averageSpeed == 0) averageSpeed = lastAverage;
-                        if (speed == 0) speed = lastSpeed;
-                        lastAverage = averageSpeed;
-                    } else
-                    {
-                        speed = lastSpeed;
-                    }
-                    FTBModPackInstallerTask.currentSpeed.set(speed);
-                    FTBModPackInstallerTask.averageSpeed.set(averageSpeed);
-                    if (curProgress != lastProgress && FTBModPackInstallerTask.currentStage == FTBModPackInstallerTask.Stage.DOWNLOADS)
-                    {
-                        sinceLastChange = 0;
-                        Settings.webSocketAPI.sendMessage(new InstallInstanceData.Progress(data, curProgress, speed, curBytes, FTBModPackInstallerTask.overallBytes.get(), FTBModPackInstallerTask.Stage.DOWNLOADS));
-                    } else
-                    {
-                        if (FTBModPackInstallerTask.currentStage != FTBModPackInstallerTask.Stage.DOWNLOADS)
-                        {
-                            Settings.webSocketAPI.sendMessage(new InstallInstanceData.Progress(data, 0.00d, speed, curBytes, -1, FTBModPackInstallerTask.currentStage));
-                            curProgress = 0d;
-                        }
-                        if (curProgress > 0)
-                        {
-                            ++sinceLastChange;
-                        }
-                    }
-                    if (sinceLastChange > 120)
-                    {
-                        lastError.set("No bytes transferred in 60 seconds, cancelling...");
-                        hasError.set(true);
-                        CreeperLauncher.currentInstall.get().cancel();
-                        break;
-                    }
-                    //if(curProgress == 100)
-
-                    if(FTBModPackInstallerTask.currentStage == FTBModPackInstallerTask.Stage.POSTINSTALL)
-                    {
-                        if (curProgress <= 100d && (!hasError.get()))
-                        {
-                            if(!sentHundred) {
-                                //Make sure we always send 100%, fast internets cause issues.
-                                Settings.webSocketAPI.sendMessage(new InstallInstanceData.Progress(data, 100d, averageSpeed, curBytes, FTBModPackInstallerTask.overallBytes.get(), FTBModPackInstallerTask.Stage.DOWNLOADS));
-                                //Let them know we're now on POSTINSTALL
-                                Settings.webSocketAPI.sendMessage(new InstallInstanceData.Progress(data, 100d, averageSpeed, curBytes, FTBModPackInstallerTask.overallBytes.get(), FTBModPackInstallerTask.Stage.POSTINSTALL));
-                                sentHundred=true;
-                            }
-                        }
-                    }
-                    if (FTBModPackInstallerTask.currentStage == FTBModPackInstallerTask.Stage.FINISHED)
-                    {
-                        if (curProgress <= 100d && (!hasError.get()))
-                        {
-                            Settings.webSocketAPI.sendMessage(new InstallInstanceData.Progress(data, 100d, averageSpeed, curBytes, FTBModPackInstallerTask.overallBytes.get(), FTBModPackInstallerTask.Stage.FINISHED));
-                        }
-                        break;
-                    }
-                    try
-                    {
-                        Thread.sleep(500);
-                    } catch (InterruptedException e)
-                    {
-                        e.printStackTrace();
-                    }
-                    lastProgress = curProgress;
-                    lastTime = time;
-                    lastBytes = curBytes;
-                    lastSpeed = speed;
-                }
-                if (hasError.get())
-                {
-                    Settings.webSocketAPI.sendMessage(new InstallInstanceData.Reply(data, "error", lastError.get(), instance.getUuid().toString()));
-                    CreeperLauncher.isInstalling.set(false);
+                    speed = ((curBytes - lastBytes) / (time - lastTime)) * 8;
+                    long runtime = MiscUtils.unixtime() - FTBModPackInstallerTask.startTime.get();
+                    averageSpeed = (curBytes / runtime) * 8;
+                    if (averageSpeed == 0) averageSpeed = lastAverage;
+                    if (speed == 0) speed = lastSpeed;
+                    lastAverage = averageSpeed;
                 } else
                 {
-                    Settings.webSocketAPI.sendMessage(new InstallInstanceData.Reply(data, "success", "Install complete.", instance.getUuid().toString()));
+                    speed = lastSpeed;
                 }
-            }
-        });
+                FTBModPackInstallerTask.currentSpeed.set(speed);
+                FTBModPackInstallerTask.averageSpeed.set(averageSpeed);
+                if (curProgress != lastProgress && FTBModPackInstallerTask.currentStage == FTBModPackInstallerTask.Stage.DOWNLOADS)
+                {
+                    sinceLastChange = 0;
+                    Settings.webSocketAPI.sendMessage(new InstallInstanceData.Progress(data, curProgress, speed, curBytes, FTBModPackInstallerTask.overallBytes.get(), FTBModPackInstallerTask.Stage.DOWNLOADS));
+                } else
+                {
+                    if (FTBModPackInstallerTask.currentStage != FTBModPackInstallerTask.Stage.DOWNLOADS)
+                    {
+                        Settings.webSocketAPI.sendMessage(new InstallInstanceData.Progress(data, 0.00d, speed, curBytes, -1, FTBModPackInstallerTask.currentStage));
+                        curProgress = 0d;
+                    }
+                    if (curProgress > 0)
+                    {
+                        ++sinceLastChange;
+                    }
+                }
+                if (sinceLastChange > 120)
+                {
+                    lastError.set("No bytes transferred in 60 seconds, cancelling...");
+                    hasError.set(true);
+                    CreeperLauncher.currentInstall.get().cancel();
+                    break;
+                }
+                //if(curProgress == 100)
 
+                if(FTBModPackInstallerTask.currentStage == FTBModPackInstallerTask.Stage.POSTINSTALL)
+                {
+                    if (curProgress <= 100d && (!hasError.get()))
+                    {
+                        if(!sentHundred) {
+                            //Make sure we always send 100%, fast internets cause issues.
+                            Settings.webSocketAPI.sendMessage(new InstallInstanceData.Progress(data, 100d, averageSpeed, curBytes, FTBModPackInstallerTask.overallBytes.get(), FTBModPackInstallerTask.Stage.DOWNLOADS));
+                            //Let them know we're now on POSTINSTALL
+                            Settings.webSocketAPI.sendMessage(new InstallInstanceData.Progress(data, 100d, averageSpeed, curBytes, FTBModPackInstallerTask.overallBytes.get(), FTBModPackInstallerTask.Stage.POSTINSTALL));
+                            sentHundred=true;
+                        }
+                    }
+                }
+                if (FTBModPackInstallerTask.currentStage == FTBModPackInstallerTask.Stage.FINISHED)
+                {
+                    if (curProgress <= 100d && (!hasError.get()))
+                    {
+                        Settings.webSocketAPI.sendMessage(new InstallInstanceData.Progress(data, 100d, averageSpeed, curBytes, FTBModPackInstallerTask.overallBytes.get(), FTBModPackInstallerTask.Stage.FINISHED));
+                    }
+                    break;
+                }
+                try
+                {
+                    Thread.sleep(500);
+                } catch (InterruptedException e)
+                {
+                    e.printStackTrace();
+                }
+                lastProgress = curProgress;
+                lastTime = time;
+                lastBytes = curBytes;
+                lastSpeed = speed;
+            }
+            if (hasError.get())
+            {
+                Settings.webSocketAPI.sendMessage(new InstallInstanceData.Reply(data, "error", lastError.get(), instance.getUuid().toString()));
+                CreeperLauncher.isInstalling.set(false);
+            } else
+            {
+                Settings.webSocketAPI.sendMessage(new InstallInstanceData.Reply(data, "success", "Install complete.", instance.getUuid().toString()));
+            }
+        }
     }
 }

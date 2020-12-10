@@ -20,11 +20,11 @@ import net.creeperhost.creeperlauncher.minecraft.GameLauncher;
 import net.creeperhost.creeperlauncher.minecraft.McUtils;
 import net.creeperhost.creeperlauncher.minecraft.Profile;
 import net.creeperhost.creeperlauncher.os.OSUtils;
+import oshi.util.FileUtil;
 
 import java.awt.*;
 import java.io.*;
 import java.net.MalformedURLException;
-import java.net.Socket;
 import java.nio.channels.FileLock;
 import java.nio.file.*;
 import java.util.*;
@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -75,8 +76,8 @@ public class LocalInstance implements IPack
     transient private Runnable preUninstall;
     transient private boolean preUninstallAsync;
     transient private AtomicBoolean inUse = new AtomicBoolean(false);
-    transient public Socket loadingModSocket;
     transient private HashMap<String, instanceEvent> gameCloseEvents = new HashMap<>();
+    transient private String tempLauncherPath = null;
 
     public LocalInstance(FTBPack pack, long versionId)
     {
@@ -303,8 +304,10 @@ public class LocalInstance implements IPack
         {
             CreeperLauncher.isInstalling.set(true);
             Analytics.sendInstallRequest(this.getId(), this.getVersionId());
+            CreeperLogger.INSTANCE.debug("Running installer async task");
             installer.execute().thenRunAsync(() ->
             {
+                CreeperLogger.INSTANCE.debug("Running after installer task");
                 if (this.postInstall != null && this.postInstall.size() > 0)
                 {
                     ArrayList<CompletableFuture> futures = new ArrayList<>();
@@ -390,11 +393,11 @@ public class LocalInstance implements IPack
         if(totalArgs.length() > 0 && extraArgs.length() > 0) totalArgs = totalArgs.trim() + " " + extraArgs.trim();
         return new Profile(getUuid().toString(), getName(), getMcVersion(), modLoader, MiscUtils.getDateAndTime(), "custom", dir, art, totalArgs, memory, width, height);
     }
-    public GameLauncher play()
+    public Process play()
     {
         return play("");
     }
-    public GameLauncher play(String extraArgs)
+    public Process play(String extraArgs)
     {
         List<Process> processes = CreeperLauncher.mojangProcesses.get();
         if(processes != null) {
@@ -431,6 +434,7 @@ public class LocalInstance implements IPack
                 }
             });
         }
+        McUtils.verifyJson(new File(Constants.LAUNCHER_PROFILES_JSON));
         this.lastPlayed = CreeperLauncher.unixtimestamp();
         CreeperLogger.INSTANCE.debug("Sending play request to API");
         Analytics.sendPlayRequest(this.getId(), this.getVersionId());
@@ -460,13 +464,7 @@ public class LocalInstance implements IPack
             }
             //END TESTING CODE
             if (this.hasLoadingMod) {
-                if (this.loadingModSocket != null) {
-                    try {
-                        this.loadingModSocket.close();
-                    } catch (IOException ignored) {
-                    }
-                    this.loadingModSocket = null;
-                }
+                CreeperLauncher.closeOldClient();
                 int retries = 0;
                 AtomicBoolean hasErrored = new AtomicBoolean(true);
                 while (hasErrored.get()) {
@@ -475,13 +473,17 @@ public class LocalInstance implements IPack
                     this.loadingModPort = MiscUtils.getRandomNumber(50001, 52000);
                     CompletableFuture.runAsync(() -> {
                         try {
-
-                            CreeperLogger.INSTANCE.info("Started mod socket on port " + this.loadingModPort);
-                            loadingModSocket = CreeperLauncher.listenForClient(this.loadingModPort);
+                            CreeperLauncher.listenForClient(this.loadingModPort);
                         } catch (Exception err) {
-                            CreeperLogger.INSTANCE.error("Unable to open loading mod listener on port '" + this.loadingModPort + "'...", err);
-                            loadingModSocket = null;
-                            hasErrored.set(true);
+                            if (!CreeperLauncher.opened)
+                            {
+                                CreeperLogger.INSTANCE.error("Error whilst starting mod socket on port '" + this.loadingModPort + "'...", err);
+                                hasErrored.set(true);
+                            } else {
+                                CreeperLogger.INSTANCE.warning("Error whilst handling message from mod socket - probably nothing!", err);
+                                CreeperLauncher.opened = false;
+                            }
+
                         }
                     });
                     try {
@@ -501,12 +503,22 @@ public class LocalInstance implements IPack
         }
 
         Profile profile = (extraArgs.length() > 0) ? this.toProfile(extraArgs) : this.toProfile();
-
-        if(!McUtils.injectProfile(new File(Constants.LAUNCHER_PROFILES_JSON), profile, jrePath))
+        tempLauncherPath = Constants.BIN_LOCATION;
+        if(!McUtils.injectProfile(new File(tempLauncherPath + File.separator + "launcher_profiles.json"), profile, jrePath))
         {
-            CreeperLogger.INSTANCE.error("Unable to inject Mojang launcher profile...");
-            return null;
+            //Can't write to our normal directory, so we'll copy the launcher to a temporary directory and try there!
+            tempLauncherPath = GameLauncher.prepareGame();
+            if(!McUtils.injectProfile(new File(tempLauncherPath + File.separator + "launcher_profiles.json"), profile, jrePath))
+            {
+
+                CreeperLogger.INSTANCE.error("Unable to inject Mojang launcher profile...");
+                OpenModalData.openModal("Error", "Unable to create Mojang launcher profile. Please ensure you do not have any security software blocking access to the FTB App data directories.", List.of(
+                        new OpenModalData.ModalButton("Ok", "red", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
+                ));
+                return null;
+            }
         }
+        CreeperLogger.INSTANCE.warning("Starting launcher at "+tempLauncherPath);
 
         this.lastPlayed = lastPlay;
         try {
@@ -517,14 +529,15 @@ public class LocalInstance implements IPack
         }
 
         CreeperLogger.INSTANCE.debug("Starting Mojang launcher");
-
-        GameLauncher launcher = new GameLauncher();
-        launcher.launchGame();
-        CreeperLauncher.mojangProcesses.getAndUpdate((List<Process> _processes) -> {
-            if(_processes == null) _processes = new ArrayList<Process>();
-            if(launcher != null && launcher.process != null) _processes.add(launcher.process);
-            return _processes;
-        });
+        AtomicReference<Process> launcher = new AtomicReference<>();
+        CompletableFuture.runAsync(() -> {
+            launcher.set(GameLauncher.launchGame(tempLauncherPath));
+            CreeperLauncher.mojangProcesses.getAndUpdate((List<Process> _processes) -> {
+                if (_processes == null) _processes = new ArrayList<Process>();
+                if (launcher != null) _processes.add(launcher.get());
+                return _processes;
+            });
+        }).join();
         if(CreeperLauncher.mtConnect != null) {
             if (CreeperLauncher.mtConnect.isEnabled()) {
                 try {
@@ -532,6 +545,19 @@ public class LocalInstance implements IPack
                 } catch(Exception ignored) {} //Just a small sleep so we're not messing with routing and NIC's just as the Vanilla launcher opens.
                 CreeperLogger.INSTANCE.info("MineTogether Connect is enabled... Connecting...");
                 CreeperLauncher.mtConnect.connect();
+                onGameClose("CleanTempLauncherLoc", () -> {
+                    if(!tempLauncherPath.equalsIgnoreCase(Constants.BIN_LOCATION))
+                    {
+                        try {
+                            CreeperLogger.INSTANCE.warning("Cleaning up temporary launcher at "+tempLauncherPath);
+                            FileUtils.deleteDirectory(Path.of(tempLauncherPath));
+                            Files.deleteIfExists(Path.of(tempLauncherPath));
+                            CreeperLogger.INSTANCE.warning("Cleaned up temporary launcher at "+tempLauncherPath);
+                        } catch (IOException e) {
+                            CreeperLogger.INSTANCE.warning("Error cleaning up temporary launcher!", e);
+                        }
+                    }
+                });
                 onGameClose("MTC-Disconnect", () -> {
                     if (CreeperLauncher.mtConnect.isConnected()) {
                         CreeperLogger.INSTANCE.info("MineTogether Connect is enabled... Disconnecting...");
@@ -546,10 +572,10 @@ public class LocalInstance implements IPack
         }
         if (launcherWait != null && (!launcherWait.isDone())) launcherWait.cancel(true);
         launcherWait = CompletableFuture.runAsync(() -> {
-           inUseCheck(launcher.process);
+           inUseCheck(launcher.get());
         });
 
-        return launcher;
+        return launcher.get();
     }
     private transient CompletableFuture launcherWait;
     public void setPostInstall(Runnable lambda, boolean async)

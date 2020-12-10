@@ -87,9 +87,15 @@ public class Instances
     {
         File json = new File(Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC) + File.separator + _uuid, "instance.json");
         if (!json.exists()) throw new FileNotFoundException("Instance corrupted; " + json.getAbsoluteFile());
-        UUID uuid = UUID.fromString(_uuid);
-        LocalInstance loadedInstance = new LocalInstance(uuid);
-        Instances.addInstance(uuid, loadedInstance);
+        try {
+            UUID uuid = UUID.fromString(_uuid);
+            LocalInstance loadedInstance = new LocalInstance(uuid);
+            Instances.addInstance(uuid, loadedInstance);
+        } catch(Exception e)
+        {
+            CreeperLogger.INSTANCE.error("Corrupted instance json!", e);
+            throw new FileNotFoundException("Instance corrupted; " + json.getAbsoluteFile());
+        }
     }
 
     private static HashMap<UUID, JsonObject> loadCloudInstances()

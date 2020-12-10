@@ -111,10 +111,9 @@ public class ForgeUtils
         try (InputStream stream = new FileInputStream(target))
         {
             JsonObject json = new JsonParser().parse(new InputStreamReader(stream, StandardCharsets.UTF_8)).getAsJsonObject();
+            stream.close();
             return GsonUtils.GSON.fromJson(json, StartJson.class);
-        } catch (IOException ignored)
-        {
-        }
+        } catch (IOException ignored) {}
         return null;
     }
 
