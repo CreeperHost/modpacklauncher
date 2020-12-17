@@ -23,7 +23,6 @@ import java.io.*;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -478,8 +477,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
         }
         for (DownloadableFile file : requiredFiles)
         {
-            File f = new File(instanceDir + File.separator + file.getPath());
-            if (!f.exists()) f.mkdir();
+            FileUtils.createDirectories(file.getPath().toAbsolutePath().getParent());
             try
             {
                 Path path = file.getPath();
@@ -509,19 +507,10 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
     List<LoaderTarget> getTargets()
     {
         List<LoaderTarget> targetList = new ArrayList<>();
-        JsonReader versionReader = null;
-        try
+        try(BufferedReader reader = Files.newBufferedReader(instance.getDir().resolve("version.json")))
         {
-            versionReader = new JsonReader(new FileReader(new File(instance.getDir() + File.separator + "version.json")));
-        } catch (FileNotFoundException e)
-        {
-            e.printStackTrace();
-        }
-
-        JsonElement jElement = new JsonParser().parse(versionReader);
-        if (jElement.isJsonObject())
-        {
-            JsonArray targets = jElement.getAsJsonObject().getAsJsonArray("targets");
+            JsonObject jObject = GsonUtils.GSON.fromJson(reader, JsonObject.class);
+            JsonArray targets = jObject.getAsJsonArray("targets");
             if (targets != null)
             {
                 for (JsonElement serverEl : targets)
@@ -536,10 +525,10 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                 }
             }
         }
-        try
+        catch (IOException e)
         {
-            versionReader.close();
-        } catch (IOException e) { e.printStackTrace(); }
+            e.printStackTrace();
+        }
         return targetList;
     }
 

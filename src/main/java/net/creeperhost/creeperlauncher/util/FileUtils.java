@@ -69,7 +69,7 @@ public class FileUtils
         try (java.nio.file.FileSystem fileSystem = FileSystems.newFileSystem(zip, null))
         {
             Path fileToExtract = fileSystem.getPath(fileName);
-            Files.copy(fileToExtract, dest);
+            Files.copy(fileToExtract, dest, StandardCopyOption.REPLACE_EXISTING);
         }
     }
 
@@ -203,11 +203,6 @@ public class FileUtils
             result.append(Integer.toString((value & 0xff) + 0x100, 16).substring(1));
         }
         return result.toString();
-    }
-
-    public static void main(String[] args) {
-        File file = new File("C:\\Users\\TravisN\\.ftba\\bin\\versions\\1.4.7-forge1.4.7-6.6.2.534\\1.4.7-forge1.4.7-6.6.2.534.jar");
-        removeMeta(file);
     }
 
     //I hate this but its the only way I can get it to work right now

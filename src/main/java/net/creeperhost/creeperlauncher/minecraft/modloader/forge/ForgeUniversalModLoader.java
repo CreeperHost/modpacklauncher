@@ -42,8 +42,6 @@ public class ForgeUniversalModLoader extends ForgeModLoader
         Path file = Constants.VERSIONS_FOLDER_LOC.resolve(newname);
         FileUtils.createDirectories(file);
 
-		DownloadUtils.downloadFile(file.resolve(newname + ".json"), "https://apps.modpacks.ch/versions/minecraftjsons/forge-1.5.2.json");
-
 		//TODO clean this up but it should work for testing
 		if(getMinecraftVersion().equalsIgnoreCase("1.5.2"))
 		{
@@ -53,7 +51,7 @@ public class ForgeUniversalModLoader extends ForgeModLoader
 			{
 				FileUtils.createDirectories(vanillaFolder);
 				DownloadableFile mc = McUtils.getMinecraftDownload(getMinecraftVersion(), vanillaFolder);
-				DownloadTask mcTask = new DownloadTask(mc, new File(vanillaFolder + File.separator + getMinecraftVersion() + ".jar").toPath());
+				DownloadTask mcTask = new DownloadTask(mc, vanillaFolder.resolve(getMinecraftVersion() + ".jar"));
 				mcTask.execute().join();
 			}
 		}
@@ -84,10 +82,10 @@ public class ForgeUniversalModLoader extends ForgeModLoader
 				{
 					ForgeUtils.updateForgeJson(forgeJson, newname, getMinecraftVersion());
 					//Move the forge jar to its home in libs
-					File libForgeDir = new File(Constants.LIBRARY_LOCATION + File.separator + "net" + File.separator + "minecraftforge" + File.separator + "forge" + File.separator + getMinecraftVersion() + "-" + getForgeVersion());
-					if (!libForgeDir.exists()) libForgeDir.mkdirs();
-					File forgeLib = new File(libForgeDir + File.separator + "forge-" + getMinecraftVersion() + "-" + getForgeVersion() + ".jar");
-					if (!forgeLib.exists()) Files.copy(forgeFile, forgeLib.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                    Path libForgeDir = Constants.LIBRARY_LOCATION.resolve("net/minecraftforge/forge/" + getMinecraftVersion() + "-" + getForgeVersion());
+					FileUtils.createDirectories(libForgeDir);
+					Path forgeLib = libForgeDir.resolve("forge-" + getMinecraftVersion() + "-" + getForgeVersion() + ".jar");
+					if (!Files.exists(forgeLib)) Files.copy(forgeFile, forgeLib, StandardCopyOption.REPLACE_EXISTING);
 
 					returnFile = forgeJson;
 				} else
