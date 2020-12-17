@@ -8,19 +8,20 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.stream.Collectors;
 
 public class DownloadUtils
 {
-    public static boolean downloadFile(File target, String url)
+    public static boolean downloadFile(Path target, String url)
     {
         try
         {
             URLConnection connection = getConnection(url);
             if (connection != null && connection.getInputStream() != null)
             {
-                Files.copy(connection.getInputStream(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                Files.copy(connection.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
                 return true;
             }
         } catch (IOException ignored)

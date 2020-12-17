@@ -4,6 +4,7 @@ import net.creeperhost.creeperlauncher.pack.LocalInstance;
 import net.creeperhost.creeperlauncher.util.LoaderTarget;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,7 +19,7 @@ public abstract class ModLoader {
 
 	public abstract String getName();
 
-	public abstract File install(LocalInstance instance);
+	public abstract Path install(LocalInstance instance);
 
 	public boolean isApplicable()
 	{

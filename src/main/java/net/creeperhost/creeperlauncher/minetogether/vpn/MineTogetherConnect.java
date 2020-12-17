@@ -5,10 +5,13 @@ import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.DownloadableFile;
 import net.creeperhost.creeperlauncher.os.OSUtils;
+import net.creeperhost.creeperlauncher.util.FileUtils;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -77,15 +80,15 @@ public class MineTogetherConnect {
                 break;
         }
         if(executable.size() == 0 || binary.isEmpty()) return false;
-        File primaryPath = new File(Constants.MTCONNECT_DIR);
-        if(!primaryPath.exists()) primaryPath.mkdirs();
-        if(!primaryPath.canWrite())
+        Path primaryPath = Constants.MTCONNECT_DIR;
+        FileUtils.createDirectories(primaryPath);
+        if(!Files.isWritable(primaryPath))
         {
-            CreeperLogger.INSTANCE.error("Unable to write to '"+primaryPath.getAbsolutePath()+"'...");
+            CreeperLogger.INSTANCE.error("Unable to write to '"+primaryPath.toAbsolutePath()+"'...");
             return false;
         }
-        File fullPath = new File(Constants.MTCONNECT_DIR + File.separator + binary);
-        if(!fullPath.exists())
+        Path fullPath = Constants.MTCONNECT_DIR.resolve(binary);
+        if(Files.notExists(fullPath))
         {
             CreeperLogger.INSTANCE.info("First run... Downloading binaries...");
             if(!download(fullPath)) return false;
@@ -135,18 +138,18 @@ public class MineTogetherConnect {
         if(runConnected != null) CompletableFuture.runAsync(runConnected);
         return true;
     }
-    private static boolean download(File path)
+    private static boolean download(Path path)
     {
-        DownloadableFile remoteFile = new DownloadableFile("latest", "/", "https://apps.modpacks.ch/MineTogether/MineTogetherConnect.exe", new ArrayList<>(), 0, false, false, 0, "MineTogetherConnect", "MineTogetherConnect", String.valueOf(System.currentTimeMillis() / 1000L));
+        DownloadableFile remoteFile = new DownloadableFile("latest", path, "https://apps.modpacks.ch/MineTogether/MineTogetherConnect.exe", new ArrayList<>(), 0, false, false, 0, "MineTogetherConnect", "MineTogetherConnect", String.valueOf(System.currentTimeMillis() / 1000L));
         try {
             remoteFile.prepare();
-            remoteFile.download(path.getAbsoluteFile().toPath(), true, false);
+            remoteFile.download(path, true, false);
         } catch(Throwable e)
         {
             CreeperLogger.INSTANCE.error("Unable to grab binaries...", e);
             return false;
         }
-        if(!path.exists()) return false;
+        if(!Files.exists(path)) return false;
         return true;
     }
     public void disconnect()
@@ -154,9 +157,9 @@ public class MineTogetherConnect {
         if(!enabled) return;
         if(vpnProcess != null) vpnProcess.destroy();
         try {
-            File config = new File(Constants.MTCONNECT_DIR + File.separator + "MTConnect.ovpn");
+            Path config = Constants.MTCONNECT_DIR.resolve("MTConnect.ovpn");
             //Act of removing this config shuts down the VPN
-            config.delete();
+            Files.delete(config);
         } catch(Exception ignored) {}
         connected = false;
         if(runDisconnected != null) CompletableFuture.runAsync(runDisconnected);

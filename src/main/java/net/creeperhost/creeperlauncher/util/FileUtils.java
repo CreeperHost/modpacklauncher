@@ -1,6 +1,7 @@
 package net.creeperhost.creeperlauncher.util;
 
 import net.creeperhost.creeperlauncher.CreeperLogger;
+import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.archivers.ArchiveStreamFactory;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
@@ -27,35 +28,23 @@ import java.util.zip.GZIPInputStream;
 
 public class FileUtils
 {
-    public static List<File> unTar(final File inputFile, final File outputDir) throws IOException, ArchiveException
+    public static List<Path> unTar(InputStream is, final Path outputDir) throws IOException
     {
-        final List<File> untaredFiles = new LinkedList<File>();
-        final InputStream is = new FileInputStream(inputFile);
-        final TarArchiveInputStream debInputStream = (TarArchiveInputStream) new ArchiveStreamFactory().createArchiveInputStream("tar", is);
-        TarArchiveEntry entry = null;
-        while ((entry = (TarArchiveEntry) debInputStream.getNextEntry()) != null)
-        {
-            final File outputFile = new File(outputDir, entry.getName());
-            if (entry.isDirectory())
+        final List<Path> untaredFiles = new LinkedList<>();
+        try (TarArchiveInputStream tarStream = new TarArchiveInputStream(is)) {
+            ArchiveEntry entry = null;
+            while ((entry = tarStream.getNextEntry()) != null)
             {
-                if (!outputFile.exists())
+                final Path outputFile = outputDir.resolve(entry.getName());
+                if (entry.isDirectory())
                 {
-                    if (!outputFile.mkdirs())
-                    {
-                        throw new IllegalStateException(String.format("Couldn't create directory %s.", outputFile.getAbsolutePath()));
-                    }
+                    FileUtils.createDirectories(outputDir);
+                    continue;
                 }
-            } else
-            {
-                final OutputStream outputFileStream = new FileOutputStream(outputFile);
-                IOUtils.copy(debInputStream, outputFileStream);
-                outputFileStream.close();
+                Files.copy(tarStream, outputFile);
+                untaredFiles.add(outputFile);
             }
-            untaredFiles.add(outputFile);
         }
-        debInputStream.close();
-
-        inputFile.delete();
         return untaredFiles;
     }
 
@@ -75,20 +64,20 @@ public class FileUtils
         outputStream.close();
     }
 
-    public static void fileFromZip(File zip, File dest, String fileName) throws IOException
+    public static void fileFromZip(Path zip, Path dest, String fileName) throws IOException
     {
-        try (java.nio.file.FileSystem fileSystem = FileSystems.newFileSystem(zip.toPath(), null))
+        try (java.nio.file.FileSystem fileSystem = FileSystems.newFileSystem(zip, null))
         {
             Path fileToExtract = fileSystem.getPath(fileName);
-            Files.copy(fileToExtract, dest.toPath());
+            Files.copy(fileToExtract, dest);
         }
     }
 
     public static <FileSystem> void removeFileFromZip(File zip, String fileName) throws IOException
     {
-        try (java.nio.file.FileSystem fileSystem = (java.nio.file.FileSystem) FileSystems.newFileSystem(zip.toPath(), null))
+        try (java.nio.file.FileSystem fileSystem = FileSystems.newFileSystem(zip.toPath(), null))
         {
-            Path fileToRemove = ((java.nio.file.FileSystem) fileSystem).getPath(fileName);
+            Path fileToRemove = fileSystem.getPath(fileName);
             deleteDirectory(fileToRemove.toFile());
         }
     }
@@ -161,11 +150,11 @@ public class FileUtils
         return "application/octet-stream";
     }
 
-    public static void setFilePermissions(File file)
+    public static void setFilePermissions(Path file)
     {
         try
         {
-            Files.setPosixFilePermissions(file.toPath(), PosixFilePermissions.fromString("rwxr-xr-x"));
+            Files.setPosixFilePermissions(file, PosixFilePermissions.fromString("rwxr-xr-x"));
         } catch (IOException e)
         {
             e.printStackTrace();
@@ -180,7 +169,7 @@ public class FileUtils
         return 0L;
     }
 
-    public static String getHash(File file, String hashType)
+    public static String getHash(Path file, String hashType)
     {
         try {
             return hashToString(createChecksum(file, hashType));
@@ -189,22 +178,22 @@ public class FileUtils
         }
     }
 
-    private static byte[] createChecksum(File file, String hashType) throws Exception {
-        InputStream fis =  new FileInputStream(file);
+    private static byte[] createChecksum(Path file, String hashType) throws Exception {
+        try (InputStream is = Files.newInputStream(file)) {
 
-        byte[] buffer = new byte[4096];
-        MessageDigest complete = MessageDigest.getInstance(hashType);
-        int numRead;
+            byte[] buffer = new byte[4096];
+            MessageDigest complete = MessageDigest.getInstance(hashType);
+            int numRead;
 
-        do {
-            numRead = fis.read(buffer);
-            if (numRead > 0) {
-                complete.update(buffer, 0, numRead);
+            do {
+                numRead = is.read(buffer);
+                if (numRead > 0) {
+                    complete.update(buffer, 0, numRead);
+                }
             }
-        } while (numRead != -1);
-
-        fis.close();
-        return complete.digest();
+            while (numRead != -1);
+            return complete.digest();
+        }
     }
 
     private static String hashToString(byte[] b) {
@@ -286,6 +275,15 @@ public class FileUtils
             e.printStackTrace();
         }
         return flag.get();
+    }
+
+    public static void createDirectories(Path dir)
+    {
+        try {
+            Files.createDirectories(dir);
+        } catch (IOException e) {
+            CreeperLogger.INSTANCE.error("Failed to create directories.", e);
+        }
     }
 
     public static void deleteDirectory(Path directory)

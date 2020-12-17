@@ -1,5 +1,6 @@
 package net.creeperhost.creeperlauncher.pack;
 
+import java.nio.file.Path;
 import java.util.List;
 
 public interface IPack
@@ -10,10 +11,7 @@ public interface IPack
 
     String getVersion();
 
-    default String getDir()
-    {
-        return getName();
-    }
+    Path getDir();
 
     List<String> getAuthors();
 

@@ -3,15 +3,15 @@ package net.creeperhost.creeperlauncher;
 import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.os.OSUtils;
 
-import java.io.File;
-import java.nio.file.FileSystems;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class Constants
 {
     //CWD
-    public static final String WORKING_DIR = System.getProperty("user.dir");
+    public static final Path WORKING_DIR = Paths.get(System.getProperty("user.dir"));
     private static final String INNER_DATA_DIR = ".ftba";
-    private static final String DATA_DIR = System.getProperty("user.home") + File.separator + INNER_DATA_DIR;
+    private static final Path DATA_DIR = Paths.get(System.getProperty("user.home"), INNER_DATA_DIR);
 
     //Launcher titles
     public static final String windowTitle = "FTBApp";
@@ -32,25 +32,30 @@ public class Constants
     public static final String FORGE_RECOMMENDED = "https://files.minecraftforge.net/maven/net/minecraftforge/forge/promotions_slim.json";
 
     //Paths
-    public static final String BIN_LOCATION_OURS = WORKING_DIR + File.separator + "bin";
-    public static final String BIN_LOCATION = getDataDir() + File.separator + "bin";
-    public static final String MINECRAFT_LAUNCHER_LOCATION = BIN_LOCATION + File.separator + "launcher." + OSUtils.getExtension();
-    public static final String MINECRAFT_MAC_LAUNCHER_EXECUTABLE = getDataDir() + File.separator + "bin" + File.separator + "Minecraft.app" + File.separator + "Contents" + File.separator + "MacOS" + File.separator + "launcher";
-    public static final String MINECRAFT_MAC_LAUNCHER_APP = getDataDir() + File.separator + "bin" + File.separator + "Minecraft.app";
+    public static final Path BIN_LOCATION_OURS = WORKING_DIR.resolve("bin");
+    public static final Path BIN_LOCATION = getDataDir().resolve("bin");
+    public static final String MINECRAFT_LAUNCHER_NAME = "launcher."+OSUtils.getExtension();
+    public static final Path MINECRAFT_LAUNCHER_LOCATION = BIN_LOCATION.resolve(MINECRAFT_LAUNCHER_NAME);
+    public static final String MINECRAFT_MAC_LAUNCHER_NAME = "Minecraft.app";
+    public static final Path MINECRAFT_MAC_LAUNCHER_APP = BIN_LOCATION.resolve(MINECRAFT_MAC_LAUNCHER_NAME);
+    public static final String MINECRAFT_MAC_LAUNCHER_EXECUTABLE_NAME = MINECRAFT_MAC_LAUNCHER_NAME + "/" + "Contents/MacOS/launcher";
+    public static final Path MINECRAFT_MAC_LAUNCHER_EXECUTABLE = BIN_LOCATION.resolve(MINECRAFT_MAC_LAUNCHER_EXECUTABLE_NAME);
 
     public static final String MINECRAFT_MAC_LAUNCHER_VOLUME = "/Volumes/Minecraft";
-    public static final String MINECRAFT_LINUX_LAUNCHER_EXECUTABLE = getDataDir() + File.separator + "bin" + File.separator + "minecraft-launcher" + File.separator + "minecraft-launcher";
-    public static final String VERSIONS_FOLDER_LOC = getDataDir() + File.separator + "bin" + File.separator + "versions";
-    public static final String INSTANCES_FOLDER_LOC = getDataDir() + File.separator + "instances";
-    public static final String LAUNCHER_PROFILES_JSON = getDataDir() + File.separator + "bin" + File.separator + "launcher_profiles.json";
-    public static final String LIBRARY_LOCATION = getDataDir() + File.separator + "bin" + File.separator + "libraries";
-    public static final String OLD_CACHE_LOCATION = getDataDir() + File.separator + ".localCache";
+    public static final String MINECRAFT_LINUX_LAUNCHER_EXECUTABLE_NAME = "minecraft-launcher/minecraft-launcher";
+    public static final Path MINECRAFT_LINUX_LAUNCHER_EXECUTABLE = BIN_LOCATION.resolve(MINECRAFT_LINUX_LAUNCHER_EXECUTABLE_NAME);
+    public static final Path VERSIONS_FOLDER_LOC = getDataDir().resolve(Paths.get("bin", "versions"));
+    public static final Path INSTANCES_FOLDER_LOC = getDataDir().resolve("instances");
+    public static final String LAUNCHER_PROFILES_JSON_NAME = "launcher_profiles.json";
+    public static final Path LAUNCHER_PROFILES_JSON = BIN_LOCATION.resolve(LAUNCHER_PROFILES_JSON_NAME);
+    public static final Path LIBRARY_LOCATION = BIN_LOCATION.resolve("libraries");
+    public static final Path OLD_CACHE_LOCATION = getDataDir().resolve(".localCache");
 
     //Other
     public static final int WEBSOCKET_PORT = 13377;
     public static final String APPVERSION = "@APPVERSION@";
     public static final String BRANCH = "@BRANCH@";
-    public static final String PLATFORM = FileSystems.getDefault().getPath(".").toAbsolutePath().toString().contains("Overwolf") ? "Overwolf" : "Electron";
+    public static final String PLATFORM = WORKING_DIR.toAbsolutePath().toString().contains("Overwolf") ? "Overwolf" : "Electron";
 
     //Auth
     public static String KEY = "";
@@ -58,7 +63,7 @@ public class Constants
 
     //MT Identifiers
     public static String MT_HASH = "";
-    public static String MTCONNECT_DIR = getDataDir() + File.separator + "MTConnect";
+    public static Path MTCONNECT_DIR = getDataDir().resolve("MTConnect");
 
     //S3 Auth
     public static String S3_KEY = "";
@@ -79,19 +84,20 @@ public class Constants
         }
         return Constants.CREEPERHOST_MODPACK + "/" + Constants.KEY + "/modpack/";
     }
-    public static String getDataDir()
+    public static Path getDataDir()
     {
+        Path ret = DATA_DIR;
         if(OSUtils.getOs() == OS.WIN)
         {
-            return System.getenv("LOCALAPPDATA") + File.separator + INNER_DATA_DIR;
+            ret = Paths.get(System.getenv("LOCALAPPDATA"), INNER_DATA_DIR);
         } else if (OSUtils.getOs() == OS.MAC)
         {
-            return System.getProperty("user.home") + File.separator + "/Library/Application Support" + File.separator + INNER_DATA_DIR;
+            ret = Paths.get(System.getProperty("user.home"), "Library", "Application Support", INNER_DATA_DIR);
         }
-        return DATA_DIR;
+        return ret.toAbsolutePath().normalize();
     }
 
-    public static String getDataDirOld() {
-        return DATA_DIR;
+    public static Path getDataDirOld() {
+        return DATA_DIR.toAbsolutePath();
     }
 }

@@ -14,6 +14,7 @@ import net.creeperhost.creeperlauncher.pack.LocalInstance;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -57,14 +58,11 @@ public class SyncInstanceHandler implements IMessageHandler<InstallInstanceData>
                         ModLoader modLoader = modLoaders.get(0);
                         modLoader.install(instance);
 
-                        File mcLauncher = new File(Constants.MINECRAFT_LAUNCHER_LOCATION);
-
-                        if (!mcLauncher.exists()) {
+                        if (Files.notExists(Constants.MINECRAFT_LAUNCHER_LOCATION)) {
                             OpenModalData.openModal("Preparing environment", "Installing Minecraft Launcher <br>", List.of());
 
                             McUtils.downloadVanillaLauncher();
-                            File profileJson = new File(Constants.LAUNCHER_PROFILES_JSON);
-                            if (!profileJson.exists()) GameLauncher.launchGameAndClose();
+                            if (!Files.exists(Constants.LAUNCHER_PROFILES_JSON)) GameLauncher.launchGameAndClose();
                         }
                     }).thenRun(() ->
                     {

@@ -36,18 +36,18 @@ public class ForgeJarModLoader extends ForgeModLoader
 	}
 
 	@Override
-	public File install(LocalInstance instance)
+	public Path install(LocalInstance instance)
 	{
-		File returnFile = null;
+		Path returnFile = null;
 		String newname = getMinecraftVersion() + "-forge" + getMinecraftVersion() + "-" + getForgeVersion();
 
 		CreeperLogger.INSTANCE.info("Minecraft version: " + getMinecraftVersion() + " Forge version: " + getForgeVersion() + " NewName: " + newname);
 
-		File file = new File(Constants.VERSIONS_FOLDER_LOC + File.separator + newname);
-		file.mkdir();
+		Path file = Constants.VERSIONS_FOLDER_LOC.resolve(newname);
+		FileUtils.createDirectories(file);
 
 		//Add the jvm args to fix loading older forge versions
-		instance.jvmArgs = instance.jvmArgs + " -Dfml.ignorePatchDiscrepancies=true -Dfml.ignoreInvalidMinecraftCertificates=true -Dminecraft.applet.TargetDirectory=" + instance.getDir().trim();
+		instance.jvmArgs = instance.jvmArgs + " -Dfml.ignorePatchDiscrepancies=true -Dfml.ignoreInvalidMinecraftCertificates=true -Dminecraft.applet.TargetDirectory=" + instance.getDir().toAbsolutePath().toString().trim();
 		try
 		{
 			URI url = null;
@@ -58,27 +58,27 @@ public class ForgeJarModLoader extends ForgeModLoader
 			{
 				e.printStackTrace();
 			}
-			File instMods = new File(instance.getDir() + File.separator + "instmods");
-			instMods.mkdir();
+            Path instMods = instance.getDir().resolve("instmods");
+			Files.createDirectories(instMods);
 
-			File forgeFile = new File(instMods.getAbsolutePath() + File.separator + newname + ".jar");
-			if(!forgeFile.exists())
+            Path forgeFile = instMods.resolve(newname + ".jar");
+			if(Files.notExists(forgeFile))
 			{
-				DownloadableFile forge = new DownloadableFile(newname, forgeFile.getAbsolutePath(), url.toString(), new ArrayList<>(), 0, false, false, 0, newname, "modloader", String.valueOf(System.currentTimeMillis() / 1000L));
-				DownloadTask task = new DownloadTask(forge, forgeFile.toPath());
+				DownloadableFile forge = new DownloadableFile(newname, forgeFile, url.toString(), new ArrayList<>(), 0, false, false, 0, newname, "modloader", String.valueOf(System.currentTimeMillis() / 1000L));
+				DownloadTask task = new DownloadTask(forge, forgeFile);
 				task.execute();
 			}
 
-			File mcFile = new File(instMods.getAbsolutePath() + File.separator + "minecraft" + ".jar");
-			if(!mcFile.exists())
+            Path mcFile = instMods.resolve("minecraft.jar");
+			if(Files.notExists(mcFile))
 			{
-				DownloadableFile mc = McUtils.getMinecraftDownload(getMinecraftVersion(), instMods.getAbsolutePath());
-				DownloadTask mcTask = new DownloadTask(mc, mcFile.toPath());
+				DownloadableFile mc = McUtils.getMinecraftDownload(getMinecraftVersion(), instMods);
+				DownloadTask mcTask = new DownloadTask(mc, mcFile);
 				mcTask.execute();
 			}
 
-			File forgeJson = new File(file.getAbsolutePath() + File.separator + newname + ".json");
-			if(!forgeJson.exists())
+			Path forgeJson = file.resolve(newname + ".json");
+			if(Files.notExists(forgeJson))
 			{
 				CreeperLogger.INSTANCE.error("Failed to extract version json, attempting to download it from repo");
 				String downloadName = "forge-" + getMinecraftVersion() + ".json";
@@ -86,8 +86,8 @@ public class ForgeJarModLoader extends ForgeModLoader
 
 				if(WebUtils.checkExist(new URL(jsonurl)))
 				{
-					DownloadableFile fjson = new DownloadableFile(forgeJson.getName(), forgeJson.getAbsolutePath(), jsonurl, new ArrayList<>(), 0, false, false, 0, downloadName, "modloader", String.valueOf(System.currentTimeMillis() / 1000L));
-					DownloadTask ftask = new DownloadTask(fjson, forgeJson.toPath());
+					DownloadableFile fjson = new DownloadableFile(forgeJson.getFileName().toString(), forgeJson, jsonurl, new ArrayList<>(), 0, false, false, 0, downloadName, "modloader", String.valueOf(System.currentTimeMillis() / 1000L));
+					DownloadTask ftask = new DownloadTask(fjson, forgeJson);
 					ftask.execute().join();
 				}
 				else
@@ -96,7 +96,7 @@ public class ForgeJarModLoader extends ForgeModLoader
 				}
 			}
 
-			if(forgeJson.exists())
+			if(Files.exists(forgeJson))
 			{
 				ForgeUtils.updateForgeJson(forgeJson, newname, getMinecraftVersion());
 				returnFile = forgeJson;

@@ -4,6 +4,7 @@ import com.google.gson.*;
 
 import java.io.File;
 import java.lang.reflect.Type;
+import java.nio.file.Path;
 
 public class Artifact
 {
@@ -47,9 +48,9 @@ public class Artifact
         return ret;
     }
 
-    public File getLocalPath(File base)
+    public Path getLocalPath(Path base)
     {
-        return new File(base, path.replace('/', File.separatorChar));
+        return base.resolve(path);
     }
 
     public String getDescriptor()

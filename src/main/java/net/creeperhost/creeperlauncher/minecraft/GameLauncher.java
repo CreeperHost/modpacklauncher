@@ -17,6 +17,8 @@ import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -30,24 +32,23 @@ public class GameLauncher
     {
         CompletableFuture.runAsync(() ->
         {
-            String exe = Constants.MINECRAFT_LAUNCHER_LOCATION;
+            Path exe = Constants.BIN_LOCATION.resolve(Constants.MINECRAFT_LAUNCHER_NAME);
             OS os = OSUtils.getOs();
             if (os == OS.MAC)
             {
-                exe = Constants.MINECRAFT_MAC_LAUNCHER_EXECUTABLE;
+                exe = Constants.BIN_LOCATION.resolve(Constants.MINECRAFT_MAC_LAUNCHER_EXECUTABLE_NAME);
             }
             if (os == OS.LINUX)
             {
-                exe = Constants.MINECRAFT_LINUX_LAUNCHER_EXECUTABLE;
+                exe = Constants.BIN_LOCATION.resolve(Constants.MINECRAFT_LINUX_LAUNCHER_EXECUTABLE_NAME);
             }
             try
             {
-                String command = exe;
-                ProcessBuilder builder = new ProcessBuilder(command, "--workDir", Constants.BIN_LOCATION);
+                ProcessBuilder builder = new ProcessBuilder(exe.toAbsolutePath().toString(), "--workDir", Constants.BIN_LOCATION.toAbsolutePath().toString());
                 if(os == OS.MAC)
                 {
                     CreeperLogger.INSTANCE.warning("/usr/bin/open " + Constants.MINECRAFT_MAC_LAUNCHER_APP + " --args --workDir " + Constants.BIN_LOCATION);
-                    builder = new ProcessBuilder("/usr/bin/open", Constants.MINECRAFT_MAC_LAUNCHER_APP, "--args", "--workDir", Constants.BIN_LOCATION);
+                    builder = new ProcessBuilder("/usr/bin/open", Constants.MINECRAFT_MAC_LAUNCHER_APP.toAbsolutePath().toString(), "--args", "--workDir", Constants.BIN_LOCATION.toAbsolutePath().toString());
                 }
 
                 Map<String, String> environment = builder.environment();
@@ -96,26 +97,27 @@ public class GameLauncher
     {
         CompletableFuture.runAsync(() ->
         {
-            String exe = Constants.MINECRAFT_LAUNCHER_LOCATION;
+            Path exe = Constants.BIN_LOCATION.resolve(Constants.MINECRAFT_LAUNCHER_NAME);
             OS os = OSUtils.getOs();
             if (os == OS.MAC)
             {
-                exe = Constants.MINECRAFT_MAC_LAUNCHER_EXECUTABLE;
+                exe = Constants.BIN_LOCATION.resolve(Constants.MINECRAFT_MAC_LAUNCHER_EXECUTABLE_NAME);
             }
             if (os == OS.LINUX)
             {
-                exe = Constants.MINECRAFT_LINUX_LAUNCHER_EXECUTABLE;
+                exe = Constants.BIN_LOCATION.resolve(Constants.MINECRAFT_LINUX_LAUNCHER_EXECUTABLE_NAME);
             }
             try
             {
-                ProcessBuilder builder = new ProcessBuilder(exe, "--workDir", Constants.BIN_LOCATION);
-                CreeperLogger.INSTANCE.info("Launching Vanilla launcher and closing - path and args: " + exe + " --workDir " + Constants.BIN_LOCATION);
+                ProcessBuilder builder = new ProcessBuilder(exe.toAbsolutePath().toString(), "--workDir", Constants.BIN_LOCATION.toAbsolutePath().toString());
+                CreeperLogger.INSTANCE.info("Launching Vanilla launcher and closing - path and args: " + exe + " --workDir " + Constants.BIN_LOCATION.toAbsolutePath().toString());
                 Process process = builder.start();
                 StreamGobblerLog.redirectToLogger(process.getErrorStream(), CreeperLogger.INSTANCE::error);
                 StreamGobblerLog.redirectToLogger(process.getInputStream(), CreeperLogger.INSTANCE::info);
-                File file = new File(Constants.LAUNCHER_PROFILES_JSON);
+                Path file = Constants.LAUNCHER_PROFILES_JSON;
                 int tryCount = 0;
-                while (!file.exists())
+                //TODO this wait loop doesnt check if the launcher is running at all still
+                while (Files.notExists(file))
                 {
                     try
                     {
@@ -135,21 +137,21 @@ public class GameLauncher
                         process.destroyForcibly();
                     }
                 }
-                if(!file.exists())
+                if(Files.notExists(Constants.LAUNCHER_PROFILES_JSON))
                 {
                     //Some reason the vanilla launcher is not creating the launcher_profiles.json
-                    DownloadableFile defaultConfig = new DownloadableFile("", file.getAbsolutePath(), "https://apps.modpacks.ch/FTB2/launcher_profiles.json", new ArrayList<>(), 0, true, false, 0, "config", "launcher_profiles.json", "");
+                    DownloadableFile defaultConfig = new DownloadableFile("", file, "https://apps.modpacks.ch/FTB2/launcher_profiles.json", new ArrayList<>(), 0, true, false, 0, "config", "launcher_profiles.json", "");
                     defaultConfig.prepare();
-                    defaultConfig.download(file.toPath(), true, false);
+                    defaultConfig.download(file, true, false);
                 }
-                String finalExe = exe;
+                Path finalExe = exe;
                 //Now we have to do horrible stuff because if the launcher binary we downloaded is older than the latest (Don't know why they do this), the auto updater closes and reopens the launcher thus meaning our process handle is wrong.
                 ProcessHandle.allProcesses().forEach((processh) ->
                 {
-                    if (processh.info().commandLine().toString().contains(Constants.BIN_LOCATION))
+                    if (processh.info().commandLine().toString().contains(Constants.BIN_LOCATION.toAbsolutePath().toString()))
                     {
                         //It is one of our processes...
-                        if (processh.info().commandLine().toString().contains(finalExe))
+                        if (processh.info().commandLine().toString().contains(finalExe.toAbsolutePath().toString()))
                         {
                             //It's the process we're looking for...
                             processh.destroy();

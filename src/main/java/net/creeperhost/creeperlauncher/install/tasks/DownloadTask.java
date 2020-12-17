@@ -50,7 +50,7 @@ public class DownloadTask implements IInstallTask
                 {
                     if (tries == 3)
                     {
-                        throw new IntegrityCheckException(err.getMessage(), -2, "", null, 0, 0, file.getUrl(), destination.toString());
+                        throw new IntegrityCheckException(err.getMessage(), -2, "", null, 0, 0, file.getUrl(), destination);
                     }
                 } catch (IOException e)
                 {
@@ -116,7 +116,7 @@ public class DownloadTask implements IInstallTask
                                 thrown = (IntegrityCheckException)e;
                             } else
                             {
-                                CreeperLogger.INSTANCE.debug("Unknown error whilst getting file: ", thrown = new IntegrityCheckException(e, -1, "", null, 0, 0, file.getUrl(), destination.toString())); // TODO: make this better
+                                CreeperLogger.INSTANCE.debug("Unknown error whilst getting file: ", thrown = new IntegrityCheckException(e, -1, "", null, 0, 0, file.getUrl(), destination)); // TODO: make this better
                             }
                             if(Settings.settings.getOrDefault("unforgiving", "false").equals("true"))
                             {

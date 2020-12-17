@@ -11,6 +11,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Base64;
 
 import static net.creeperhost.creeperlauncher.util.ImageUtils.resizeImage;
@@ -22,13 +23,13 @@ public class Profile
     private String lastVersionId;
     private String lastUsed;
     private String type;
-    private String gameDir;
+    private Path gameDir;
     private String ID;
     private String javaArgs;
     private String icon;
     private McResolution resolution;
 
-    public Profile(String ID, String name, String mcVersion, String lastVersionId, String lastUsed, String type, String gameDir, String icon, String args, int ram, int width, int height)
+    public Profile(String ID, String name, String mcVersion, String lastVersionId, String lastUsed, String type, Path gameDir, String icon, String args, int ram, int width, int height)
     {
         this.name = name;
         this.mcVersion = mcVersion;
