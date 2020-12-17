@@ -1,14 +1,17 @@
 package net.creeperhost.creeperlauncher;
 
 import net.creeperhost.creeperlauncher.util.FileUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
+import java.util.logging.LogManager;
 
 public class CreeperLogger
 {
@@ -28,6 +31,10 @@ public class CreeperLogger
         } catch(Exception e)
         {
             System.out.println(e);
+        }
+        try (InputStream is = CreeperLogger.class.getResourceAsStream("/logging.properties")) {
+            LogManager.getLogManager().readConfiguration(is);
+        } catch (IOException ignored) {
         }
         logger = Logger.getLogger("ftbapp.log");
 
@@ -81,17 +88,6 @@ public class CreeperLogger
         logger.info(input);
     }
 
-    private String throwableToString(Throwable ex)
-    {
-        StringBuilder printStr = new StringBuilder();
-        printStr.append(ex.getClass().toString()).append(": ").append(ex.getMessage()).append("\n");
-        for(StackTraceElement el: ex.getStackTrace())
-        {
-            printStr.append(el.toString()).append("\n");
-        }
-        return printStr.toString();
-    }
-
     public void warning(String input)
     {
         logger.warning(input);
@@ -99,7 +95,7 @@ public class CreeperLogger
 
     public void warning(String input, Throwable ex)
     {
-        warning(input + "\n" + throwableToString(ex));
+        warning(input + "\n" + ExceptionUtils.getStackTrace(ex));
     }
 
     public void error(String input)
@@ -110,11 +106,11 @@ public class CreeperLogger
 
     public void error(String input, Throwable ex)
     {
-        error(input + "\n" + throwableToString(ex));
+        error(input + "\n" + ExceptionUtils.getStackTrace(ex));
     }
 
     public void debug(String input, Throwable ex) {
-        debug(input + "\n" + throwableToString(ex));
+        debug(input + "\n" + ExceptionUtils.getStackTrace(ex));
     }
 
     public void debug(String input)
