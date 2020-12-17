@@ -310,10 +310,12 @@ public class McUtils {
     }
 
     public static void downloadVanillaLauncher() {
+        CreeperLogger.INSTANCE.info("Downloading vanilla launcher.");
         String downloadurl = OSUtils.getMinecraftLauncherURL();
         Path binFolder = Constants.BIN_LOCATION;
         File tempFolder = new File(System.getProperty("java.io.tmpdir"));
-        if(Files.notExists(binFolder)) {
+        if (Files.notExists(binFolder)) {
+            CreeperLogger.INSTANCE.info("bin folder doesnt exist.");
             FileUtils.createDirectories(binFolder);
             if(!Files.isWritable(binFolder))
             {
@@ -328,6 +330,7 @@ public class McUtils {
             }
         }
         Path file = binFolder.resolve(Constants.MINECRAFT_LAUNCHER_NAME);
+        CreeperLogger.INSTANCE.info("Downloading to: " + file.toAbsolutePath());
         OS os = OSUtils.getOs();
         if (os == OS.MAC) {
             file = binFolder.resolve(Constants.MINECRAFT_MAC_LAUNCHER_EXECUTABLE_NAME);
