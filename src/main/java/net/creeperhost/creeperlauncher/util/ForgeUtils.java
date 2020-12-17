@@ -192,7 +192,7 @@ public class ForgeUtils
             return true;
         } catch (IOException err)
         {
-            CreeperLogger.INSTANCE.error("Failed to extract 'version.json' from '" + path + "' to '" + name + "'");
+            CreeperLogger.INSTANCE.error("Failed to extract 'version.json' from '" + path + "' to '" + name + "'", err);
         }
         return false;
     }
