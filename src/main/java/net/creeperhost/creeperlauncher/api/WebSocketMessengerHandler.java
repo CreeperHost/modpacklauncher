@@ -87,6 +87,9 @@ public class WebSocketMessengerHandler
         registerHandler(InstanceModsData.class, new InstanceModsHandler());
         registerDataMap("yeetLauncher", YeetLauncherData.class);
         registerHandler(YeetLauncherData.class, new YeetLauncherHandler());
+        registerDataMap("pong", PongLauncherData.class);
+        registerHandler(PongLauncherData.class, new PongLauncherHandler());
+        registerDataMap("ping", PingLauncherData.class);
         registerDataMap("messageClient", MessageClientData.class);
         registerHandler(MessageClientData.class, new MessageClientHandler());
     }

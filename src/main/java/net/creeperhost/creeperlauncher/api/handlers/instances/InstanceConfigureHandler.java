@@ -42,6 +42,7 @@ public class InstanceConfigureHandler implements IMessageHandler<InstanceConfigu
                     case "jrepath":
                         if(setting.getValue().length() == 0){
                             instance.embeddedJre = true;
+                            instance.jrePath = "";
                         } else {
                             instance.embeddedJre = false;
                             instance.jrePath = setting.getValue();

@@ -1,5 +1,6 @@
 package net.creeperhost.creeperlauncher;
 
+import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.os.OSUtils;
 
 import java.io.File;
@@ -9,7 +10,8 @@ public class Constants
 {
     //CWD
     public static final String WORKING_DIR = System.getProperty("user.dir");
-    public static final String DATA_DIR = System.getProperty("user.home") + File.separator + ".ftba";
+    private static final String INNER_DATA_DIR = ".ftba";
+    private static final String DATA_DIR = System.getProperty("user.home") + File.separator + INNER_DATA_DIR;
 
     //Launcher titles
     public static final String windowTitle = "FTBApp";
@@ -31,16 +33,18 @@ public class Constants
 
     //Paths
     public static final String BIN_LOCATION_OURS = WORKING_DIR + File.separator + "bin";
-    public static final String BIN_LOCATION = DATA_DIR + File.separator + "bin";
-    public static final String MINECRAFT_LAUNCHER_LOCATION = DATA_DIR + File.separator + "bin" + File.separator + "launcher." + OSUtils.getExtension();
-    public static final String MINECRAFT_MAC_LAUNCHER_EXECUTABLE = DATA_DIR + File.separator + "bin" + File.separator + "Minecraft.app" + File.separator + "Contents" + File.separator + "MacOS" + File.separator + "launcher";
+    public static final String BIN_LOCATION = getDataDir() + File.separator + "bin";
+    public static final String MINECRAFT_LAUNCHER_LOCATION = BIN_LOCATION + File.separator + "launcher." + OSUtils.getExtension();
+    public static final String MINECRAFT_MAC_LAUNCHER_EXECUTABLE = getDataDir() + File.separator + "bin" + File.separator + "Minecraft.app" + File.separator + "Contents" + File.separator + "MacOS" + File.separator + "launcher";
+    public static final String MINECRAFT_MAC_LAUNCHER_APP = getDataDir() + File.separator + "bin" + File.separator + "Minecraft.app";
+
     public static final String MINECRAFT_MAC_LAUNCHER_VOLUME = "/Volumes/Minecraft";
-    public static final String MINECRAFT_LINUX_LAUNCHER_EXECUTABLE = DATA_DIR + File.separator + "bin" + File.separator + "minecraft-launcher" + File.separator + "minecraft-launcher";
-    public static final String VERSIONS_FOLDER_LOC = DATA_DIR + File.separator + "bin" + File.separator + "versions";
-    public static final String INSTANCES_FOLDER_LOC = DATA_DIR + File.separator + "instances";
-    public static final String LAUNCHER_PROFILES_JSON = DATA_DIR + File.separator + "bin" + File.separator + "launcher_profiles.json";
-    public static final String LIBRARY_LOCATION = DATA_DIR + File.separator + "bin" + File.separator + "libraries";
-    public static final String OLD_CACHE_LOCATION = DATA_DIR + File.separator + ".localCache";
+    public static final String MINECRAFT_LINUX_LAUNCHER_EXECUTABLE = getDataDir() + File.separator + "bin" + File.separator + "minecraft-launcher" + File.separator + "minecraft-launcher";
+    public static final String VERSIONS_FOLDER_LOC = getDataDir() + File.separator + "bin" + File.separator + "versions";
+    public static final String INSTANCES_FOLDER_LOC = getDataDir() + File.separator + "instances";
+    public static final String LAUNCHER_PROFILES_JSON = getDataDir() + File.separator + "bin" + File.separator + "launcher_profiles.json";
+    public static final String LIBRARY_LOCATION = getDataDir() + File.separator + "bin" + File.separator + "libraries";
+    public static final String OLD_CACHE_LOCATION = getDataDir() + File.separator + ".localCache";
 
     //Other
     public static final int WEBSOCKET_PORT = 13377;
@@ -54,7 +58,7 @@ public class Constants
 
     //MT Identifiers
     public static String MT_HASH = "";
-    public static String MTCONNECT_DIR = Constants.DATA_DIR + File.separator + "MTConnect";
+    public static String MTCONNECT_DIR = getDataDir() + File.separator + "MTConnect";
 
     //S3 Auth
     public static String S3_KEY = "";
@@ -74,5 +78,20 @@ public class Constants
             CreeperLogger.INSTANCE.error("Tried to access a private pack without having configured the secret and key.");
         }
         return Constants.CREEPERHOST_MODPACK + "/" + Constants.KEY + "/modpack/";
+    }
+    public static String getDataDir()
+    {
+        if(OSUtils.getOs() == OS.WIN)
+        {
+            return System.getenv("LOCALAPPDATA") + File.separator + INNER_DATA_DIR;
+        } else if (OSUtils.getOs() == OS.MAC)
+        {
+            return System.getProperty("user.home") + File.separator + "/Library/Application Support" + File.separator + INNER_DATA_DIR;
+        }
+        return DATA_DIR;
+    }
+
+    public static String getDataDirOld() {
+        return DATA_DIR;
     }
 }

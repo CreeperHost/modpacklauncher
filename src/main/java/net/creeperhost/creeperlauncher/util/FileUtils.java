@@ -344,8 +344,7 @@ public class FileUtils
             Files.move(in, out);
             return errors;
         } catch (IOException e) {
-            CreeperLogger.INSTANCE.warning("Could not move " + in + " to " + out + " - trying another method");
-            e.printStackTrace();
+            CreeperLogger.INSTANCE.warning("Could not move " + in + " to " + out + " - trying another method", e);
         }
 
         try {
@@ -363,9 +362,38 @@ public class FileUtils
                     try {
                         Files.move(path, outFile);
                     } catch (IOException e) {
-                        errors.put(new Pair<>(path, outFile), e);
-                        if (failFast)
-                            return FileVisitResult.TERMINATE;
+                        boolean copyFailed = true;
+                        try {
+                            Files.copy(path, outFile); // try and copy anyway
+                            copyFailed = false;
+                        } catch (IOException e2) {
+                            errors.put(new Pair<>(path, outFile), e2);
+                            if (failFast)
+                                return FileVisitResult.TERMINATE;
+                        }
+
+                        if (!copyFailed)
+                        {
+                            try {
+                                Files.delete(path); // try to delete even if we couldn't move, but if we could copy
+                            } catch (Exception ignored) {
+                                // shrug
+                            }
+                        }
+                    }
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult postVisitDirectory(Path directory, IOException ioException) throws IOException
+                {
+                    String[] list = directory.toFile().list();
+                    if (list == null || list.length == 0)
+                    {
+                        try {
+                            Files.delete(directory);
+                        } catch (Exception ignored) {
+                        }
                     }
                     return FileVisitResult.CONTINUE;
                 }

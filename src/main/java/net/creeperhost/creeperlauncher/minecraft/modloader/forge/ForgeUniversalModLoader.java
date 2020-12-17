@@ -85,8 +85,7 @@ public class ForgeUniversalModLoader extends ForgeModLoader
 					File libForgeDir = new File(Constants.LIBRARY_LOCATION + File.separator + "net" + File.separator + "minecraftforge" + File.separator + "forge" + File.separator + getMinecraftVersion() + "-" + getForgeVersion());
 					if (!libForgeDir.exists()) libForgeDir.mkdirs();
 					File forgeLib = new File(libForgeDir + File.separator + "forge-" + getMinecraftVersion() + "-" + getForgeVersion() + ".jar");
-					if (!forgeLib.exists())
-						Files.copy(forgeFile.toPath(), forgeLib.toPath(), StandardCopyOption.REPLACE_EXISTING);
+					if (!forgeLib.exists()) Files.copy(forgeFile.toPath(), forgeLib.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
 					returnFile = forgeJson;
 				} else
