@@ -8,22 +8,19 @@ import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.security.MessageDigest;
-import java.util.WeakHashMap;
 
 public class OkHttpClientImpl implements IHttpClient
 {
-    private static OkHttpClient client;
-    private static long maxSpeed = 0;
-    private static Throttler speed = new Throttler();
-    private static WeakHashMap<Request, ResponseHandlers> requestMap = new WeakHashMap<>();
-    {
+    private static final OkHttpClient client;
+
+    static {
         OkHttpClient.Builder builder = new OkHttpClient.Builder();
         builder.addInterceptor((chain) ->
         {
             Request request = chain.request();
             Response originalResponse = chain.proceed(request);
             return originalResponse.newBuilder()
-                    .body(new ProgressResponseBody(originalResponse.body(), requestMap.get(request)))
+                    .body(new ProgressResponseBody(originalResponse.body(), request.tag(ResponseHandlers.class), request.tag(Long.class)))
                     .build();
         });
         client = builder.build();
@@ -35,21 +32,22 @@ public class OkHttpClientImpl implements IHttpClient
         return null;
     }
 
-    byte[] tempBytes = new byte[8192];
-
     /* returns when done */
     @Override
     public DownloadedFile doDownload(String url, Path destination, IProgressUpdater progressWatcher, MessageDigest digest, long maxSpeed) throws IOException
     {
-
-        Request request = new Request.Builder().url(url).build();
-        this.maxSpeed = maxSpeed;
-        requestMap.put(request, new ResponseHandlers(progressWatcher, (source, bytes) ->
+        ResponseHandlers responseHandlers = new ResponseHandlers(progressWatcher, (source, bytes) ->
         {
             //int read = source.read(tempBytes);
             byte[] _bytes = source.readByteArray();
             if (digest != null) digest.update(_bytes);
-        }));
+        });
+
+        Request request = new Request.Builder()
+                .url(url)
+                .tag(Long.class, maxSpeed)
+                .tag(ResponseHandlers.class, responseHandlers)
+                .build();
 
         Response response = client.newCall(request).execute();
 
@@ -65,14 +63,17 @@ public class OkHttpClientImpl implements IHttpClient
     private static class ProgressResponseBody extends ResponseBody
     {
 
+        private final Throttler speed = new Throttler();
         private final ResponseBody responseBody;
         private final ResponseHandlers responseHandlers;
+        private final long maxSpeed;
         private BufferedSource bufferedSource;
 
-        public ProgressResponseBody(ResponseBody responseBody, ResponseHandlers progressListener)
+        public ProgressResponseBody(ResponseBody responseBody, ResponseHandlers progressListener, long maxSpeed)
         {
             this.responseBody = responseBody;
             this.responseHandlers = progressListener;
+            this.maxSpeed = maxSpeed;
         }
 
         @Override
@@ -130,7 +131,7 @@ public class OkHttpClientImpl implements IHttpClient
         }
     }
 
-    private class ResponseHandlers
+    private static class ResponseHandlers
     {
         IProgressUpdater updater;
         IDigestHandler handler;
