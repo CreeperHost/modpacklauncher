@@ -81,7 +81,6 @@ public class GameLauncher
             environment.remove("_JAVA_OPTIONS");
             environment.remove("JAVA_TOOL_OPTIONS");
             environment.remove("JAVA_OPTIONS");
-            //TODO: This is pointless as this sets our JVM's locale not the system locale
             if(Locale.getDefault() == null)
             {
                 Locale.setDefault(Locale.US);
@@ -91,6 +90,7 @@ public class GameLauncher
                 environment.put("LC_ALL", Locale.getDefault().toString() + ".UTF-8");
                 CreeperLogger.INSTANCE.error("Set LC_ALL to '" + Locale.getDefault().toString() + ".UTF-8'");
             }
+            //TODO: Find why process builder start does nothing on M1 based macs when emulating via Rosetta
             process = builder.start();
             process.onExit().thenRunAsync(() -> {
                     CreeperLauncher.mojangProcesses.getAndUpdate((List<Process> processes) -> {
