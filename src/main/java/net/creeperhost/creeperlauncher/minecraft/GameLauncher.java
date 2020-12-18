@@ -86,7 +86,11 @@ public class GameLauncher
             {
                 Locale.setDefault(Locale.US);
             }
-            CreeperLogger.INSTANCE.error(Locale.getDefault().toString());
+            if(environment.get("LC_ALL").length() < 7)
+            {
+                environment.put("LC_ALL", Locale.getDefault().toString() + ".UTF-8");
+                CreeperLogger.INSTANCE.error("Set LC_ALL to '" + Locale.getDefault().toString() + ".UTF-8'");
+            }
             process = builder.start();
             process.onExit().thenRunAsync(() -> {
                     CreeperLauncher.mojangProcesses.getAndUpdate((List<Process> processes) -> {
