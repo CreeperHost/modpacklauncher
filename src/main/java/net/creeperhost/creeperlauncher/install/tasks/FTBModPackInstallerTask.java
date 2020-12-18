@@ -232,16 +232,14 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                 {
                     JsonObject server = (JsonObject) serverEl;
                     String fileType = server.get("type").getAsString();
-                    if (fileType.equalsIgnoreCase("mod")) {
-                        String fileName = server.get("name").getAsString();
-                        String fileVersion = server.get("version").getAsString();
-                        String path = server.get("path").getAsString();
-                        long size = server.get("size").getAsInt();
-                        boolean clientSideOnly = server.get("clientonly").getAsBoolean();
-                        boolean optional = server.get("optional").getAsBoolean();
-                        long fileId = server.get("id").getAsLong();
-                        downloadableFileList.add(new SimpleDownloadableFile(fileVersion, Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC) + File.separator + name + File.separator + path + File.separator + fileName, size, clientSideOnly, optional, fileId, fileName, fileType));
-                    }
+                    String fileName = server.get("name").getAsString();
+                    String fileVersion = server.get("version").getAsString();
+                    String path = server.get("path").getAsString();
+                    long size = server.get("size").getAsInt();
+                    boolean clientSideOnly = server.get("clientonly").getAsBoolean();
+                    boolean optional = server.get("optional").getAsBoolean();
+                    long fileId = server.get("id").getAsLong();
+                    downloadableFileList.add(new SimpleDownloadableFile(fileVersion, Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC) + File.separator + name + File.separator + path + File.separator + fileName, size, clientSideOnly, optional, fileId, fileName, fileType));
                 }
             }
         }

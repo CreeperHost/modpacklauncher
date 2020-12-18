@@ -390,9 +390,9 @@ public class LocalInstance implements IPack
     }
     public GameLauncher play()
     {
-        return play("");
+        return play("", true);
     }
-    public GameLauncher play(String extraArgs)
+    public GameLauncher play(String extraArgs, boolean loadInApp)
     {
         List<Process> processes = CreeperLauncher.mojangProcesses.get();
         if(processes != null) {
