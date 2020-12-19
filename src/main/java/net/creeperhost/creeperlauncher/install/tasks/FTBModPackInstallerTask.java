@@ -5,6 +5,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.stream.JsonReader;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.CreeperLauncher;
 import net.creeperhost.creeperlauncher.CreeperLogger;
@@ -46,6 +48,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
     public static AtomicLong currentBytes = new AtomicLong(0);
     public static AtomicLong startTime = new AtomicLong(0);
     public static AtomicReference<String> lastError = new AtomicReference<String>();
+    public static ConcurrentHashMap<Long, String> batchedFiles = new ConcurrentHashMap<>();
     public String currentUUID = "";
     public boolean _private = false;
     public CompletableFuture<Void> currentTask = null;
@@ -238,16 +241,14 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                 {
                     JsonObject server = (JsonObject) serverEl;
                     String fileType = server.get("type").getAsString();
-                    if (fileType.equalsIgnoreCase("mod")) {
-                        String fileName = server.get("name").getAsString();
-                        String fileVersion = server.get("version").getAsString();
-                        String path = server.get("path").getAsString();
-                        long size = server.get("size").getAsInt();
-                        boolean clientSideOnly = server.get("clientonly").getAsBoolean();
-                        boolean optional = server.get("optional").getAsBoolean();
-                        long fileId = server.get("id").getAsLong();
-                        downloadableFileList.add(new SimpleDownloadableFile(fileVersion, Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC) + File.separator + name + File.separator + path + File.separator + fileName, size, clientSideOnly, optional, fileId, fileName, fileType));
-                    }
+                    String fileName = server.get("name").getAsString();
+                    String fileVersion = server.get("version").getAsString();
+                    String path = server.get("path").getAsString();
+                    long size = server.get("size").getAsInt();
+                    boolean clientSideOnly = server.get("clientonly").getAsBoolean();
+                    boolean optional = server.get("optional").getAsBoolean();
+                    long fileId = server.get("id").getAsLong();
+                    downloadableFileList.add(new SimpleDownloadableFile(fileVersion, Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC) + File.separator + name + File.separator + path + File.separator + fileName, size, clientSideOnly, optional, fileId, fileName, fileType));
                 }
             }
         }

@@ -1,16 +1,15 @@
 package net.creeperhost.creeperlauncher.api.data.other;
 
+import java.util.concurrent.ConcurrentHashMap;
 import net.creeperhost.creeperlauncher.api.data.BaseData;
 
 import java.util.HashMap;
 
 public class InstalledFileEventData extends BaseData {
     public static class Reply extends BaseData {
-        String fileName;
-        String status;
-        public Reply(String fileName, String status) {
-            this.fileName = fileName;
-            this.status = status;
+        ConcurrentHashMap<Long, String> files;
+        public Reply(ConcurrentHashMap<Long, String> files) {
+            this.files = files;
             this.type = "installedFileEventDataReply";
         }
     }
