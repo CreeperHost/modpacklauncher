@@ -6,6 +6,8 @@ import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.Instances;
 import net.creeperhost.creeperlauncher.api.SimpleDownloadableFile;
 import net.creeperhost.creeperlauncher.api.data.instances.InstallInstanceData;
+import net.creeperhost.creeperlauncher.api.data.other.InstalledFileEventData;
+import net.creeperhost.creeperlauncher.api.data.other.InstalledFileEventData.Reply;
 import net.creeperhost.creeperlauncher.api.handlers.IMessageHandler;
 import net.creeperhost.creeperlauncher.install.tasks.FTBModPackInstallerTask;
 import net.creeperhost.creeperlauncher.pack.FTBPack;
@@ -117,6 +119,8 @@ public class InstallInstanceHandler implements IMessageHandler<InstallInstanceDa
                     {
                         sinceLastChange = 0;
                         Settings.webSocketAPI.sendMessage(new InstallInstanceData.Progress(data, curProgress, speed, curBytes, FTBModPackInstallerTask.overallBytes.get(), FTBModPackInstallerTask.Stage.DOWNLOADS));
+                        Settings.webSocketAPI.sendMessage(new InstalledFileEventData.Reply(FTBModPackInstallerTask.batchedFiles));
+                        FTBModPackInstallerTask.batchedFiles.clear();
                     } else
                     {
                         if (FTBModPackInstallerTask.currentStage != FTBModPackInstallerTask.Stage.DOWNLOADS)

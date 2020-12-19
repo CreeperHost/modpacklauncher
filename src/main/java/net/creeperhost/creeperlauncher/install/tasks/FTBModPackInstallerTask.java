@@ -5,6 +5,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.stream.JsonReader;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.Settings;
@@ -45,6 +47,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
     public static AtomicLong currentBytes = new AtomicLong(0);
     public static AtomicLong startTime = new AtomicLong(0);
     public static AtomicReference<String> lastError = new AtomicReference<String>();
+    public static ConcurrentHashMap<Long, String> batchedFiles = new ConcurrentHashMap<>();
     public String currentUUID = "";
     public boolean _private = false;
     public CompletableFuture<Void> currentTask = null;
