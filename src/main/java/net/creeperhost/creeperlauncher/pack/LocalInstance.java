@@ -395,9 +395,9 @@ public class LocalInstance implements IPack
     }
     public Process play()
     {
-        return play("");
+        return play("", true);
     }
-    public Process play(String extraArgs)
+    public Process play(String extraArgs, boolean loadInApp)
     {
         List<Process> processes = CreeperLauncher.mojangProcesses.get();
         if(processes != null) {
@@ -447,7 +447,7 @@ public class LocalInstance implements IPack
 
         this.hasLoadingMod = checkForLaunchMod();
         //TODO: THIS IS FOR TESTING ONLY, PLEASE REMOVE ME IN FUTURE
-        if(OSUtils.getOs() == OS.WIN)
+        if(OSUtils.getOs() == OS.WIN && loadInApp)
         {
             if (!this.hasLoadingMod) {
                 if (modLoader.startsWith("1.7.10")) {

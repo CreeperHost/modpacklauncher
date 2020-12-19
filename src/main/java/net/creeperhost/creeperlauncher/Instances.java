@@ -73,13 +73,13 @@ public class Instances
             }
         }
         CreeperLogger.INSTANCE.info("Loaded "+l+" out of "+t+" instances.");
+        if(Constants.S3_HOST != null && Constants.S3_BUCKET != null && Constants.S3_KEY != null && Constants.S3_SECRET != null) {
+            if (!Constants.S3_HOST.isEmpty() && !Constants.S3_BUCKET.isEmpty() && !Constants.S3_KEY.isEmpty() && !Constants.S3_SECRET.isEmpty()) {
+                CreeperLogger.INSTANCE.info("Loading cloud instances");
 
-        if(!Constants.S3_HOST.isEmpty() && !Constants.S3_BUCKET.isEmpty() && !Constants.S3_KEY.isEmpty() && !Constants.S3_SECRET.isEmpty())
-        {
-            CreeperLogger.INSTANCE.info("Loading cloud instances");
-
-            cloudInstances = loadCloudInstances();
-            CreeperLogger.INSTANCE.info("Loaded " + cloudInstances().size() + " cloud instances.");
+                cloudInstances = loadCloudInstances();
+                CreeperLogger.INSTANCE.info("Loaded " + cloudInstances().size() + " cloud instances.");
+            }
         }
     }
 

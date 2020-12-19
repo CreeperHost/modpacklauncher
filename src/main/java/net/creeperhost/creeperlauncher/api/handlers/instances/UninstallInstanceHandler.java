@@ -1,5 +1,6 @@
 package net.creeperhost.creeperlauncher.api.handlers.instances;
 
+import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.data.instances.UninstallInstanceData;
 import net.creeperhost.creeperlauncher.api.handlers.IMessageHandler;
@@ -19,7 +20,8 @@ public class UninstallInstanceHandler implements IMessageHandler<UninstallInstan
             Settings.webSocketAPI.sendMessage(new UninstallInstanceData.Reply(data, "success", ""));
         } catch (Exception err)
         {
-            Settings.webSocketAPI.sendMessage(new UninstallInstanceData.Reply(data, "error", err.toString().substring(err.toString().indexOf(":"), -1)));
+            CreeperLogger.INSTANCE.error("Error uninstalling pack", err);
+            Settings.webSocketAPI.sendMessage(new UninstallInstanceData.Reply(data, "error", err.toString()));
         }
 
     }
