@@ -102,7 +102,7 @@ public class CreeperLogger
     public void error(String input)
     {
         String caller = getCaller("error");
-        logger.severe(caller + (caller.isEmpty() ? "" : "\n") + input);
+        logger.severe(caller + (caller.isEmpty() ? "" : ": ") + input);
     }
 
     public void error(String input, Throwable ex)
