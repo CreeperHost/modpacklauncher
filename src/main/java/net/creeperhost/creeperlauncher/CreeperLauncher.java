@@ -27,7 +27,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class CreeperLauncher
+public class    CreeperLauncher
 {
     public static HashMap<String, String> javaVersions;
     public static int missedPings = 0;
@@ -328,13 +328,11 @@ public class CreeperLauncher
 
         if(isDevMode || isOverwolf){
             startProcess = false;
+            defaultWebsocketPort = true;
         }
 
         try {
             Settings.webSocketAPI = new WebSocketAPI(new InetSocketAddress(InetAddress.getLoopbackAddress(), defaultWebsocketPort || isDevMode ? Constants.WEBSOCKET_PORT : websocketPort));
-            if(isOverwolf) {
-                CreeperLogger.INSTANCE.info("New Port: " + websocketPort);
-            }
             Settings.webSocketAPI.setConnectionLostTimeout(0);
             Settings.webSocketAPI.start();
             pingPong();
