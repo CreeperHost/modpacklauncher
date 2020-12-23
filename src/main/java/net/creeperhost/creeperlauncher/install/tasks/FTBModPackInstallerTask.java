@@ -5,6 +5,7 @@ import com.google.gson.stream.JsonReader;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import net.creeperhost.creeperlauncher.Constants;
+import net.creeperhost.creeperlauncher.CreeperLauncher;
 import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.DownloadableFile;
@@ -74,9 +75,10 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
     @Override
     public CompletableFuture<Void> execute()
     {
+        CreeperLogger.INSTANCE.debug("Running install execute");
         return currentTask = CompletableFuture.runAsync(() ->
         {
-            CreeperLogger.INSTANCE.info("Starting FTB Install.");
+            CreeperLogger.INSTANCE.debug("Actually running install execute");
             currentStage = Stage.INIT;
             overallBytes.set(0);
             currentBytes.set(0);
@@ -86,10 +88,13 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
             CreeperLogger.INSTANCE.info(instance.getName() + " " + instance.getId() + " " + instance.getVersionId());
             Path instanceRoot = Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC);
             FileUtils.createDirectories(instanceRoot);
+            CreeperLogger.INSTANCE.debug("Setting stage to VANILLA");
             currentStage = Stage.VANILLA;
+            CreeperLogger.INSTANCE.debug("About to download launcher");
             McUtils.downloadVanillaLauncher();
             Path profileJson = Constants.LAUNCHER_PROFILES_JSON;
-            if (Files.notExists(profileJson)) GameLauncher.launchGameAndClose();
+            CreeperLogger.INSTANCE.debug("Launching game and close");
+            if (Files.notExists(profileJson)) GameLauncher.downloadLauncherProfiles();
             Path instanceDir = instance.getDir();
             FileUtils.createDirectories(instanceDir);
             currentStage = Stage.API;
@@ -99,7 +104,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
             currentStage = Stage.DOWNLOADS;
             downloadFiles(instanceDir, forgeJson);
             currentStage = Stage.POSTINSTALL;
-        });
+        }, CreeperLauncher.taskExeggutor);
     }
 
     public boolean cancel()

@@ -22,6 +22,8 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 public class FileUtils
 {
@@ -52,13 +54,60 @@ public class FileUtils
         }
     }
 
-    public static <FileSystem> void removeFileFromZip(Path zip, String fileName) throws IOException
+    public static boolean copyDirectory(Path sourceDir, Path destinationDir) throws IOException
     {
-        try (java.nio.file.FileSystem fileSystem = FileSystems.newFileSystem(zip, null))
-        {
-            Path fileToRemove = fileSystem.getPath(fileName);
-            deleteDirectory(fileToRemove);
+        AtomicBoolean error = new AtomicBoolean(false);
+        Files.walk(sourceDir).forEach(sourcePath -> {
+            try {
+                Path targetPath = destinationDir.resolve(sourceDir.relativize(sourcePath));
+                Files.copy(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException ex) {
+                CreeperLogger.INSTANCE.error("File copy I/O error: ", ex);
+                error.set(true);
+            }
+        });
+        return !error.get();
+    }
+
+    public static HashMap<String, Exception> extractZip2ElectricBoogaloo(Path launcherFile, Path destination)
+    {
+        return extractZip2ElectricBoogaloo(launcherFile, destination, true);
+    }
+
+    public static HashMap<String, Exception> extractZip2ElectricBoogaloo(Path launcherFile, Path destination, boolean continueOnError)
+    {
+        HashMap<String, Exception> errors = new HashMap<>();
+        try (ZipFile zipFile = new ZipFile(launcherFile.toFile())) {
+            ArrayList<String> entries = new ArrayList<>();
+            zipFile.stream().map(ZipEntry::getName).forEach(entries::add);
+            for(String ze : entries) {
+                CreeperLogger.INSTANCE.debug("Extracting '" + ze + "'...");
+                ZipEntry entry = zipFile.getEntry(ze);
+                try {
+                    Path DestFile = destination.resolve(entry.getName());
+                    if (entry.isDirectory())
+                    {
+                        DestFile.getParent().toFile().mkdir();
+                        continue;
+                    }
+                    DestFile.getParent().toFile().mkdirs();
+                    InputStream inputStream = zipFile.getInputStream(entry);
+                    byte[] bytes = inputStream.readAllBytes();
+                    CreeperLogger.INSTANCE.debug("Writing to " + DestFile);
+                    Files.write(DestFile, bytes);
+                    inputStream.close();
+                } catch (Exception e) {
+                    CreeperLogger.INSTANCE.debug("Failed extracting file " + entry.getName(), e);
+                    errors.put(entry.getName(), e);
+                    if (!continueOnError) {
+                        return errors;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+        return errors;
     }
 
     public static void deleteDirectory(Path file)

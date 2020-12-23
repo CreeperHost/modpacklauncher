@@ -64,7 +64,7 @@ public class SyncInstanceHandler implements IMessageHandler<InstallInstanceData>
                             OpenModalData.openModal("Preparing environment", "Installing Minecraft Launcher <br>", List.of());
 
                             McUtils.downloadVanillaLauncher();
-                            if (!Files.exists(Constants.LAUNCHER_PROFILES_JSON)) GameLauncher.launchGameAndClose();
+                            if (!Files.exists(Constants.LAUNCHER_PROFILES_JSON)) GameLauncher.downloadLauncherProfiles();
                         }
                     }).thenRun(() ->
                     {
