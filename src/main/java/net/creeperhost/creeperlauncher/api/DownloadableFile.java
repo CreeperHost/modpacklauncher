@@ -7,13 +7,14 @@ import net.creeperhost.creeperlauncher.install.tasks.FTBModPackInstallerTask;
 import net.creeperhost.creeperlauncher.install.tasks.http.DownloadedFile;
 import net.creeperhost.creeperlauncher.install.tasks.http.IHttpClient;
 import net.creeperhost.creeperlauncher.install.tasks.http.OkHttpClientImpl;
+import net.creeperhost.creeperlauncher.util.FileUtils;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -34,11 +35,10 @@ public class DownloadableFile
     String name;
     String type;
     String updated;
-    File localFile;
     boolean hasPrepared;
     MessageDigest digest;
     String sha1;
-    File destination;
+    Path destination;
     private final IHttpClient client = new OkHttpClientImpl();
 
     public DownloadableFile(String version, Path path, String url, List<String> acceptedChecksums, long size, boolean clientSide, boolean optional, long id, String name, String type, String updated)
@@ -145,7 +145,7 @@ public class DownloadableFile
     {
         if (!hasPrepared)
             throw new UnsupportedOperationException("Unable to download file that has not been prepared.");
-        if (destination.toFile().exists())
+        if (Files.exists(destination))
         {
 
             if (!OverwriteOnExist)
@@ -160,32 +160,33 @@ public class DownloadableFile
                 }
             }
         }
-        File dirPath = destination.getParent().toFile();
-        if (!dirPath.exists())
-        {
-            dirPath.mkdirs();
-        }
+        FileUtils.createDirectories(destination.getParent());
         DownloadedFile send = client.doDownload(this.downloadUrl, destination, (downloaded, delta, total, done) ->
         {
             FTBModPackInstallerTask.currentBytes.addAndGet(delta);
         }, digest, Long.parseLong(Settings.settings.putIfAbsent("speedLimit", "0")) * 1000l); // not really async - our client will run async things on same thread. bit of a hack, but async just froze.
         Path body = send.getDestination();
         sha1 = send.getChecksum();
-        File file = body.toFile();
 
-        this.destination = file;
+        this.destination = body;
     }
 
-    public File getLocalFile()
+    public Path getLocalFile()
     {
         return destination;
     }
 
     public void validate(boolean FailOnChecksum, boolean FailOnFileSize) throws IntegrityCheckException, FileNotFoundException
     {
-        if (!destination.exists()) throw new FileNotFoundException("File not saved.");
+        if (Files.notExists(destination)) throw new FileNotFoundException("File not saved.");
         AtomicBoolean passChecksum = new AtomicBoolean(false);
 
+        long dstSize = 0;
+        try {
+            dstSize = Files.size(destination);
+        } catch (IOException ignored) {
+            CreeperLogger.INSTANCE.warning("Failed to get size of file: " + destination);
+        }
         if ((sha1 != null && sha1.length() > 0) && (expectedChecksums != null && expectedChecksums.size() > 0))
         {
 
@@ -198,18 +199,18 @@ public class DownloadableFile
             {
                 if (FailOnChecksum)
                 {
-                    throw new IntegrityCheckException("SHA1 checksum does not match.", -1, sha1, expectedChecksums, destination.length(), size, downloadUrl, path);
+                    throw new IntegrityCheckException("SHA1 checksum does not match.", -1, sha1, expectedChecksums, dstSize, size, downloadUrl, path);
                 } else
                 {
                     CreeperLogger.INSTANCE.warning(this.getName() + "'s SHA1 checksum failed.");
                 }
             }
         }
-        if (destination.length() != this.getSize())
+        if (dstSize != this.getSize())
         {
             if (FailOnFileSize)
             {
-                throw new IntegrityCheckException("Downloaded file is not the same size.", -1, sha1, expectedChecksums, destination.length(), getSize(), downloadUrl, path);
+                throw new IntegrityCheckException("Downloaded file is not the same size.", -1, sha1, expectedChecksums, dstSize, getSize(), downloadUrl, path);
             } else
             {
                 CreeperLogger.INSTANCE.warning(this.getName() + " size incorrect.");

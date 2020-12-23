@@ -1,5 +1,6 @@
 package net.creeperhost.creeperlauncher.api.handlers.instances;
 
+import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.data.instances.UninstallInstanceData;
@@ -15,7 +16,8 @@ public class UninstallInstanceHandler implements IMessageHandler<UninstallInstan
     {
         try
         {
-            LocalInstance instance = new LocalInstance(UUID.fromString(data.uuid));
+            //TODO, Instance lookup?
+            LocalInstance instance = new LocalInstance(Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve(data.uuid));
             instance.uninstall();
             Settings.webSocketAPI.sendMessage(new UninstallInstanceData.Reply(data, "success", ""));
         } catch (Exception err)

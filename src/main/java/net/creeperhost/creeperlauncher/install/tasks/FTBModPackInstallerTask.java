@@ -444,12 +444,11 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
         return downloadableFileList;
     }
 
-    @SuppressWarnings("unchecked")
     void downloadFiles(Path instanceDir, Path forgeLibs)
     {
         CreeperLogger.INSTANCE.info("Attempting to downloaded required files");
 
-        ArrayList<CompletableFuture> futures = new ArrayList<>();
+        ArrayList<CompletableFuture<?>> futures = new ArrayList<>();
         overallBytes.set(0);
 
         FTBModPackInstallerTask.currentBytes.set(0);
@@ -467,7 +466,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
         for (DownloadableFile file : requiredFiles)
         {
             Path path = file.getPath();
-            if (!path.toFile().exists())
+            if (!Files.exists(path))
             {
                 if (file.getSize() > 0)
                 {
@@ -481,7 +480,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
             try
             {
                 Path path = file.getPath();
-                if (!path.toFile().exists())
+                if (!Files.exists(path))
                 {
                     DownloadTask task = new DownloadTask(file, path);//url, path, file.getSize(), false, file.getSha1() );
                     futures.add(task.execute());
@@ -496,7 +495,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
             allFutures(futures).join();
         } catch (Throwable err)
         {
-            for (CompletableFuture ftr : futures)
+            for (CompletableFuture<?> ftr : futures)
             {
                 ftr.cancel(true);
             }

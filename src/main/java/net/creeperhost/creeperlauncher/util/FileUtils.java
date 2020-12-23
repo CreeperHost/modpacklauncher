@@ -18,12 +18,10 @@ import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.security.MessageDigest;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.jar.JarFile;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.zip.GZIPInputStream;
 
 public class FileUtils
@@ -73,59 +71,26 @@ public class FileUtils
         }
     }
 
-    public static <FileSystem> void removeFileFromZip(File zip, String fileName) throws IOException
+    public static <FileSystem> void removeFileFromZip(Path zip, String fileName) throws IOException
     {
-        try (java.nio.file.FileSystem fileSystem = FileSystems.newFileSystem(zip.toPath(), null))
+        try (java.nio.file.FileSystem fileSystem = FileSystems.newFileSystem(zip, null))
         {
             Path fileToRemove = fileSystem.getPath(fileName);
-            deleteDirectory(fileToRemove.toFile());
+            deleteDirectory(fileToRemove);
         }
     }
 
-    public static boolean deleteDirectory(File file)
+    public static void deleteDirectory(Path file)
     {
-        try
-        {
-            Files.walk(file.toPath())
+        if (Files.notExists(file)) return;
+        try {
+            Files.walk(file)
                     .sorted(Comparator.reverseOrder())
                     .map(Path::toFile)
                     .forEach(File::delete);
 
-        } catch (IOException e)
-        {
-            e.printStackTrace();
-        }
-        return file.delete();
-    }
-
-    public static void merge(List<File> files, File out)
-    {
-        try
-        {
-            FileSystem outSystem = FileSystems.newFileSystem(out.toPath(), null);
-            files.forEach(file ->
-            {
-                try
-                {
-                    FileSystem fileSystem = FileSystems.newFileSystem(file.toPath(), null);
-                    fileSystem.getRootDirectories().forEach(path ->
-                    {
-                        try
-                        {
-                            Files.copy(path.toFile().toPath(), outSystem.getPath(path.toFile().getPath()), StandardCopyOption.REPLACE_EXISTING);
-                        } catch (IOException e)
-                        {
-                            e.printStackTrace();
-                        }
-                    });
-                } catch (IOException e)
-                {
-                    e.printStackTrace();
-                }
-            });
-        } catch (Exception e)
-        {
-            e.printStackTrace();
+        } catch (IOException e) {
+            CreeperLogger.INSTANCE.error("Failed to delete directory. " + file, e);
         }
     }
 
@@ -161,10 +126,14 @@ public class FileUtils
         }
     }
 
-    public static Long getLastModified(File file)
+    public static long getLastModified(Path file)
     {
-        if (file != null)
-            return file.lastModified();
+        if (file != null) {
+            try {
+                return Files.getLastModifiedTime(file).toMillis();
+            } catch (IOException ignored) {
+            }
+        }
 
         return 0L;
     }
@@ -206,26 +175,21 @@ public class FileUtils
     }
 
     //I hate this but its the only way I can get it to work right now
-    public static boolean removeMeta(File file)
+    public static boolean removeMeta(Path file)
     {
-        if(!file.exists()) return false;
-        try (FileSystem fileSystem = FileSystems.newFileSystem(file.toPath(), null))
+        if(!Files.exists(file)) return false;
+        try (FileSystem fileSystem = FileSystems.newFileSystem(file, null))
         {
             Path root = fileSystem.getPath("/");
-            Files.walkFileTree(root, new SimpleFileVisitor<Path>() {
+            Files.walkFileTree(root, new SimpleFileVisitor<>() {
                 @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException
-                {
-                    try
-                    {
-                        if(file.startsWith("/META-INF")) {
-                            CreeperLogger.INSTANCE.error(file.toString());
-                            Files.delete(file);
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+                    try {
+                        if (file.startsWith("/META-INF")) {
+                            Files.deleteIfExists(file);
                         }
-                    }
-                    catch (Exception e)
-                    {
-                        e.printStackTrace();
+                    } catch (Exception e) {
+                        CreeperLogger.INSTANCE.error("Failed to delete entry from META-INF", e);
                     }
                     return FileVisitResult.CONTINUE;
                 }
@@ -233,39 +197,36 @@ public class FileUtils
 
 //            FileUtils.deleteDirectory(meta);
             return true;
-        } catch (IOException e) { e.printStackTrace(); }
+        } catch (IOException e) {
+            CreeperLogger.INSTANCE.error("Failed to remove meta from " + file, e);
+        }
         return false;
     }
 
-    public static boolean mergeJars(File input, File output)
-    {
+    public static boolean mergeJars(Path input, Path output) {
         if(input == null || output == null) return false;
         AtomicBoolean flag = new AtomicBoolean(true);
 
-        try (FileSystem fs = FileSystems.newFileSystem(output.toPath(), null))
-        {
-            FileSystem tempFS = FileSystems.newFileSystem(input.toPath(), null);
-            Path root = tempFS.getPath("/");
-            Files.walkFileTree(root, new SimpleFileVisitor<Path>() {
-                @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException
-                {
-                    try
-                    {
-                        //Make sure to create the parents as java is dumb...
-                        Files.createDirectories(fs.getPath(file.getParent().toString()));
-                        Files.copy(tempFS.getPath(file.toString()), fs.getPath(file.toString()), StandardCopyOption.REPLACE_EXISTING);
+        try (FileSystem fs = FileSystems.newFileSystem(output, null)) {
+            Path dstRoot = fs.getPath("/");
+            try (FileSystem srcFs = FileSystems.newFileSystem(input, null)) {
+                Path srcRoot = srcFs.getPath("/");
+                Files.walkFileTree(srcRoot, new SimpleFileVisitor<Path>() {
+                    @Override
+                    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+                        Path dst = dstRoot.resolve(srcRoot.relativize(file));
+                        try {
+                            Files.createDirectories(dst.getParent());
+                            Files.copy(file, dst, StandardCopyOption.REPLACE_EXISTING);
+                        } catch (Exception e) {
+                            flag.set(false);
+                            e.printStackTrace();
+                        }
+                        return FileVisitResult.CONTINUE;
                     }
-                    catch (Exception e)
-                    {
-                        flag.set(false);
-                        e.printStackTrace();
-                    }
-                    return FileVisitResult.CONTINUE;
-                }
-            });
-        } catch (Exception e)
-        {
+                });
+            }
+        } catch (Exception e) {
             flag.set(false);
             e.printStackTrace();
         }
@@ -281,49 +242,27 @@ public class FileUtils
         }
     }
 
-    public static void deleteDirectory(Path directory)
-    {
-
-        if (Files.exists(directory))
-        {
-            try
-            {
-                Files.walkFileTree(directory, new SimpleFileVisitor<>()
-                {
-                    @Override
-                    public FileVisitResult visitFile(Path path, BasicFileAttributes basicFileAttributes) throws IOException
-                    {
-                        Files.delete(path);
-                        return FileVisitResult.CONTINUE;
-                    }
-
-                    @Override
-                    public FileVisitResult postVisitDirectory(Path directory, IOException ioException) throws IOException
-                    {
-                        Files.delete(directory);
-                        return FileVisitResult.CONTINUE;
-                    }
-                });
-            }
-            catch (Exception ignored)
-            {
-
-            }
+    public static List<Path> listDir(Path dir) {
+        try (Stream<Path> stream = Files.walk(dir, 1)) {
+            return stream.filter(e -> !e.equals(dir))
+                    .collect(Collectors.toList());
+        } catch (IOException e) {
+            CreeperLogger.INSTANCE.error("Failed to list directory. " + dir.toAbsolutePath(), e);
+            return Collections.emptyList();
         }
     }
 
     private static HashMap<Pair<Path, Path>, IOException> moveDirectory(Path in, Path out, boolean replaceExisting, boolean failFast) {
         HashMap<Pair<Path, Path>, IOException> errors = new HashMap<>();
-        if (!in.toFile().getName().equals(out.toFile().getName()))
+        if (!in.getFileName().toString().equals(out.getFileName().toString()))
         {
-            out = out.resolve(in.toFile().getName());
+            out = out.resolve(in.getFileName().toString());
         }
-        File outFile = out.toFile();
-        if (replaceExisting && outFile.exists())
+        if (replaceExisting && Files.exists(out))
         {
-            if (outFile.isDirectory())
+            if (Files.isDirectory(out))
             {
-                FileUtils.deleteDirectory(out.toFile());
+                FileUtils.deleteDirectory(out);
             } else {
                 try {
                     Files.deleteIfExists(out);
@@ -347,7 +286,7 @@ public class FileUtils
                 public FileVisitResult visitFile(Path path, BasicFileAttributes basicFileAttributes) throws IOException {
 
                     Path relative = in.getParent().relativize(path);
-                    if (in.toFile().getName().equals(finalOut.toFile().getName())) {
+                    if (in.getFileName().toString().equals(finalOut.getFileName().toString())) {
                         relative = in.relativize(path);
                     }
                     Path outFile = finalOut.resolve(relative);
@@ -380,8 +319,8 @@ public class FileUtils
                 @Override
                 public FileVisitResult postVisitDirectory(Path directory, IOException ioException) throws IOException
                 {
-                    String[] list = directory.toFile().list();
-                    if (list == null || list.length == 0)
+                    List<Path> list = FileUtils.listDir(directory);
+                    if (list.isEmpty())
                     {
                         try {
                             Files.delete(directory);
@@ -405,17 +344,16 @@ public class FileUtils
 
     public static HashMap<Pair<Path, Path>, IOException> move(Path in, Path out, boolean replaceExisting, boolean failFast)
     {
-        if (in.toFile().isDirectory())
+        if (Files.isDirectory(in))
         {
             return moveDirectory(in, out, replaceExisting, failFast);
         }
         HashMap<Pair<Path, Path>, IOException> errors = new HashMap<>();
         try
         {
-            File outFile = out.toFile();
-            if (outFile.exists() && outFile.isDirectory())
+            if (Files.exists(out) && Files.isDirectory(out))
             {
-                out = out.resolve(in.toFile().getName());
+                out = out.resolve(in.getFileName().toString());
             }
             if (replaceExisting) {
                 Files.move(in, out, StandardCopyOption.REPLACE_EXISTING);

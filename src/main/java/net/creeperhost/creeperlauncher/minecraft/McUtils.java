@@ -186,11 +186,11 @@ public class McUtils {
     }
 
     @Deprecated
-    public static boolean updateProfileLastPlayed(File target, String profileID, String time) {
+    public static boolean updateProfileLastPlayed(Path target, String profileID, String time) {
         CreeperLogger.INSTANCE.info("Attempting to remove default forge profile");
         try {
             JsonObject json = null;
-            try (InputStream stream = new FileInputStream(target)) {
+            try (InputStream stream = Files.newInputStream(target)) {
                 json = new JsonParser().parse(new InputStreamReader(stream, StandardCharsets.UTF_8)).getAsJsonObject();
             } catch (IOException e) {
                 CreeperLogger.INSTANCE.error("Failed to read " + target);
@@ -226,7 +226,7 @@ public class McUtils {
                 _profile.remove("lastUsed");
                 _profile.addProperty("lastUsed", time);
                 String jstring = GsonUtils.GSON.toJson(json);
-                Files.write(target.toPath(), jstring.getBytes(StandardCharsets.UTF_8));
+                Files.write(target, jstring.getBytes(StandardCharsets.UTF_8));
                 CreeperLogger.INSTANCE.info("Updated lastPlayed time for " + profileID);
                 return true;
             }
@@ -237,7 +237,7 @@ public class McUtils {
         return false;
     }
 
-    public static boolean injectProfile(Path target, Profile profile, String jrePath) {
+    public static boolean injectProfile(Path target, Profile profile, Path jrePath) {
         try {
             JsonObject json = null;
             try (BufferedReader reader = Files.newBufferedReader(target)) {
@@ -271,8 +271,8 @@ public class McUtils {
 
             if (_profiles.getAsJsonObject(profile.getID()) == null) {
                 JsonObject jsonProfile = profile.toJsonObject();
-                if (jrePath != null && jrePath.length() > 0) {
-                    jsonProfile.addProperty("javaDir", jrePath);
+                if (jrePath != null) {
+                    jsonProfile.addProperty("javaDir", jrePath.toAbsolutePath().toString());
                 }
                 _profiles.add(profile.getID(), jsonProfile);
             }
@@ -392,7 +392,7 @@ public class McUtils {
                     Thread.sleep(500);
                 }
                 if (mount.exitValue() == 0) {
-                    String[] ccommand = {"/bin/cp", "-R", Constants.MINECRAFT_MAC_LAUNCHER_VOLUME + File.separator + "/Minecraft.app", Constants.BIN_LOCATION + File.separator};
+                    String[] ccommand = {"/bin/cp", "-R", Constants.MINECRAFT_MAC_LAUNCHER_VOLUME + "/Minecraft.app", Constants.BIN_LOCATION.toAbsolutePath().toString()};
                     Process copy = Runtime.getRuntime().exec(ccommand);
                     while (copy.isAlive()) {
                         Thread.sleep(500);
@@ -447,16 +447,9 @@ public class McUtils {
     //Could be any modloader
     public static List<LoaderTarget> getTargets(Path instanceDir) {
         List<LoaderTarget> targetList = new ArrayList<>();
-        JsonReader versionReader = null;
-        try {
-            versionReader = new JsonReader(new FileReader(new File(instanceDir + File.separator + "version.json")));
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-
-        JsonElement jElement = new JsonParser().parse(versionReader);
-        if (jElement.isJsonObject()) {
-            JsonArray targets = jElement.getAsJsonObject().getAsJsonArray("targets");
+        try (BufferedReader reader = Files.newBufferedReader(instanceDir.resolve("version.json"))) {
+            JsonObject obj = GsonUtils.GSON.fromJson(reader, JsonObject.class);
+            JsonArray targets = obj.getAsJsonArray("targets");
             if (targets != null) {
                 for (JsonElement serverEl : targets) {
                     JsonObject server = (JsonObject) serverEl;
@@ -468,6 +461,8 @@ public class McUtils {
                     targetList.add(new LoaderTarget(targetName, targetVersion, targetId, targetType));
                 }
             }
+        } catch (IOException e) {
+            CreeperLogger.INSTANCE.error("Failed to load version json.", e);
         }
         return targetList;
     }

@@ -3,8 +3,8 @@ package net.creeperhost.creeperlauncher;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
-import com.google.gson.stream.JsonReader;
 import net.creeperhost.creeperlauncher.api.WebSocketAPI;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.*;
 import java.lang.reflect.Type;
@@ -69,8 +69,16 @@ public class Settings
         }
     }
 
+    public static Path getPathOpt(String opt, Path default_) {
+        String value = settings.get(opt);
+        if (StringUtils.isEmpty(value)) {
+            return default_;
+        }
+        return Paths.get(value);
+    }
+
     public static Path getInstanceLocOr(Path default_) {
-        return Paths.get(settings.getOrDefault("instanceLocation", default_.toAbsolutePath().toString()));
+        return getPathOpt("instanceLocation", default_);
     }
 
     public static String getDefaultThreadLimit(String arg)

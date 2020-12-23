@@ -15,12 +15,10 @@ import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.util.FileUtils;
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileInputStream;
+import java.io.*;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -97,42 +95,42 @@ public class CloudSaveManager {
         return tempList;
     }
 
-    private static void uploadFile(File file, String location, boolean blocking, String existingEtag) throws Exception {
-        CreeperLogger.INSTANCE.debug("Uploading " + file.getPath());
+    private static void uploadFile(Path file, String location, boolean blocking, String existingEtag) throws Exception {
+        CreeperLogger.INSTANCE.debug("Uploading " + file);
         ObjectMetadata objectMetadata = null;
         try {
             //System.out.println("Getting metadata for " + location);
-            if (file.exists() && !file.isDirectory())
+            if (Files.exists(file) && !Files.isDirectory(file))
             {
                 objectMetadata = s3.getObjectMetadata(bucket, location);
             }
 
         } catch (AmazonS3Exception ignored) {}
 
-        String fileHash = FileUtils.getHash(file.toPath(), "SHA-256");
+        String fileHash = FileUtils.getHash(file, "SHA-256");
         if (objectMetadata != null) {
             if (fileHash.equals(objectMetadata.getUserMetaDataOf("ourhash"))) {
-                CreeperLogger.INSTANCE.debug("Not uploading " + file.getPath() + " as object exists on server");
+                CreeperLogger.INSTANCE.debug("Not uploading " + file + " as object exists on server");
                 return;
             }
         }
 
-        BufferedInputStream bufferedStream; //= new BufferedInputStream(new FileInputStream(file));
+        BufferedInputStream bufferedStream;
 
 
-        if(file.isDirectory() && file.listFiles().length == 0)
+        if(Files.isDirectory(file) && FileUtils.listDir(file).isEmpty())
         {
             bufferedStream = new BufferedInputStream(new ByteArrayInputStream(new byte[0]));
         }
         else
         {
-            bufferedStream = new BufferedInputStream(new FileInputStream(file));
+            bufferedStream = new BufferedInputStream(Files.newInputStream(file));
         }
 
-        long fileSize = file.length();
+        long fileSize = Files.size(file);
         ObjectMetadata meta = new ObjectMetadata();
         meta.addUserMetadata("ourhash", fileHash);
-        meta.addUserMetadata("ourlastmodified", String.valueOf(file.lastModified()));
+        meta.addUserMetadata("ourlastmodified", String.valueOf(FileUtils.getLastModified(file)));
         meta.setContentLength(fileSize);
         Upload upload = transferManager.upload(bucket, location.replace(" ", ""), bufferedStream, meta);
         if (blocking) {
@@ -187,15 +185,15 @@ public class CloudSaveManager {
         return uuidList;
     }
 
-    public static void syncManual(File file, String location, boolean blocking, boolean client, HashMap<String, S3ObjectSummary> existing) throws Exception
+    public static void syncManual(Path file, String location, boolean blocking, boolean client, HashMap<String, S3ObjectSummary> existing) throws Exception
     {
-        CreeperLogger.INSTANCE.debug("Uploading " + file.getPath());
+        CreeperLogger.INSTANCE.debug("Uploading " + file);
         ObjectMetadata objectMetadata = null;
         try {
             S3ObjectSummary summary = existing.get(location);
-            if (file.exists() && summary != null) {
-                if(summary.getSize() <= 5242500 && FileUtils.getHash(file.toPath(), "MD5").equals(summary.getETag())) {
-                    CreeperLogger.INSTANCE.debug("Not syncing " + file.getPath() + " as object exists on server");
+            if (Files.exists(file) && summary != null) {
+                if(summary.getSize() <= 5242500 && FileUtils.getHash(file, "MD5").equals(summary.getETag())) {
+                    CreeperLogger.INSTANCE.debug("Not syncing " + file + " as object exists on server");
                     return;
                 }
                 objectMetadata = s3.getObjectMetadata(bucket, location);
@@ -203,12 +201,12 @@ public class CloudSaveManager {
             //System.out.println("Getting metadata for " + location);
         } catch (AmazonS3Exception ignored) {}
 
-        String fileHash = FileUtils.getHash(file.toPath(), "SHA-256");
+        String fileHash = FileUtils.getHash(file, "SHA-256");
         if (objectMetadata != null) {
             CreeperLogger.INSTANCE.debug("Client " + fileHash + " Server " + objectMetadata.getUserMetaDataOf("ourhash"));
 
             if (fileHash.equals(objectMetadata.getUserMetaDataOf("ourhash"))) {
-                CreeperLogger.INSTANCE.debug("Not syncing " + file.getPath() + " as object exists on server");
+                CreeperLogger.INSTANCE.debug("Not syncing " + file + " as object exists on server");
                 return;
             } else
             {
@@ -228,17 +226,17 @@ public class CloudSaveManager {
         }
     }
 
-    public static void syncFile(File file, String location, boolean blocking, HashMap<String, S3ObjectSummary> existingObjects) throws Exception
+    public static void syncFile(Path file, String location, boolean blocking, HashMap<String, S3ObjectSummary> existingObjects) throws Exception
     {
         location = location.replace("\\", "/");
-        CreeperLogger.INSTANCE.debug("Uploading " + file.getPath());
+        CreeperLogger.INSTANCE.debug("Uploading " + file.toAbsolutePath());
         ObjectMetadata objectMetadata = null;
         try {
-            if (file.exists() && existingObjects.containsKey(location))
+            if (Files.exists(file) && existingObjects.containsKey(location))
             {
                 S3ObjectSummary summary = existingObjects.get(location);
-                if (summary.getSize() <= 5242500 && FileUtils.getHash(file.toPath(), "MD5").equals(summary.getETag())) {
-                    CreeperLogger.INSTANCE.debug("Not syncing " + file.getPath() + " as object exists on server");
+                if (summary.getSize() <= 5242500 && FileUtils.getHash(file, "MD5").equals(summary.getETag())) {
+                    CreeperLogger.INSTANCE.debug("Not syncing " + file + " as object exists on server");
                     return;
                 }
                 objectMetadata = s3.getObjectMetadata(bucket, location);
@@ -246,10 +244,10 @@ public class CloudSaveManager {
             //System.out.println("Getting metadata for " + location);
         } catch (AmazonS3Exception ignored) {}
 
-        String fileHash = FileUtils.getHash(file.toPath(), "SHA-256");
+        String fileHash = FileUtils.getHash(file, "SHA-256");
         if (objectMetadata != null) {
             if (fileHash.equals(objectMetadata.getUserMetaDataOf("ourhash"))) {
-                CreeperLogger.INSTANCE.debug("Not uploading " + file.getPath() + " as object exists on server");
+                CreeperLogger.INSTANCE.debug("Not uploading " + file + " as object exists on server");
                 return;
             } else
             {
@@ -291,16 +289,16 @@ public class CloudSaveManager {
         }
     }
 
-    public static void downloadFile(String location, File file, boolean blocking, String eTag) throws Exception {
+    public static void downloadFile(String location, Path file, boolean blocking, String eTag) throws Exception {
         CreeperLogger.INSTANCE.debug("Downloading " + location);
 
-        if (file.exists() && !file.isDirectory())
+        if (Files.exists(file) && !Files.isDirectory(file))
         {
             if (eTag != null)
             {
-                if (eTag.equals(FileUtils.getHash(file.toPath(), "MD5")));
+                if (eTag.equals(FileUtils.getHash(file, "MD5")));
                 {
-                    CreeperLogger.INSTANCE.debug("Not downloading " + file.getPath() + " as object exists on client");
+                    CreeperLogger.INSTANCE.debug("Not downloading " + file + " as object exists on client");
                     return;
                 }
             }
@@ -311,14 +309,14 @@ public class CloudSaveManager {
             } catch (AmazonS3Exception ignored) {}
 
             if (objectMetadata != null) {
-                if (FileUtils.getHash(file.toPath(), "SHA-256").equals(objectMetadata.getUserMetaDataOf("ourhash"))) {
-                    CreeperLogger.INSTANCE.debug("Not downloading " + file.getPath() + " as object exists on client");
+                if (FileUtils.getHash(file, "SHA-256").equals(objectMetadata.getUserMetaDataOf("ourhash"))) {
+                    CreeperLogger.INSTANCE.debug("Not downloading " + file + " as object exists on client");
                     return;
                 }
             }
         }
 
-        Download download = transferManager.download(bucket, urlEncodeParts(location), file);
+        Download download = transferManager.download(bucket, urlEncodeParts(location), file.toFile());
 
         if (blocking)
         {
@@ -383,8 +381,8 @@ public class CloudSaveManager {
         return true;
     }
 
-    public static String fileToLocation(File file, Path baseLocation) {
-        return urlEncodeParts(baseLocation.relativize(Path.of(file.toURI())).toString());
+    public static String fileToLocation(Path file, Path baseLocation) {
+        return urlEncodeParts(baseLocation.relativize(file).toString());
 
     }
 

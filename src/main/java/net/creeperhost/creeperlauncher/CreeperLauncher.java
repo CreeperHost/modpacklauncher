@@ -151,7 +151,12 @@ public class CreeperLauncher
         doUpdate(args);
 
         try {
-            Files.newDirectoryStream(Paths.get("."), path -> (path.toString().endsWith(".jar") && !path.toString().contains(Constants.APPVERSION))).forEach(path -> path.toFile().delete());
+            Files.newDirectoryStream(Paths.get("."), path -> (path.toString().endsWith(".jar") && !path.toString().contains(Constants.APPVERSION)))
+                    .forEach(path -> {
+                        try {
+                            Files.delete(path);
+                        } catch (IOException ignored) { }
+                    });
         } catch (IOException ignored) {}
 
         Instances.refreshInstances();
@@ -161,15 +166,14 @@ public class CreeperLauncher
                     new OpenModalData.ModalButton( "Yes", "green", () -> {
                         OpenModalData.openModal("Please wait", "Your instances are now moving", List.of());
                         Path currentInstanceLoc = Path.of(Settings.settings.getOrDefault(key, Constants.INSTANCES_FOLDER_LOC.toAbsolutePath().toString()));
-                        File currentInstanceDir = currentInstanceLoc.toFile();
-                        File[] subFiles = currentInstanceDir.listFiles();
+                        List<Path> subFiles = FileUtils.listDir(currentInstanceLoc);
                         Path newInstanceDir = Path.of(value);
                         boolean failed = false;
                         HashMap<Pair<Path, Path>, IOException> lastError = new HashMap<>();
                         CreeperLogger.INSTANCE.info("Moving instances from " + currentInstanceLoc + " to " + value);
                         if (subFiles != null) {
-                            for (File file : subFiles) {
-                                String fileName = file.getName();
+                            for (Path file : subFiles) {
+                                String fileName = file.getFileName().toString();
                                 if(fileName.length() == 36) {
                                     try {
                                         UUID.fromString(fileName);
@@ -179,12 +183,11 @@ public class CreeperLauncher
                                 } else if (!fileName.equals(".localCache")) {
                                     continue;
                                 }
-                                Path srcPath = Path.of(file.getAbsolutePath());
-                                Path dstPath = Path.of(value, file.getName());
-                                lastError = FileUtils.move(srcPath, dstPath, true, true);
-                                failed = !lastError.isEmpty() && !srcPath.toFile().getName().equals(".localCache");
+                                Path dstPath = newInstanceDir.resolve(fileName);
+                                lastError = FileUtils.move(file, dstPath, true, true);
+                                failed = !lastError.isEmpty() && !fileName.equals(".localCache");
                                 if (failed) break;
-                                CreeperLogger.INSTANCE.info("Moved " + srcPath + " to " + dstPath + " successfully");
+                                CreeperLogger.INSTANCE.info("Moved " + file + " to " + dstPath + " successfully");
                             }
                         }
                         if (failed) {
@@ -193,10 +196,10 @@ public class CreeperLauncher
                                 CreeperLogger.INSTANCE.error("Moving " + moveKey.getLeft() + " to " + moveKey.getRight() + " failed:", moveValue);
                             });
                             CreeperLogger.INSTANCE.error("Moving any successful instance moves back");
-                            File[] newInstanceDirFiles = newInstanceDir.toFile().listFiles();
+                            List<Path> newInstanceDirFiles = FileUtils.listDir(newInstanceDir);
                             if (newInstanceDirFiles != null) {
-                                for (File file : newInstanceDirFiles) {
-                                    FileUtils.move(Path.of(file.getAbsolutePath()), currentInstanceLoc.resolve(file.getName()));
+                                for (Path file : newInstanceDirFiles) {
+                                    FileUtils.move(file, currentInstanceLoc.resolve(file.getFileName()));
                                 }
                             }
                             OpenModalData.openModal("Error", "Unable to move instances. Please ensure you have permission to create files and folders in this location.", List.of(

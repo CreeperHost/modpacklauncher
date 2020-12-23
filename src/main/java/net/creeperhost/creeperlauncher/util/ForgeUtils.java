@@ -87,7 +87,7 @@ public class ForgeUtils
         return null;
     }
 
-    public static boolean validateJson(File file, LocalInstance instance)
+    public static boolean validateJson(Path file, LocalInstance instance)
     {
         StartJson sj = getFromJson(file);
         if (sj == null) return false;
@@ -99,7 +99,7 @@ public class ForgeUtils
         String jstring = GsonUtils.GSON.toJson(sj);
         try
         {
-            Files.write(file.toPath(), jstring.getBytes(StandardCharsets.UTF_8));
+            Files.write(file, jstring.getBytes(StandardCharsets.UTF_8));
         } catch (IOException e)
         {
             e.printStackTrace();
@@ -107,9 +107,9 @@ public class ForgeUtils
         return true;
     }
 
-    public static StartJson getFromJson(File target)
+    public static StartJson getFromJson(Path target)
     {
-        try (InputStream stream = new FileInputStream(target))
+        try (InputStream stream = Files.newInputStream(target))
         {
             JsonObject json = new JsonParser().parse(new InputStreamReader(stream, StandardCharsets.UTF_8)).getAsJsonObject();
             stream.close();

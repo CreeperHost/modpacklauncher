@@ -17,10 +17,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -29,7 +26,7 @@ public class MiscUtils
 {
     public static final DateFormat ISO_8601 = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
 
-    public static CompletableFuture allFutures(ArrayList<CompletableFuture> futures)
+    public static CompletableFuture<?> allFutures(ArrayList<CompletableFuture<?>> futures)
     {
         CompletableFuture<Void> combinedFuture = CompletableFuture.allOf(
                 futures.toArray(new CompletableFuture[0])).exceptionally((t) ->
@@ -40,7 +37,7 @@ public class MiscUtils
         );
         futures.forEach((x) ->
         {
-            ((CompletableFuture<Void>) x).exceptionally((t) ->
+            x.exceptionally((t) ->
             {
                 combinedFuture.completeExceptionally(t);
                 return null;
@@ -95,7 +92,7 @@ public class MiscUtils
                             } catch (Win32Exception ignored) {
                             }
                             if (javaHome != null) {
-                                versions.put("Oracle " + child + " " + (location.contains("Development") ? "JDK" : "JRE") + " (64bit)", Path.of(javaHome, "bin" + File.separator + "java.exe").toString());
+                                versions.put("Oracle " + child + " " + (location.contains("Development") ? "JDK" : "JRE") + " (64bit)", Path.of(javaHome, "bin", "java.exe").toString());
                             }
                         }
                     }
@@ -116,38 +113,35 @@ public class MiscUtils
                                 } catch (Win32Exception ignored) {
                                 }
                                 if (javaHome != null) {
-                                    versions.put("AdoptOpenJDK " + child + "_" + childType + " " + location.substring(location.lastIndexOf("\\") + 1) + " (64bit)", Path.of(javaHome, "bin" + File.separator + "java.exe").toString());
+                                    versions.put("AdoptOpenJDK " + child + "_" + childType + " " + location.substring(location.lastIndexOf("\\") + 1) + " (64bit)", Path.of(javaHome, "bin", "java.exe").toString());
                                 }
                             }
                         }
                     }
                 }
-                String java = findExecutableOnPath("java.exe");
-                if (!java.isEmpty())
+                Path java = findExecutableOnPath("java.exe");
+                if (java != null)
                 {
-                    File javaFile = new File(java);
-                    String ver = versionFromFile(javaFile);
-                    if (!ver.equals("Unknown")) versions.put(ver, java);
+                    String ver = versionFromFile(java);
+                    if (!ver.equals("Unknown")) versions.put(ver, java.toAbsolutePath().toString());
                 }
                 break;
             case MAC:
                 versions.put("Mojang Built-in", "");
-                String javaMac = findExecutableOnPath("java");
-                if (!javaMac.isEmpty())
+                Path javaMac = findExecutableOnPath("java");
+                if (javaMac != null)
                 {
-                    File javaFile = new File(javaMac);
-                    String ver = versionFromFile(javaFile);
-                    if (!ver.equals("Unknown")) versions.put(ver, javaMac);
+                    String ver = versionFromFile(javaMac);
+                    if (!ver.equals("Unknown")) versions.put(ver, javaMac.toAbsolutePath().toString());
                 }
                 break;
             case LINUX:
                 versions = scanPath(linuxJavaPathLocations);
-                String javaLinux = findExecutableOnPath("java");
-                if (!javaLinux.isEmpty())
+                Path javaLinux = findExecutableOnPath("java");
+                if (javaLinux != null)
                 {
-                    File javaFile = new File(javaLinux);
-                    String ver = versionFromFile(javaFile);
-                    if (!ver.equals("Unknown")) versions.put(ver, javaLinux);
+                    String ver = versionFromFile(javaLinux);
+                    if (!ver.equals("Unknown")) versions.put(ver, javaLinux.toAbsolutePath().toString());
                 }
                 break;
             case UNKNOWN:
@@ -162,58 +156,57 @@ public class MiscUtils
         HashMap<String, String> versions = new HashMap<>();
         for (String location : paths) {
             Path path = Path.of(location);
-            File file = path.toFile();
-            if(!file.isDirectory()) continue;
-            File[] files = file.listFiles();
+            if(!Files.isDirectory(path)) continue;
+            List<Path> files = FileUtils.listDir(path);
             if (files == null) continue;
-            for(File javaDir : files)
+            for(Path javaDir : files)
             {
-                javaDir = unsymlink(file);
+                javaDir = unsymlink(path);
                 if (javaDir == null) continue;
-                String javaVersionName = javaDir.getName();
+                String javaVersionName = javaDir.getFileName().toString();
                 if (!javaVersionName.matches("(.*)\\d+(.*)")) continue;
-                File javaExe = new File(javaDir, "bin/java");
-                if (!javaExe.exists() || !javaExe.canExecute()) javaExe = new File(javaDir, "bin/java.exe");
-                if (!javaExe.exists() || !javaExe.canExecute()) continue;
-                versions.put(javaVersionName, javaExe.getAbsolutePath());
+                Path javaExe = javaDir.resolve("bin/java");
+                if (Files.notExists(javaExe) || !Files.isExecutable(javaExe)) javaExe = javaDir.resolve("bin/java.exe");
+                if (Files.notExists(javaExe) || !Files.isExecutable(javaExe)) continue;
+                versions.put(javaVersionName, javaExe.toAbsolutePath().toString());
             }
         }
         return versions;
     }
 
-    private static File unsymlink(File file) {
+    private static Path unsymlink(Path file) {
         int i = 0;
-        for(; i < 5 && Files.isSymbolicLink(file.toPath()); i++)
+        for(; i < 5 && Files.isSymbolicLink(file); i++)
         {
             try {
-                file = new File(file.getCanonicalPath());
+                file = file.normalize().toRealPath();
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
-        if (i == 5 && Files.isSymbolicLink(file.toPath())) return null;
+        if (i == 5 && Files.isSymbolicLink(file)) return null;
         return file;
     }
 
-    private static String versionFromFile(File file) {
-        File unsymlink = unsymlink(file);
+    private static String versionFromFile(Path file) {
+        Path unsymlink = unsymlink(file);
         if (unsymlink != null) file = unsymlink;
-        File parent = file.getParentFile();
-        if (!parent.getName().equals("bin")) return "Unknown";
-        File versionDir = file.getParentFile();
-        String version = versionDir.getName();
+        Path parent = file.getParent();
+        if (!parent.getFileName().toString().equals("bin")) return "Unknown";
+        Path versionDir = file.getParent();
+        String version = versionDir.getFileName().toString();
         if (version.matches("(.*)\\d+(.*)")) return version;
-        return versionFromExecutable(file.getPath());
+        return versionFromExecutable(file);
     }
 
-    private static String findExecutableOnPath(String name) {
+    private static Path findExecutableOnPath(String name) {
         for (String dirname : System.getenv("PATH").split(File.pathSeparator)) {
-            File file = new File(dirname, name);
-            if (file.isFile() && file.canExecute()) {
-                return file.getAbsolutePath();
+            Path file = Path.of(dirname).resolve(name);
+            if (Files.isRegularFile(file) && Files.isExecutable(file)) {
+                return file;
             }
         }
-        return "";
+        return null;
     }
 
     private static String execAndFullOutput(String ...args) {
@@ -231,9 +224,9 @@ public class MiscUtils
 
     private static final Pattern p = Pattern.compile("\\w+ version \"(.*?)\"");
 
-    private static String versionFromExecutable(String path)
+    private static String versionFromExecutable(Path path)
     {
-        String execResult = execAndFullOutput(path, "-version");
+        String execResult = execAndFullOutput(path.toAbsolutePath().toString(), "-version");
         Matcher m = p.matcher(execResult);
         if (m.find())
         {

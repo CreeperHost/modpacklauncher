@@ -10,6 +10,7 @@ import net.creeperhost.creeperlauncher.minetogether.cloudsaves.CloudSyncType;
 import net.creeperhost.creeperlauncher.install.tasks.DownloadTask;
 import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.util.*;
+import org.apache.commons.lang3.StringUtils;
 import oshi.SystemInfo;
 import oshi.hardware.HardwareAbstractionLayer;
 
@@ -31,9 +32,8 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.jar.Attributes;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import static net.creeperhost.creeperlauncher.util.MiscUtils.allFutures;
 
@@ -57,7 +57,7 @@ public class LocalInstance implements IPack
     public String mcVersion;
     public String jvmArgs = Settings.settings.getOrDefault("jvmArgs", "");
     public boolean embeddedJre = Boolean.parseBoolean(Settings.settings.getOrDefault("embeddedjre", "true"));
-    public String jrePath = Settings.settings.getOrDefault("jrepath", "");
+    public Path jrePath = Settings.getPathOpt("jrepath", null);
     private String url;
     private String artUrl;
     public int width = Integer.parseInt(Settings.settings.getOrDefault("width", String.valueOf((int) Toolkit.getDefaultToolkit().getScreenSize().getWidth() / 2)));
@@ -149,11 +149,11 @@ public class LocalInstance implements IPack
         }
     }
 
-    public LocalInstance(UUID uuid) throws FileNotFoundException
+    public LocalInstance(Path path) throws FileNotFoundException
     {
         //We're loading an existing instance
-        this.uuid = uuid;
-        this.path = Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve(this.uuid.toString());
+        this.path = path;
+        this.uuid = UUID.fromString(path.getFileName().toString());//TODO, this should not parse its uuid from the file name.
         Path json = path.resolve("instance.json");
         if (Files.notExists(json)) throw new FileNotFoundException("Instance does not exist!");
 
@@ -206,71 +206,36 @@ public class LocalInstance implements IPack
         this.hasLoadingMod = checkForLaunchMod();
     }
 
-    private static String[] candidates = new String[] {"net/creeperhost/traylauncher/TrayLauncher.class", "net/creeperhost/launchertray/LauncherTray.class", "net/creeperhost/launchertray/transformer/HookLoader.class"};
+    private static final String[] candidates = new String[] {
+            "net/creeperhost/traylauncher/TrayLauncher.class",
+            "net/creeperhost/launchertray/LauncherTray.class",
+            "net/creeperhost/launchertray/transformer/HookLoader.class"
+    };
 
-    private boolean checkForLaunchMod()
-    {
-        JarFile jarFile = null;
-        try {
-            //TODO, move this to nio Path stuff.
-            File[] modsDir = path.resolve("mods").toFile().listFiles();
-            if (modsDir == null) return false;
+    private boolean checkForLaunchMod() {
+        List<Path> modsDir = FileUtils.listDir(path.resolve("mods"));
+        if (modsDir.isEmpty()) return false;
 
+        for (Path file : modsDir) {
+            if (!Files.isRegularFile(path)) continue;
 
-            for (File file : modsDir) {
-                try {
-                    jarFile = new JarFile(file);
-                    if (jarFile == null) continue;
+            try (ZipInputStream zin = new ZipInputStream(Files.newInputStream(file))) {
+                Set<String> entries = new HashSet<>();
 
-                    if(jarFile.getManifest() == null)
-                    {
-                        jarFile.close();
-                        continue;
-                    }
+                ZipEntry entry;
+                while ((entry = zin.getNextEntry()) != null) {
+                    entries.add(entry.getName());
+                }
 
-                    Enumeration<JarEntry> entries = jarFile.entries();
-
-
-                    boolean found = false;
-                    for(String candidate: candidates) {
-                        if (jarFile.getEntry(candidate) != null) {
-                            found = true;
-                            break;
-                        }
-                    }
-
-                    if(!found)
-                    {
-                        jarFile.close();
-                        continue;
-                    }
-
-                    Map<String, Attributes> attributesMap = jarFile.getManifest().getEntries();
-
-                    jarFile.close();
-
-                    if (attributesMap == null) {
-                        continue;
-                    }
-                    return true;
-                } catch (IOException e) {
-                    if(jarFile != null) {
-                        jarFile.close();
+                for (String candidate: candidates) {
+                    if (entries.contains(candidate)) {
+                        return true;
                     }
                 }
+            } catch (IOException ignored) {
             }
-            if (jarFile != null) jarFile.close();
-            return false;
-        } catch (Throwable e)
-        {
-            if (jarFile != null) {
-                try {
-                    jarFile.close();
-                } catch (IOException ignored) {
-                }
-            }
-            return false;
         }
+        return false;
     }
 
     private LocalInstance()
@@ -291,7 +256,7 @@ public class LocalInstance implements IPack
             {
                 if (this.postInstall != null && this.postInstall.size() > 0)
                 {
-                    ArrayList<CompletableFuture> futures = new ArrayList<>();
+                    ArrayList<CompletableFuture<?>> futures = new ArrayList<>();
                     for(Map.Entry<String, instanceEvent> event : this.postInstall.entrySet())
                     {
                         futures.add(event.getValue().Run());
@@ -350,7 +315,7 @@ public class LocalInstance implements IPack
             } catch (IOException ignored){}
             if (this.postInstall != null && this.postInstall.size() > 0)
             {
-                ArrayList<CompletableFuture> futures = new ArrayList<>();
+                ArrayList<CompletableFuture<?>> futures = new ArrayList<>();
                 for(Map.Entry<String, instanceEvent> event : this.postInstall.entrySet())
                 {
                     futures.add(event.getValue().Run());
@@ -616,21 +581,12 @@ public class LocalInstance implements IPack
         return version;
     }
 
-    private void updateVersionFromFile()
-    {
-        JsonReader versionReader = null;
-        try
-        {
-            versionReader = new JsonReader(new FileReader(new File(this.getDir() + File.separator + "version.json")));
-        } catch (FileNotFoundException e)
-        {
-            e.printStackTrace();
-        }
-
-        JsonElement jElement = new JsonParser().parse(versionReader);
-        if (jElement.isJsonObject()) {
-            JsonObject version = (JsonObject) jElement;
+    private void updateVersionFromFile() {
+        try(BufferedReader reader = Files.newBufferedReader(getDir().resolve("version.json"))) {
+            JsonObject version = GsonUtils.GSON.fromJson(reader, JsonObject.class);
             this.version = version.get("name").getAsString();
+        } catch (IOException e) {
+            CreeperLogger.INSTANCE.error("Failed to read version json.", e);
         }
     }
     @Override
@@ -696,9 +652,9 @@ public class LocalInstance implements IPack
         return modLoader;
     }
 
-    public boolean setJre(boolean autoDetect, String path)
+    public boolean setJre(boolean autoDetect, Path path)
     {
-        File javaExec = null;
+        Path javaExec = null;
         String javaBinary = "javaw.exe";
         switch (OSUtils.getOs())
         {
@@ -711,16 +667,15 @@ public class LocalInstance implements IPack
         {
             if (!this.embeddedJre)
             {
-                String javaHome = System.getProperty("java.home");
-                javaExec = new File(new File(new File(javaHome), "bin"), javaBinary);
+                javaExec = Paths.get(System.getProperty("java.home")).resolve("bin").resolve(javaBinary);
             }
         } else
         {
-            javaExec = new File(path, javaBinary);
+            javaExec = path.resolve(javaBinary);
         }
-        if (javaExec != null && javaExec.exists())
+        if (javaExec != null && Files.exists(javaExec))
         {
-            jrePath = javaExec.getAbsolutePath();
+            jrePath = javaExec.toAbsolutePath();
         } else
         {
             embeddedJre = true;
@@ -836,8 +791,8 @@ public class LocalInstance implements IPack
 
         for(S3ObjectSummary s3ObjectSummary : s3ObjectSummaries.values())
         {
-            File file = new File(Constants.INSTANCES_FOLDER_LOC + File.separator + s3ObjectSummary.getKey());
-            CreeperLogger.INSTANCE.debug(s3ObjectSummary.getKey() + " " + file.getAbsolutePath());
+            Path file = Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve(s3ObjectSummary.getKey());
+            CreeperLogger.INSTANCE.debug(s3ObjectSummary.getKey() + " " + file.toAbsolutePath());
 
             if(s3ObjectSummary.getKey().contains("/saves/"))
             {
@@ -853,7 +808,7 @@ public class LocalInstance implements IPack
                 continue;
             }
 
-            if(!file.exists())
+            if(Files.notExists(file))
             {
                 syncConflict.set(true);
                 break;
@@ -877,8 +832,8 @@ public class LocalInstance implements IPack
 
                 if(s3ObjectSummary.getKey().contains(this.uuid.toString()))
                 {
-                    File file = new File(Constants.INSTANCES_FOLDER_LOC + File.separator + s3ObjectSummary.getKey());
-                    if(!file.exists())
+                    Path file = Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve(s3ObjectSummary.getKey());
+                    if(Files.notExists(file))
                     {
                         try
                         {
@@ -913,8 +868,8 @@ public class LocalInstance implements IPack
 
                     OpenModalData.openModal("Please wait", "Synchronizing <br>" + percent + "%", List.of());
 
-                    File file = new File(Constants.INSTANCES_FOLDER_LOC + File.separator + s3ObjectSummary.getKey());
-                    if(!file.exists())
+                    Path file = Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve(s3ObjectSummary.getKey());
+                    if (Files.notExists(file))
                     {
                         try
                         {
@@ -960,40 +915,39 @@ public class LocalInstance implements IPack
 
         Path baseInstancesPath = Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC);
 
-        File file = path.toFile();//TODO move this to NIO Paths.
         CloudSaveManager.setup(host, port, accessKeyId, secretAccessKey, bucketName);
-        if(file.isDirectory())
+        if(Files.isDirectory(path))
         {
-            File[] dirContents = file.listFiles();
-            if(dirContents != null && dirContents.length > 0) {
-                for (File innerFile : dirContents) {
-                    cloudSyncLoop(innerFile.toPath(), true, cloudSyncType, existingObjects);
+            List<Path> dirContents = FileUtils.listDir(path);
+            if (!dirContents.isEmpty()) {
+                for (Path innerFile : dirContents) {
+                    cloudSyncLoop(innerFile, true, cloudSyncType, existingObjects);
                 }
             } else {
                 try {
                     //Add a / to allow upload of empty directories
-
-                    File file1 = new File(file.getAbsoluteFile() + File.separator);
-                    CloudSaveManager.syncFile(file1, CloudSaveManager.fileToLocation(file1, baseInstancesPath), true, existingObjects);
-                } catch (Exception e) { e.printStackTrace(); }
+                    CloudSaveManager.syncFile(path, StringUtils.appendIfMissing(CloudSaveManager.fileToLocation(path, baseInstancesPath), "/"), true, existingObjects);
+                } catch (Exception e) {
+                    CreeperLogger.INSTANCE.error("Upload failed", e);
+                }
             }
         }
         else
         {
             try
             {
-                CreeperLogger.INSTANCE.debug("Uploading file " + file.getAbsolutePath());
+                CreeperLogger.INSTANCE.debug("Uploading file " + path.toAbsolutePath());
                 switch (cloudSyncType)
                 {
                     case SYNC_NORMAL:
                         try
                         {
-                            ArrayList<CompletableFuture> futures = new ArrayList<>();
+                            ArrayList<CompletableFuture<?>> futures = new ArrayList<>();
                             futures.add(CompletableFuture.runAsync(() ->
                             {
                                 try
                                 {
-                                    CloudSaveManager.syncFile(file, CloudSaveManager.fileToLocation(file, baseInstancesPath), true, existingObjects);
+                                    CloudSaveManager.syncFile(path, CloudSaveManager.fileToLocation(path, baseInstancesPath), true, existingObjects);
                                 } catch (Exception e) { e.printStackTrace(); }
                             }, DownloadTask.threadPool));
 
@@ -1004,10 +958,10 @@ public class LocalInstance implements IPack
                         }
                         break;
                     case SYNC_MANUAL_CLIENT:
-                        CloudSaveManager.syncManual(file, CloudSaveManager.fileToLocation(file, Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC)), true, true, existingObjects);
+                        CloudSaveManager.syncManual(path, CloudSaveManager.fileToLocation(path, Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC)), true, true, existingObjects);
                         break;
                     case SYNC_MANUAL_SERVER:
-                        CloudSaveManager.syncManual(file, CloudSaveManager.fileToLocation(file, Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC)), true, false, existingObjects);
+                        CloudSaveManager.syncManual(path, CloudSaveManager.fileToLocation(path, Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC)), true, false, existingObjects);
                         break;
                 }
             } catch (Exception e) { e.printStackTrace(); }

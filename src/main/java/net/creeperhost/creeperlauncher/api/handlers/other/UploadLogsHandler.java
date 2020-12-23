@@ -26,7 +26,7 @@ public class UploadLogsHandler implements IMessageHandler<UploadLogsData> {
 
         String launcherLog = null;
 
-        if(logFile.toFile().exists())
+        if(Files.exists(logFile))
         {
             try {
                 launcherLog = Files.readString(logFile);
@@ -36,7 +36,7 @@ public class UploadLogsHandler implements IMessageHandler<UploadLogsData> {
 
         String errorLog = null;
 
-        if(errorLogFile.toFile().exists())
+        if(Files.exists(errorLogFile))
         {
             try {
                 errorLog = Files.readString(errorLogFile);

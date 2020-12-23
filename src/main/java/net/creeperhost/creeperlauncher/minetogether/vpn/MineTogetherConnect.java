@@ -7,8 +7,7 @@ import net.creeperhost.creeperlauncher.api.DownloadableFile;
 import net.creeperhost.creeperlauncher.os.OSUtils;
 import net.creeperhost.creeperlauncher.util.FileUtils;
 
-import java.io.File;
-import java.io.FileWriter;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -73,7 +72,7 @@ public class MineTogetherConnect {
                 executable.add(System.getenv("WINDIR") + "\\system32\\cmd.exe");
                 executable.add("/c");
                 binary = "MineTogetherConnect.exe";
-                executable.add(Constants.MTCONNECT_DIR + File.separator + binary);
+                executable.add(Constants.MTCONNECT_DIR.resolve(binary).toAbsolutePath().toString());
                 break;
             default:
                 CreeperLogger.INSTANCE.warning("Unsupported operating system "+OSUtils.getOs());
@@ -93,14 +92,13 @@ public class MineTogetherConnect {
             CreeperLogger.INSTANCE.info("First run... Downloading binaries...");
             if(!download(fullPath)) return false;
         }
-        File config = new File(Constants.MTCONNECT_DIR + File.separator + "MTConnect.ovpn");
-        if(config.exists() && !config.canWrite())
+        Path config = Constants.MTCONNECT_DIR.resolve("MTConnect.ovpn");
+        if(Files.exists(config) && !Files.isWritable(config))
         {
-            CreeperLogger.INSTANCE.error("Unable to write to '"+config.getAbsolutePath()+"'...");
+            CreeperLogger.INSTANCE.error("Unable to write to '"+config.toAbsolutePath()+"'...");
             return false;
         }
-        try {
-            FileWriter fw = new FileWriter(config);
+        try(BufferedWriter fw = Files.newBufferedWriter(config)) {
             String sessionIdent = Settings.settings.get("sessionString");
             if(sessionIdent == null || sessionIdent.isEmpty()) return false;
             this.config = mtAPIGet("https://minetogether.io/api/mtConnect");
@@ -110,12 +108,11 @@ public class MineTogetherConnect {
                 return false;
             }
             fw.write(this.config);
-            fw.close();
         } catch (IOException e) {
             CreeperLogger.INSTANCE.error("Unable to grab configuration file...", e);
             return false;
         }
-        executable.add(config.getAbsolutePath().toString());
+        executable.add(config.toAbsolutePath().toString());
         ProcessBuilder pb = new ProcessBuilder(executable);
         try {
             vpnProcess = pb.start();

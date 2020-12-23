@@ -6,6 +6,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
@@ -17,21 +18,15 @@ public class CreeperLogger
 {
     public static CreeperLogger INSTANCE = new CreeperLogger();
     private static Logger logger;
-    private String filename = Constants.getDataDir() + File.separator + "ftbapp.log";
-    private String oldFilename = Constants.getDataDirOld() + File.separator + "ftbapp.log";
+    private Path filename = Constants.getDataDir().resolve("ftbapp.log");
+    private Path oldFilename = Constants.getDataDirOld().resolve("ftbapp.log");
     private FileHandler fileHandler;
     private final int limit = 1024 * 10000; //10 MB
     private SimpleFormatter simpleFormatter;
 
     public CreeperLogger()
     {
-        try {
-            //Logger is initialized before data directory is created on first run...
-            FileUtils.createDirectories(Constants.getDataDir());
-        } catch(Exception e)
-        {
-            System.out.println(e);
-        }
+        FileUtils.createDirectories(Constants.getDataDir());
         try (InputStream is = CreeperLogger.class.getResourceAsStream("/logging.properties")) {
             LogManager.getLogManager().readConfiguration(is);
         } catch (IOException ignored) {
@@ -41,21 +36,21 @@ public class CreeperLogger
         simpleFormatter = new SimpleFormatter();
         try
         {
-            fileHandler = new FileHandler(filename, limit, 1, true);
+            fileHandler = new FileHandler(filename.toAbsolutePath().toString(), limit, 1, true);
             logger.addHandler(fileHandler);
             simpleFormatter = new SimpleFormatter();
             fileHandler.setFormatter(simpleFormatter);
         } catch (Exception e)
         {
             try {
-                fileHandler = new FileHandler(oldFilename, limit, 1, true);
+                fileHandler = new FileHandler(oldFilename.toAbsolutePath().toString(), limit, 1, true);
                 logger.addHandler(fileHandler);
                 simpleFormatter = new SimpleFormatter();
                 fileHandler.setFormatter(simpleFormatter);
             } catch (Exception e2) {
                 try {
-                    new File(filename).getParentFile().mkdirs();
-                    fileHandler = new FileHandler(filename, limit, 1, true);
+                    FileUtils.createDirectories(filename.getParent());
+                    fileHandler = new FileHandler(filename.toAbsolutePath().toString(), limit, 1, true);
                     logger.addHandler(fileHandler);
                     simpleFormatter = new SimpleFormatter();
                     fileHandler.setFormatter(simpleFormatter);
@@ -70,7 +65,7 @@ public class CreeperLogger
     public void reinitialise()
     {
         try {
-            fileHandler = new FileHandler(filename, limit, 1, true);
+            fileHandler = new FileHandler(filename.toAbsolutePath().toString(), limit, 1, true);
             fileHandler.setFormatter(simpleFormatter);
             logger.addHandler(fileHandler);
         } catch (Exception e) {

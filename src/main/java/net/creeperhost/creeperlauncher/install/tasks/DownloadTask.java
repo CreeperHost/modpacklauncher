@@ -6,6 +6,7 @@ import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.IntegrityCheckException;
 import net.creeperhost.creeperlauncher.api.DownloadableFile;
 import net.creeperhost.creeperlauncher.api.data.other.InstalledFileEventData;
+import net.creeperhost.creeperlauncher.util.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -69,13 +70,13 @@ public class DownloadTask implements IInstallTask
                         {
                             if (checksum != null)
                             {
-                                File cachedFile = CreeperLauncher.localCache.get(checksum);
-                                if (destination.toFile().exists()) break;
+                                Path cachedFile = CreeperLauncher.localCache.get(checksum);
+                                if (Files.exists(destination)) break;
                                 try
                                 {
-                                    destination.toFile().getParentFile().mkdirs();
-                                    Files.copy(cachedFile.toPath(), destination);
-                                    FTBModPackInstallerTask.currentBytes.addAndGet(cachedFile.length());
+                                    FileUtils.createDirectories(destination.toAbsolutePath().getParent());
+                                    Files.copy(cachedFile, destination);
+                                    FTBModPackInstallerTask.currentBytes.addAndGet(Files.size(cachedFile));
                                     FTBModPackInstallerTask.batchedFiles.put(file.getId(), "downloaded");
                                     complete = true;
                                     break;
