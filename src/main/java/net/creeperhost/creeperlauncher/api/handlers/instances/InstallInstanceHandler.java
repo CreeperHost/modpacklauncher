@@ -32,6 +32,7 @@ public class InstallInstanceHandler implements IMessageHandler<InstallInstanceDa
     @Override
     public void handle(InstallInstanceData data)
     {
+        CreeperLogger.INSTANCE.info("Starting Install.");
         hasError.set(false);
         if (CreeperLauncher.isInstalling.get())
         {
