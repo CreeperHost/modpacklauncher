@@ -442,7 +442,7 @@ public class LocalInstance implements IPack
 
         this.hasLoadingMod = checkForLaunchMod();
         //TODO: THIS IS FOR TESTING ONLY, PLEASE REMOVE ME IN FUTURE
-        if(OSUtils.getOs() == OS.WIN)
+        if(OSUtils.getOs() == OS.WIN && loadInApp)
         {
             if (!this.hasLoadingMod) {
                 if (modLoader.startsWith("1.7.10")) {
