@@ -18,7 +18,7 @@ import java.util.UUID;
 public class LocalCache
 {
     private List<UUID> files = new ArrayList<UUID>();
-    private Path cacheLocation = Path.of(Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC), ".localCache");
+    private Path cacheLocation = Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve(".localCache");
 
     public LocalCache()
     {

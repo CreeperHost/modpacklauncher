@@ -109,7 +109,7 @@ public class CloudSaveManager {
 
         } catch (AmazonS3Exception ignored) {}
 
-        String fileHash = FileUtils.getHash(file, "SHA-256");
+        String fileHash = FileUtils.getHash(file.toPath(), "SHA-256");
         if (objectMetadata != null) {
             if (fileHash.equals(objectMetadata.getUserMetaDataOf("ourhash"))) {
                 CreeperLogger.INSTANCE.debug("Not uploading " + file.getPath() + " as object exists on server");
@@ -194,7 +194,7 @@ public class CloudSaveManager {
         try {
             S3ObjectSummary summary = existing.get(location);
             if (file.exists() && summary != null) {
-                if(summary.getSize() <= 5242500 && FileUtils.getHash(file, "MD5").equals(summary.getETag())) {
+                if(summary.getSize() <= 5242500 && FileUtils.getHash(file.toPath(), "MD5").equals(summary.getETag())) {
                     CreeperLogger.INSTANCE.debug("Not syncing " + file.getPath() + " as object exists on server");
                     return;
                 }
@@ -203,7 +203,7 @@ public class CloudSaveManager {
             //System.out.println("Getting metadata for " + location);
         } catch (AmazonS3Exception ignored) {}
 
-        String fileHash = FileUtils.getHash(file, "SHA-256");
+        String fileHash = FileUtils.getHash(file.toPath(), "SHA-256");
         if (objectMetadata != null) {
             CreeperLogger.INSTANCE.debug("Client " + fileHash + " Server " + objectMetadata.getUserMetaDataOf("ourhash"));
 
@@ -237,7 +237,7 @@ public class CloudSaveManager {
             if (file.exists() && existingObjects.containsKey(location))
             {
                 S3ObjectSummary summary = existingObjects.get(location);
-                if (summary.getSize() <= 5242500 && FileUtils.getHash(file, "MD5").equals(summary.getETag())) {
+                if (summary.getSize() <= 5242500 && FileUtils.getHash(file.toPath(), "MD5").equals(summary.getETag())) {
                     CreeperLogger.INSTANCE.debug("Not syncing " + file.getPath() + " as object exists on server");
                     return;
                 }
@@ -246,7 +246,7 @@ public class CloudSaveManager {
             //System.out.println("Getting metadata for " + location);
         } catch (AmazonS3Exception ignored) {}
 
-        String fileHash = FileUtils.getHash(file, "SHA-256");
+        String fileHash = FileUtils.getHash(file.toPath(), "SHA-256");
         if (objectMetadata != null) {
             if (fileHash.equals(objectMetadata.getUserMetaDataOf("ourhash"))) {
                 CreeperLogger.INSTANCE.debug("Not uploading " + file.getPath() + " as object exists on server");
@@ -298,7 +298,7 @@ public class CloudSaveManager {
         {
             if (eTag != null)
             {
-                if (eTag.equals(FileUtils.getHash(file, "MD5")));
+                if (eTag.equals(FileUtils.getHash(file.toPath(), "MD5")));
                 {
                     CreeperLogger.INSTANCE.debug("Not downloading " + file.getPath() + " as object exists on client");
                     return;
@@ -311,7 +311,7 @@ public class CloudSaveManager {
             } catch (AmazonS3Exception ignored) {}
 
             if (objectMetadata != null) {
-                if (FileUtils.getHash(file, "SHA-256").equals(objectMetadata.getUserMetaDataOf("ourhash"))) {
+                if (FileUtils.getHash(file.toPath(), "SHA-256").equals(objectMetadata.getUserMetaDataOf("ourhash"))) {
                     CreeperLogger.INSTANCE.debug("Not downloading " + file.getPath() + " as object exists on client");
                     return;
                 }

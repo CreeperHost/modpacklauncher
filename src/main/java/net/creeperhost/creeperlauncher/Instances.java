@@ -7,6 +7,8 @@ import net.creeperhost.creeperlauncher.pack.LocalInstance;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
@@ -45,8 +47,9 @@ public class Instances
 
     public static void refreshInstances()
     {
-        File file = new File(Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC));
+        File file = Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).toFile();
         instances.clear();
+        //TODO use NIO paths.
         File[] files = file.listFiles();
         int l=0,t=0;
         if (files != null)
@@ -85,8 +88,8 @@ public class Instances
 
     private static void loadInstance(String _uuid) throws FileNotFoundException
     {
-        File json = new File(Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC) + File.separator + _uuid, "instance.json");
-        if (!json.exists()) throw new FileNotFoundException("Instance corrupted; " + json.getAbsoluteFile());
+        Path json = Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve(_uuid).resolve("instance.json");
+        if (Files.notExists(json)) throw new FileNotFoundException("Instance corrupted; " + json.toAbsolutePath());
         try {
             UUID uuid = UUID.fromString(_uuid);
             LocalInstance loadedInstance = new LocalInstance(uuid);
@@ -94,7 +97,7 @@ public class Instances
         } catch(Exception e)
         {
             CreeperLogger.INSTANCE.error("Corrupted instance json!", e);
-            throw new FileNotFoundException("Instance corrupted; " + json.getAbsoluteFile());
+            throw new FileNotFoundException("Instance corrupted; " + json.toAbsolutePath());
         }
     }
 

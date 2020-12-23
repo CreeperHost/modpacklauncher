@@ -3,13 +3,14 @@ package net.creeperhost.creeperlauncher.pack;
 import net.creeperhost.creeperlauncher.api.DownloadableFile;
 import net.creeperhost.creeperlauncher.api.SimpleDownloadableFile;
 
+import java.nio.file.Path;
 import java.util.List;
 
 public class FTBPack implements IPack
 {
     private final String name;
     private final String version;
-    private final String dir;
+    private final Path dir;
     private final List<String> authors;
     private final String description;
     private final String mcVersion;
@@ -20,7 +21,7 @@ public class FTBPack implements IPack
     private final long id;
     private final List<SimpleDownloadableFile> mods;
 
-    public FTBPack(String name, String version, String dir, List<String> authors, String description, String mcVersion, String URL, String artUrl, long id, int minMemory, int recMemory, List<SimpleDownloadableFile> mods)
+    public FTBPack(String name, String version, Path dir, List<String> authors, String description, String mcVersion, String URL, String artUrl, long id, int minMemory, int recMemory, List<SimpleDownloadableFile> mods)
     {
         this.name = name;
         this.version = version;
@@ -55,7 +56,7 @@ public class FTBPack implements IPack
     }
 
     @Override
-    public String getDir()
+    public Path getDir()
     {
         return dir;
     }

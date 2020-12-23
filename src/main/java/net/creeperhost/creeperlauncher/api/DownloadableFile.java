@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class DownloadableFile
 {
     String version;
-    String path;
+    Path path;
     String downloadUrl;
     URL url;
     List<String> expectedChecksums;
@@ -41,7 +41,7 @@ public class DownloadableFile
     File destination;
     private final IHttpClient client = new OkHttpClientImpl();
 
-    public DownloadableFile(String version, String path, String url, List<String> acceptedChecksums, long size, boolean clientSide, boolean optional, long id, String name, String type, String updated)
+    public DownloadableFile(String version, Path path, String url, List<String> acceptedChecksums, long size, boolean clientSide, boolean optional, long id, String name, String type, String updated)
     {
         this.version = version;
         this.path = path;
@@ -223,7 +223,7 @@ public class DownloadableFile
         return version;
     }
 
-    public String getPath()
+    public Path getPath()
     {
         return path;
     }

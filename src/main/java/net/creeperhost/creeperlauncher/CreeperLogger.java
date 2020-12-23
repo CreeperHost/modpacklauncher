@@ -27,8 +27,7 @@ public class CreeperLogger
     {
         try {
             //Logger is initialized before data directory is created on first run...
-            File logDir = new File(Constants.getDataDir());
-            logDir.mkdirs();
+            FileUtils.createDirectories(Constants.getDataDir());
         } catch(Exception e)
         {
             System.out.println(e);
