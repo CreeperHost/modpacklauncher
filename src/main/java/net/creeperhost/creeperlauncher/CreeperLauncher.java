@@ -294,6 +294,8 @@ public class CreeperLauncher
 
         isDevMode = Args.containsKey("dev");
 
+        boolean isOverwolf = Args.containsKey("overwolf");
+
         boolean startProcess = !isDevMode;
 
         if(Args.containsKey("pid") && !isDevMode)
@@ -324,12 +326,15 @@ public class CreeperLauncher
             CreeperLogger.INSTANCE.info("No PID args");
         }
 
-        if(isDevMode){
+        if(isDevMode || isOverwolf){
             startProcess = false;
         }
 
         try {
             Settings.webSocketAPI = new WebSocketAPI(new InetSocketAddress(InetAddress.getLoopbackAddress(), defaultWebsocketPort || isDevMode ? Constants.WEBSOCKET_PORT : websocketPort));
+            if(isOverwolf) {
+                CreeperLogger.INSTANCE.info("New Port: " + websocketPort);
+            }
             Settings.webSocketAPI.setConnectionLostTimeout(0);
             Settings.webSocketAPI.start();
             pingPong();
