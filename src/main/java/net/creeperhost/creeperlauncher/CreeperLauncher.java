@@ -28,7 +28,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class CreeperLauncher
+public class    CreeperLauncher
 {
     public static HashMap<String, String> javaVersions;
     public static int missedPings = 0;
@@ -298,6 +298,8 @@ public class CreeperLauncher
 
         isDevMode = Args.containsKey("dev");
 
+        boolean isOverwolf = Args.containsKey("overwolf");
+
         boolean startProcess = !isDevMode;
 
         if(Args.containsKey("pid") && !isDevMode)
@@ -328,8 +330,9 @@ public class CreeperLauncher
             CreeperLogger.INSTANCE.info("No PID args");
         }
 
-        if(isDevMode){
+        if(isDevMode || isOverwolf){
             startProcess = false;
+            defaultWebsocketPort = true;
         }
 
         try {
