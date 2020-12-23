@@ -220,7 +220,7 @@ public class LocalInstance implements IPack
         if (modsDir.isEmpty()) return false;
 
         for (Path file : modsDir) {
-            if (!Files.isRegularFile(path)) continue;
+            if (!Files.isRegularFile(file)) continue;
 
             try (ZipInputStream zin = new ZipInputStream(Files.newInputStream(file))) {
                 Set<String> entries = new HashSet<>();

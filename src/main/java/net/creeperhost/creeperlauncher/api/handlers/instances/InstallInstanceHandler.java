@@ -114,6 +114,8 @@ public class InstallInstanceHandler implements IMessageHandler<InstallInstanceDa
                 {
                     sinceLastChange = 0;
                     Settings.webSocketAPI.sendMessage(new InstallInstanceData.Progress(data, curProgress, speed, curBytes, FTBModPackInstallerTask.overallBytes.get(), FTBModPackInstallerTask.Stage.DOWNLOADS));
+                    Settings.webSocketAPI.sendMessage(new InstalledFileEventData.Reply(FTBModPackInstallerTask.batchedFiles));
+                    FTBModPackInstallerTask.batchedFiles.clear();
                 } else
                 {
                     if (FTBModPackInstallerTask.currentStage != FTBModPackInstallerTask.Stage.DOWNLOADS)
