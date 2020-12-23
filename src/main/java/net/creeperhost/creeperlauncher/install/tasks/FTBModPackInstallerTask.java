@@ -81,6 +81,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
     {
         return currentTask = CompletableFuture.runAsync(() ->
         {
+            CreeperLogger.INSTANCE.info("Starting FTB Install.");
             currentStage = Stage.INIT;
             overallBytes.set(0);
             currentBytes.set(0);
@@ -146,6 +147,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
 
     public static FTBPack getPackFromAPI(long packId, long versionId, boolean _private)
     {
+        CreeperLogger.INSTANCE.info("Getting pack from api.");
         String modpackURL = Constants.getCreeperhostModpackSearch2(_private) + packId;
         String versionURL = modpackURL + "/" + versionId;
         String name = "";

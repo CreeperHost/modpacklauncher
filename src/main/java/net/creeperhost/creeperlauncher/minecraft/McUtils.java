@@ -308,6 +308,7 @@ public class McUtils {
     }
 
     public static void downloadVanillaLauncher() {
+        CreeperLogger.INSTANCE.info("Downloading vanilla launcher.");
         String downloadurl = OSUtils.getMinecraftLauncherURL();
         File binfolder = new File(Constants.BIN_LOCATION);
         File tempFolder = new File(System.getProperty("java.io.tmpdir"));
