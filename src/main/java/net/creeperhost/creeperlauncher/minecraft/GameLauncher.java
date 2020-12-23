@@ -1,6 +1,5 @@
 package net.creeperhost.creeperlauncher.minecraft;
 
-import com.sun.jna.platform.KeyboardUtils;
 import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.CreeperLauncher;
 import net.creeperhost.creeperlauncher.CreeperLogger;
@@ -15,7 +14,6 @@ import net.creeperhost.creeperlauncher.util.window.WindowUtils;
 
 import java.awt.*;
 import java.awt.event.KeyEvent;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;

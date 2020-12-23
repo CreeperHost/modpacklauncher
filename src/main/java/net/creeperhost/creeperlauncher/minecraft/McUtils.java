@@ -1,7 +1,6 @@
 package net.creeperhost.creeperlauncher.minecraft;
 
 import com.google.gson.*;
-import com.google.gson.stream.JsonReader;
 import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.Settings;
@@ -12,7 +11,6 @@ import net.creeperhost.creeperlauncher.install.tasks.DownloadTask;
 import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.os.OSUtils;
 import net.creeperhost.creeperlauncher.util.*;
-import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 
 import java.io.*;
@@ -23,7 +21,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 public class McUtils {
 
@@ -370,13 +367,15 @@ public class McUtils {
                 return;
             }
         }
-        boolean osConfig = false;
-        try {
-            osConfig = McUtils.prepareVanillaLauncher();
-        } catch (Exception err) {
-            err.printStackTrace();
+        if (Files.exists(file)) {
+            boolean osConfig = false;
+            try {
+                osConfig = McUtils.prepareVanillaLauncher();
+            } catch (Exception err) {
+                err.printStackTrace();
+            }
+            if (!osConfig) CreeperLogger.INSTANCE.error("Failed to configure Vanilla launcher for this OS!");
         }
-        if (!osConfig) CreeperLogger.INSTANCE.error("Failed to configure Vanilla launcher for this OS!");
     }
 
     public static boolean prepareVanillaLauncher() throws IOException, InterruptedException {
