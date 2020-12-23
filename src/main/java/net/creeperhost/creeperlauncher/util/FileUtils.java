@@ -22,7 +22,6 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.zip.GZIPInputStream;
 
 public class FileUtils
 {
@@ -30,36 +29,18 @@ public class FileUtils
     {
         final List<Path> untaredFiles = new LinkedList<>();
         try (TarArchiveInputStream tarStream = new TarArchiveInputStream(is)) {
-            ArchiveEntry entry = null;
+            ArchiveEntry entry;
             while ((entry = tarStream.getNextEntry()) != null)
             {
                 final Path outputFile = outputDir.resolve(entry.getName());
-                if (entry.isDirectory())
-                {
-                    FileUtils.createDirectories(outputDir);
-                    continue;
-                }
+                if (entry.isDirectory()) continue;
+
+                FileUtils.createDirectories(outputFile.getParent());
                 Files.copy(tarStream, outputFile);
                 untaredFiles.add(outputFile);
             }
         }
         return untaredFiles;
-    }
-
-    public static void unGzip(File input, File output) throws IOException
-    {
-        byte[] buffer = new byte[1024];
-        GZIPInputStream inputStream = new GZIPInputStream(new FileInputStream(input));
-        FileOutputStream outputStream = new FileOutputStream(output);
-
-        int i;
-        while ((i = inputStream.read(buffer)) > 0)
-        {
-            outputStream.write(buffer, 0, i);
-        }
-
-        inputStream.close();
-        outputStream.close();
     }
 
     public static void fileFromZip(Path zip, Path dest, String fileName) throws IOException

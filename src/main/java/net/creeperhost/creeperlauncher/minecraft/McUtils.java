@@ -309,6 +309,7 @@ public class McUtils {
         return true;
     }
 
+    //TODO, we need to check for updates to the vanilla launcher.
     public static void downloadVanillaLauncher() {
         CreeperLogger.INSTANCE.info("Downloading vanilla launcher.");
         String downloadurl = OSUtils.getMinecraftLauncherURL();
@@ -368,14 +369,14 @@ public class McUtils {
                 ));
                 return;
             }
-            boolean osConfig = false;
-            try {
-                osConfig = McUtils.prepareVanillaLauncher();
-            } catch (Exception err) {
-                err.printStackTrace();
-            }
-            if (!osConfig) CreeperLogger.INSTANCE.error("Failed to configure Vanilla launcher for this OS!");
         }
+        boolean osConfig = false;
+        try {
+            osConfig = McUtils.prepareVanillaLauncher();
+        } catch (Exception err) {
+            err.printStackTrace();
+        }
+        if (!osConfig) CreeperLogger.INSTANCE.error("Failed to configure Vanilla launcher for this OS!");
     }
 
     public static boolean prepareVanillaLauncher() throws IOException, InterruptedException {
@@ -425,7 +426,7 @@ public class McUtils {
                         Files.delete(installergzip);
                         success = true;
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        CreeperLogger.INSTANCE.error("Failed to extract tarball " + installergzip, e);
                         success = false;
                     }
                 }
