@@ -183,7 +183,6 @@ public class LocalInstance implements IPack
             this.jrePath = jsonOutput.jrePath;
             this.dir = this.path;
             this.cloudSaves = jsonOutput.cloudSaves;
-            this.hasLoadingMod = checkForLaunchMod();
         } catch(Exception e)
         {
             throw new RuntimeException("Instance is corrupted!", e);
