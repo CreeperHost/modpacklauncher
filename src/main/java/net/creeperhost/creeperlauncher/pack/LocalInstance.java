@@ -23,6 +23,7 @@ import net.creeperhost.creeperlauncher.minecraft.Profile;
 import net.creeperhost.creeperlauncher.os.OSUtils;
 import oshi.util.FileUtil;
 
+import javax.swing.*;
 import java.awt.*;
 import java.io.*;
 import java.net.MalformedURLException;
@@ -183,7 +184,9 @@ public class LocalInstance implements IPack
             this.jrePath = jsonOutput.jrePath;
             this.dir = this.path;
             this.cloudSaves = jsonOutput.cloudSaves;
-            this.hasLoadingMod = checkForLaunchMod();
+            CompletableFuture.runAsync(() -> {
+                this.hasLoadingMod = checkForLaunchMod();
+            });
         } catch(Exception e)
         {
             throw new RuntimeException("Instance is corrupted!", e);
@@ -206,7 +209,9 @@ public class LocalInstance implements IPack
         UUID uuid = UUID.randomUUID();
         this.uuid = uuid;
         this.path = Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve(uuid.toString());
-        this.hasLoadingMod = checkForLaunchMod();
+        CompletableFuture.runAsync(() -> {
+            this.hasLoadingMod = checkForLaunchMod();
+        });
     }
 
     private static final String[] candidates = new String[] {

@@ -5,14 +5,18 @@ import com.google.gson.JsonObject;
 import net.creeperhost.creeperlauncher.minetogether.cloudsaves.CloudSaveManager;
 import net.creeperhost.creeperlauncher.pack.LocalInstance;
 import net.creeperhost.creeperlauncher.util.FileUtils;
+import net.creeperhost.creeperlauncher.util.MiscUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class Instances
@@ -51,39 +55,47 @@ public class Instances
         Path file = Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC);
         instances.clear();
         List<Path> files = FileUtils.listDir(file);
-        int l=0,t=0;
+        ArrayList<CompletableFuture<?>> futures = new ArrayList<>();
+        AtomicInteger l = new AtomicInteger(0);
+        AtomicInteger t = new AtomicInteger(0);
         if (files != null)
         {
             for (Path f : files)
             {
-                if (Files.isDirectory(f))
-                {
-                    t++;
-                    try
+                futures.add(CompletableFuture.runAsync(() -> {
+                    if (Files.isDirectory(f))
                     {
-                        Instances.loadInstance(f);
-                        l++;
-                    } catch (FileNotFoundException err)
-                    {
-                        if(!f.getFileName().toString().startsWith(".")) {
-                            CreeperLogger.INSTANCE.error("Not a valid instance '" + f.getFileName() + "', skipping...");
-                        } else {
-                            t--;
+                        t.getAndIncrement();
+                        try
+                        {
+                            Instances.loadInstance(f);
+                            l.getAndIncrement();
+                        } catch (FileNotFoundException err)
+                        {
+                            if(!f.getFileName().toString().startsWith(".")) {
+                                CreeperLogger.INSTANCE.error("Not a valid instance '" + f.getFileName() + "', skipping...");
+                            } else {
+                                t.getAndDecrement();
+                            }
+                            //err.printStackTrace();
                         }
-                        //err.printStackTrace();
                     }
+                }));
+            }
+        }
+        futures.add(CompletableFuture.runAsync(() -> {
+            if(Constants.S3_HOST != null && Constants.S3_BUCKET != null && Constants.S3_KEY != null && Constants.S3_SECRET != null) {
+                if (!Constants.S3_HOST.isEmpty() && !Constants.S3_BUCKET.isEmpty() && !Constants.S3_KEY.isEmpty() && !Constants.S3_SECRET.isEmpty()) {
+                    CreeperLogger.INSTANCE.info("Loading cloud instances");
+
+                    cloudInstances = loadCloudInstances();
+                    CreeperLogger.INSTANCE.info("Loaded " + cloudInstances().size() + " cloud instances.");
                 }
             }
-        }
-        CreeperLogger.INSTANCE.info("Loaded "+l+" out of "+t+" instances.");
-        if(Constants.S3_HOST != null && Constants.S3_BUCKET != null && Constants.S3_KEY != null && Constants.S3_SECRET != null) {
-            if (!Constants.S3_HOST.isEmpty() && !Constants.S3_BUCKET.isEmpty() && !Constants.S3_KEY.isEmpty() && !Constants.S3_SECRET.isEmpty()) {
-                CreeperLogger.INSTANCE.info("Loading cloud instances");
+        }));
+        MiscUtils.allFutures(futures).join();
+        CreeperLogger.INSTANCE.info("Loaded "+l.get()+" out of "+t.get()+" instances.");
 
-                cloudInstances = loadCloudInstances();
-                CreeperLogger.INSTANCE.info("Loaded " + cloudInstances().size() + " cloud instances.");
-            }
-        }
     }
 
     private static void loadInstance(Path path) throws FileNotFoundException
