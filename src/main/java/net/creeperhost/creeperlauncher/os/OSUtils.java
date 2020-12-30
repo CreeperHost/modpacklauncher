@@ -31,7 +31,8 @@ public class OSUtils
             case WIN:
                 return "exe";
             case MAC:
-                return "dmg";
+                return "zip";
+                //return "dmg";
             case LINUX:
                 return "tar.gz";
             case UNKNOWN:
@@ -47,6 +48,7 @@ public class OSUtils
 
     public static String getMinecraftLauncherURL()
     {
+        if(getOs() == OS.MAC) return "https://apps.modpacks.ch/FTB2/mac.zip";
         return Constants.MC_LAUNCHER + getExtension();
     }
 }

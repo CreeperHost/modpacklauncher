@@ -10,6 +10,7 @@ import net.creeperhost.creeperlauncher.minetogether.cloudsaves.CloudSyncType;
 import net.creeperhost.creeperlauncher.install.tasks.DownloadTask;
 import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.util.*;
+import org.apache.commons.lang3.StringUtils;
 import oshi.SystemInfo;
 import oshi.hardware.HardwareAbstractionLayer;
 
@@ -20,6 +21,7 @@ import net.creeperhost.creeperlauncher.minecraft.GameLauncher;
 import net.creeperhost.creeperlauncher.minecraft.McUtils;
 import net.creeperhost.creeperlauncher.minecraft.Profile;
 import net.creeperhost.creeperlauncher.os.OSUtils;
+import oshi.util.FileUtil;
 
 import java.awt.*;
 import java.io.*;
@@ -31,9 +33,9 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.jar.Attributes;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import static net.creeperhost.creeperlauncher.util.MiscUtils.allFutures;
 
@@ -44,20 +46,20 @@ public class LocalInstance implements IPack
     private UUID uuid;
     private long id;
     private String art;
-    private String path;
+    private Path path;
     private long versionId;
     public String name;
     private int minMemory = 2048;
     private int recMemory = 4096;
     public int memory = Integer.parseInt(Settings.settings.getOrDefault("memory", "2048"));
     private String version;
-    private String dir;
+    private Path dir;
     private List<String> authors;
     private String description;
     public String mcVersion;
     public String jvmArgs = Settings.settings.getOrDefault("jvmArgs", "");
     public boolean embeddedJre = Boolean.parseBoolean(Settings.settings.getOrDefault("embeddedjre", "true"));
-    public String jrePath = Settings.settings.getOrDefault("jrepath", "");
+    public Path jrePath = Settings.getPathOpt("jrepath", null);
     private String url;
     private String artUrl;
     public int width = Integer.parseInt(Settings.settings.getOrDefault("width", String.valueOf((int) Toolkit.getDefaultToolkit().getScreenSize().getWidth() / 2)));
@@ -75,6 +77,7 @@ public class LocalInstance implements IPack
     transient private boolean preUninstallAsync;
     transient private AtomicBoolean inUse = new AtomicBoolean(false);
     transient private HashMap<String, instanceEvent> gameCloseEvents = new HashMap<>();
+    transient private Path tempLauncherPath = null;
 
     public LocalInstance(FTBPack pack, long versionId)
     {
@@ -83,7 +86,7 @@ public class LocalInstance implements IPack
         UUID uuid = UUID.randomUUID();
         this.uuid = uuid;
         this.versionId = versionId;
-        this.path = Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC) + File.separator + this.uuid;
+        this.path = Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve(this.uuid.toString());
         this.cloudSaves = Boolean.getBoolean(Settings.settings.getOrDefault("cloudSaves", "false"));
         this.name = pack.getName();
         this.version = pack.getVersion();
@@ -109,16 +112,14 @@ public class LocalInstance implements IPack
             this.memory = this.minMemory;
         }
         this.lastPlayed = CreeperLauncher.unixtimestamp();
-        Boolean dir = new File(this.path).mkdirs();
-        String artPath = this.path + File.separator + "/art.png";
-        File artFile = new File(artPath);
-        if (!artFile.exists())
+        FileUtils.createDirectories(path);
+        Path artFile = path.resolve("art.png");
+        if (Files.notExists(artFile))
         {
             try
             {
                 if (ForgeUtils.isUrlValid(this.getArtURL()))
                 {
-                    artFile.createNewFile();
                     DownloadUtils.downloadFile(artFile, this.getArtURL());
                 } else
                 {
@@ -133,8 +134,7 @@ public class LocalInstance implements IPack
         try
         {
             Base64.Encoder en = Base64.getEncoder();
-            String fileLoc = artFile.getAbsoluteFile().toString();
-            tmpArt = "data:image/png;base64," + en.encodeToString(Files.readAllBytes(Paths.get(fileLoc)));
+            tmpArt = "data:image/png;base64," + en.encodeToString(Files.readAllBytes(artFile));
 //            CreeperLogger.INSTANCE.info(tmpArt);
         } catch (Exception err)
         {
@@ -152,21 +152,17 @@ public class LocalInstance implements IPack
         }
     }
 
-    public LocalInstance(UUID uuid) throws FileNotFoundException
+    public LocalInstance(Path path) throws FileNotFoundException
     {
         //We're loading an existing instance
-        this.uuid = uuid;
-        this.path = Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC) + File.separator + this.uuid;
-        File json = new File(this.path, "instance.json");
-        if (!json.exists()) throw new FileNotFoundException("Instance does not exist!");
-        Gson gson = new Gson();
+        this.path = path;
+        this.uuid = UUID.fromString(path.getFileName().toString());//TODO, this should not parse its uuid from the file name.
+        Path json = path.resolve("instance.json");
+        if (Files.notExists(json)) throw new FileNotFoundException("Instance does not exist!");
 
         //This won't work, but my intent is clear so hopefully someone else can show me how?
-        try {
-            FileReader fileReader = new FileReader(json.getAbsoluteFile());
-            BufferedReader bufferedReader = new BufferedReader(fileReader);
-            JsonReader jr = new JsonReader(bufferedReader);
-            LocalInstance jsonOutput = (LocalInstance) gson.fromJson(jr, LocalInstance.class);
+        try (BufferedReader reader = Files.newBufferedReader(json)) {
+            LocalInstance jsonOutput = GsonUtils.GSON.fromJson(reader, LocalInstance.class);
             this.id = jsonOutput.id;
             this.name = jsonOutput.name;
             this.artUrl = jsonOutput.artUrl;
@@ -188,17 +184,9 @@ public class LocalInstance implements IPack
             this.dir = this.path;
             this.cloudSaves = jsonOutput.cloudSaves;
             this.hasLoadingMod = checkForLaunchMod();
-            try
-            {
-                jr.close();
-                bufferedReader.close();
-                fileReader.close();
-            } catch (IOException ignored)
-            {
-            }
         } catch(Exception e)
         {
-            throw new FileNotFoundException("Instance is corrupted!");
+            throw new RuntimeException("Instance is corrupted!", e);
         }
     }
 
@@ -208,7 +196,7 @@ public class LocalInstance implements IPack
         UUID uuid = UUID.randomUUID();
         this.uuid = uuid;
         this.isImport = true;
-        this.path = Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC) + File.separator + this.uuid;
+        this.path = Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve(uuid.toString());
         this.hasLoadingMod = checkForLaunchMod();
     }
 
@@ -217,74 +205,40 @@ public class LocalInstance implements IPack
         //this = originalInstance;
         UUID uuid = UUID.randomUUID();
         this.uuid = uuid;
-        this.path = Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC) + File.separator + this.uuid;
+        this.path = Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve(uuid.toString());
         this.hasLoadingMod = checkForLaunchMod();
     }
 
-    private static String[] candidates = new String[] {"net/creeperhost/traylauncher/TrayLauncher.class", "net/creeperhost/launchertray/LauncherTray.class", "net/creeperhost/launchertray/transformer/HookLoader.class"};
+    private static final String[] candidates = new String[] {
+            "net/creeperhost/traylauncher/TrayLauncher.class",
+            "net/creeperhost/launchertray/LauncherTray.class",
+            "net/creeperhost/launchertray/transformer/HookLoader.class"
+    };
 
-    private boolean checkForLaunchMod()
-    {
-        JarFile jarFile = null;
-        try {
-            File[] modsDir = new File(this.path, "mods/").listFiles();
-            if (modsDir == null) return false;
+    private boolean checkForLaunchMod() {
+        List<Path> modsDir = FileUtils.listDir(path.resolve("mods"));
+        if (modsDir.isEmpty()) return false;
 
+        for (Path file : modsDir) {
+            if (!Files.isRegularFile(file)) continue;
 
-            for (File file : modsDir) {
-                try {
-                    jarFile = new JarFile(file);
-                    if (jarFile == null) continue;
+            try (ZipInputStream zin = new ZipInputStream(Files.newInputStream(file))) {
+                Set<String> entries = new HashSet<>();
 
-                    if(jarFile.getManifest() == null)
-                    {
-                        jarFile.close();
-                        continue;
-                    }
+                ZipEntry entry;
+                while ((entry = zin.getNextEntry()) != null) {
+                    entries.add(entry.getName());
+                }
 
-                    Enumeration<JarEntry> entries = jarFile.entries();
-
-
-                    boolean found = false;
-                    for(String candidate: candidates) {
-                        if (jarFile.getEntry(candidate) != null) {
-                            found = true;
-                            break;
-                        }
-                    }
-
-                    if(!found)
-                    {
-                        jarFile.close();
-                        continue;
-                    }
-
-                    Map<String, Attributes> attributesMap = jarFile.getManifest().getEntries();
-
-                    jarFile.close();
-
-                    if (attributesMap == null) {
-                        continue;
-                    }
-                    return true;
-                } catch (IOException e) {
-                    if(jarFile != null) {
-                        jarFile.close();
+                for (String candidate: candidates) {
+                    if (entries.contains(candidate)) {
+                        return true;
                     }
                 }
+            } catch (IOException ignored) {
             }
-            if (jarFile != null) jarFile.close();
-            return false;
-        } catch (Throwable e)
-        {
-            if (jarFile != null) {
-                try {
-                    jarFile.close();
-                } catch (IOException ignored) {
-                }
-            }
-            return false;
         }
+        return false;
     }
 
     private LocalInstance()
@@ -301,11 +255,13 @@ public class LocalInstance implements IPack
         {
             CreeperLauncher.isInstalling.set(true);
             Analytics.sendInstallRequest(this.getId(), this.getVersionId());
+            CreeperLogger.INSTANCE.debug("Running installer async task");
             installer.execute().thenRunAsync(() ->
             {
+                CreeperLogger.INSTANCE.debug("Running after installer task");
                 if (this.postInstall != null && this.postInstall.size() > 0)
                 {
-                    ArrayList<CompletableFuture> futures = new ArrayList<>();
+                    ArrayList<CompletableFuture<?>> futures = new ArrayList<>();
                     for(Map.Entry<String, instanceEvent> event : this.postInstall.entrySet())
                     {
                         futures.add(event.getValue().Run());
@@ -331,20 +287,22 @@ public class LocalInstance implements IPack
         FTBModPackInstallerTask update = new FTBModPackInstallerTask(this);
 
         try {
-            List<DownloadableFile> requiredDownloads = update.getRequiredDownloads(new File(this.path, "version.json"), null);
+            List<DownloadableFile> requiredDownloads = update.getRequiredDownloads(path.resolve("version.json"), null);
             requiredDownloads.forEach(e -> {
-                File file = new File(e.getPath());
-                file.delete();
+                try {
+                    Files.delete(e.getPath());
+                } catch (IOException ignored) {
+                }
             });
         } catch (MalformedURLException e) {
             // fall back to old delete
-            File mods = new File(this.path, "mods/");
-            File coremods = new File(this.path, "coremods/");
-            File instmods = new File(this.path, "instmods/");
+            Path mods = path.resolve("mods");
+            Path coremods = path.resolve("coremods");
+            Path instmods = path.resolve("instmods");
 
-            File config = new File(this.path, "config/");
-            File resources = new File(this.path, "resources/");
-            File scripts = new File(this.path, "scripts/");
+            Path config = path.resolve("config");
+            Path resources = path.resolve("resources");
+            Path scripts = path.resolve("scripts");
 
             FileUtils.deleteDirectory(mods);
             FileUtils.deleteDirectory(coremods);
@@ -362,7 +320,7 @@ public class LocalInstance implements IPack
             } catch (IOException ignored){}
             if (this.postInstall != null && this.postInstall.size() > 0)
             {
-                ArrayList<CompletableFuture> futures = new ArrayList<>();
+                ArrayList<CompletableFuture<?>> futures = new ArrayList<>();
                 for(Map.Entry<String, instanceEvent> event : this.postInstall.entrySet())
                 {
                     futures.add(event.getValue().Run());
@@ -388,11 +346,11 @@ public class LocalInstance implements IPack
         if(totalArgs.length() > 0 && extraArgs.length() > 0) totalArgs = totalArgs.trim() + " " + extraArgs.trim();
         return new Profile(getUuid().toString(), getName(), getMcVersion(), modLoader, MiscUtils.getDateAndTime(), "custom", dir, art, totalArgs, memory, width, height);
     }
-    public GameLauncher play()
+    public Process play()
     {
         return play("", true);
     }
-    public GameLauncher play(String extraArgs, boolean loadInApp)
+    public Process play(String extraArgs, boolean loadInApp)
     {
         List<Process> processes = CreeperLauncher.mojangProcesses.get();
         if(processes != null) {
@@ -429,31 +387,31 @@ public class LocalInstance implements IPack
                 }
             });
         }
-        McUtils.verifyJson(new File(Constants.LAUNCHER_PROFILES_JSON));
+        McUtils.verifyJson(Constants.LAUNCHER_PROFILES_JSON);
         this.lastPlayed = CreeperLauncher.unixtimestamp();
         CreeperLogger.INSTANCE.debug("Sending play request to API");
         Analytics.sendPlayRequest(this.getId(), this.getVersionId());
         CreeperLogger.INSTANCE.debug("Clearing existing Mojang launcher profiles");
-        McUtils.clearProfiles(new File(Constants.LAUNCHER_PROFILES_JSON));
-        Long lastPlay = this.lastPlayed;
+        McUtils.clearProfiles(Constants.LAUNCHER_PROFILES_JSON);
+        long lastPlay = this.lastPlayed;
         this.lastPlayed = lastPlayed + 9001;
         CreeperLogger.INSTANCE.debug("Injecting profile to Mojang launcher");
 
 
         this.hasLoadingMod = checkForLaunchMod();
         //TODO: THIS IS FOR TESTING ONLY, PLEASE REMOVE ME IN FUTURE
-        if(OSUtils.getOs() == OS.WIN)
+        if(OSUtils.getOs() == OS.WIN && loadInApp)
         {
             if (!this.hasLoadingMod) {
                 if (modLoader.startsWith("1.7.10")) {
-                    DownloadUtils.downloadFile(new File(dir, "mods" + File.separator + "launchertray-1.0.jar"), "https://dist.creeper.host/modpacks/maven/com/sun/jna/1.7.10-1.0.0/d4c2da853f1dbc80ab15b128701001fd3af6718f");
+                    DownloadUtils.downloadFile(dir.resolve("mods/launchertray-1.0.jar"), "https://dist.creeper.host/modpacks/maven/com/sun/jna/1.7.10-1.0.0/d4c2da853f1dbc80ab15b128701001fd3af6718f");
                     this.hasLoadingMod = checkForLaunchMod();
                 } else if (modLoader.startsWith("1.12.2")) {
-                    DownloadUtils.downloadFile(new File(dir, "mods" + File.separator + "launchertray-1.0.jar"), "https://dist.creeper.host/modpacks/maven/net/creeperhost/launchertray/transformer/1.0/381778e244181cc2bb7dd02f03fb745164e87ee0");
+                    DownloadUtils.downloadFile(dir.resolve("mods/launchertray-1.0.jar"), "https://dist.creeper.host/modpacks/maven/net/creeperhost/launchertray/transformer/1.0/381778e244181cc2bb7dd02f03fb745164e87ee0");
                     this.hasLoadingMod = checkForLaunchMod();
                 } else if (modLoader.startsWith("1.15") || modLoader.startsWith("1.16")) {
-                    DownloadUtils.downloadFile(new File(dir, "mods" + File.separator + "launchertray-1.0.jar"), "https://dist.creeper.host/modpacks/maven/net/creeperhost/traylauncher/1.0/134dd1944e04224ce53ff18750e81f5517704c8e");
-                    DownloadUtils.downloadFile(new File(dir, "mods" + File.separator + "launchertray-progress-1.0.jar"), "https://dist.creeper.host/modpacks/maven/net/creeperhost/traylauncher/unknown/74ced30ca35e88b583969b6d74efa0f7c2470e8b");
+                    DownloadUtils.downloadFile(dir.resolve("mods/launchertray-1.0.jar"), "https://dist.creeper.host/modpacks/maven/net/creeperhost/traylauncher/1.0/134dd1944e04224ce53ff18750e81f5517704c8e");
+                    DownloadUtils.downloadFile(dir.resolve("mods/launchertray-progress-1.0.jar"), "https://dist.creeper.host/modpacks/maven/net/creeperhost/traylauncher/unknown/74ced30ca35e88b583969b6d74efa0f7c2470e8b");
                     this.hasLoadingMod = checkForLaunchMod();
                 }
             }
@@ -498,15 +456,20 @@ public class LocalInstance implements IPack
         }
 
         Profile profile = (extraArgs.length() > 0) ? this.toProfile(extraArgs) : this.toProfile();
-
-        if(!McUtils.injectProfile(new File(Constants.LAUNCHER_PROFILES_JSON), profile, jrePath))
+        tempLauncherPath = Constants.BIN_LOCATION;
+        if(!McUtils.injectProfile(tempLauncherPath.resolve("launcher_profiles.json"), profile, jrePath))
         {
-            CreeperLogger.INSTANCE.error("Unable to inject Mojang launcher profile...");
-            OpenModalData.openModal("Error", "Unable to create Mojang launcher profile. Please ensure you do not have any security software blocking access to the FTB App data directories.", List.of(
-                    new OpenModalData.ModalButton("Ok", "red", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
-            ));
-            return null;
+            //Can't write to our normal directory, so we'll copy the launcher to a temporary directory and try there!
+            tempLauncherPath = GameLauncher.prepareGame();
+            if(!McUtils.injectProfile(tempLauncherPath.resolve("launcher_profiles.json"), profile, jrePath)) {
+                CreeperLogger.INSTANCE.error("Unable to inject Mojang launcher profile...");
+                OpenModalData.openModal("Error", "Unable to create Mojang launcher profile. Please ensure you do not have any security software blocking access to the FTB App data directories.", List.of(
+                        new OpenModalData.ModalButton("Ok", "red", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
+                ));
+                return null;
+            }
         }
+        CreeperLogger.INSTANCE.warning("Starting launcher at "+tempLauncherPath);
 
         this.lastPlayed = lastPlay;
         try {
@@ -517,14 +480,15 @@ public class LocalInstance implements IPack
         }
 
         CreeperLogger.INSTANCE.debug("Starting Mojang launcher");
-
-        GameLauncher launcher = new GameLauncher();
-        launcher.launchGame();
-        CreeperLauncher.mojangProcesses.getAndUpdate((List<Process> _processes) -> {
-            if(_processes == null) _processes = new ArrayList<Process>();
-            if(launcher != null && launcher.process != null) _processes.add(launcher.process);
-            return _processes;
-        });
+        AtomicReference<Process> launcher = new AtomicReference<>();
+        CompletableFuture.runAsync(() -> {
+            launcher.set(GameLauncher.launchGame(tempLauncherPath));
+            CreeperLauncher.mojangProcesses.getAndUpdate((List<Process> _processes) -> {
+                if (_processes == null) _processes = new ArrayList<Process>();
+                if (launcher.get() != null) _processes.add(launcher.get());
+                return _processes;
+            });
+        }).join();
         if(CreeperLauncher.mtConnect != null) {
             if (CreeperLauncher.mtConnect.isEnabled()) {
                 try {
@@ -532,6 +496,19 @@ public class LocalInstance implements IPack
                 } catch(Exception ignored) {} //Just a small sleep so we're not messing with routing and NIC's just as the Vanilla launcher opens.
                 CreeperLogger.INSTANCE.info("MineTogether Connect is enabled... Connecting...");
                 CreeperLauncher.mtConnect.connect();
+                onGameClose("CleanTempLauncherLoc", () -> {
+                    if(!tempLauncherPath.equals(Constants.BIN_LOCATION))
+                    {
+                        try {
+                            CreeperLogger.INSTANCE.warning("Cleaning up temporary launcher at "+tempLauncherPath);
+                            FileUtils.deleteDirectory(tempLauncherPath);
+                            Files.deleteIfExists(tempLauncherPath);
+                            CreeperLogger.INSTANCE.warning("Cleaned up temporary launcher at "+tempLauncherPath);
+                        } catch (IOException e) {
+                            CreeperLogger.INSTANCE.warning("Error cleaning up temporary launcher!", e);
+                        }
+                    }
+                });
                 onGameClose("MTC-Disconnect", () -> {
                     if (CreeperLauncher.mtConnect.isConnected()) {
                         CreeperLogger.INSTANCE.info("MineTogether Connect is enabled... Disconnecting...");
@@ -546,10 +523,10 @@ public class LocalInstance implements IPack
         }
         if (launcherWait != null && (!launcherWait.isDone())) launcherWait.cancel(true);
         launcherWait = CompletableFuture.runAsync(() -> {
-           inUseCheck(launcher.process);
+           inUseCheck(launcher.get());
         });
 
-        return launcher;
+        return launcher.get();
     }
     private transient CompletableFuture launcherWait;
     public void setPostInstall(Runnable lambda, boolean async)
@@ -581,12 +558,7 @@ public class LocalInstance implements IPack
                 this.preUninstall.run();
             }
         }
-        File instancedir = new File(this.path);
-        Files.walk(instancedir.toPath())
-                .sorted(Comparator.reverseOrder())
-                .map(Path::toFile)
-                .forEach(File::delete);
-        instancedir.delete();
+        FileUtils.deleteDirectory(path);
         Instances.refreshInstances();
         return true;
     }
@@ -601,7 +573,7 @@ public class LocalInstance implements IPack
     {
         if (Desktop.isDesktopSupported())
         {
-            Desktop.getDesktop().open(new File(this.path));
+            Desktop.getDesktop().open(path.toFile());
             return true;
         }
         return false;
@@ -609,12 +581,9 @@ public class LocalInstance implements IPack
 
     public boolean saveJson() throws IOException
     {
-        File json = new File(this.path, "instance.json");
-        if (!json.exists()) json.createNewFile();
-        BufferedWriter fileWriter = new BufferedWriter(new FileWriter(json.getAbsolutePath()));
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        fileWriter.write(gson.toJson(this));
-        fileWriter.close();
+        try (BufferedWriter writer = Files.newBufferedWriter(path.resolve("instance.json"))) {
+            GsonUtils.GSON.toJson(this, writer);
+        }
         return true;
     }
 
@@ -636,25 +605,16 @@ public class LocalInstance implements IPack
         return version;
     }
 
-    private void updateVersionFromFile()
-    {
-        JsonReader versionReader = null;
-        try
-        {
-            versionReader = new JsonReader(new FileReader(new File(this.getDir() + File.separator + "version.json")));
-        } catch (FileNotFoundException e)
-        {
-            e.printStackTrace();
-        }
-
-        JsonElement jElement = new JsonParser().parse(versionReader);
-        if (jElement.isJsonObject()) {
-            JsonObject version = (JsonObject) jElement;
+    private void updateVersionFromFile() {
+        try(BufferedReader reader = Files.newBufferedReader(getDir().resolve("version.json"))) {
+            JsonObject version = GsonUtils.GSON.fromJson(reader, JsonObject.class);
             this.version = version.get("name").getAsString();
+        } catch (IOException e) {
+            CreeperLogger.INSTANCE.error("Failed to read version json.", e);
         }
     }
     @Override
-    public String getDir()
+    public Path getDir()
     {
         return dir;
     }
@@ -716,9 +676,9 @@ public class LocalInstance implements IPack
         return modLoader;
     }
 
-    public boolean setJre(boolean autoDetect, String path)
+    public boolean setJre(boolean autoDetect, Path path)
     {
-        File javaExec = null;
+        Path javaExec = null;
         String javaBinary = "javaw.exe";
         switch (OSUtils.getOs())
         {
@@ -731,16 +691,15 @@ public class LocalInstance implements IPack
         {
             if (!this.embeddedJre)
             {
-                String javaHome = System.getProperty("java.home");
-                javaExec = new File(new File(new File(javaHome), "bin"), javaBinary);
+                javaExec = Paths.get(System.getProperty("java.home")).resolve("bin").resolve(javaBinary);
             }
         } else
         {
-            javaExec = new File(path, javaBinary);
+            javaExec = path.resolve(javaBinary);
         }
-        if (javaExec != null && javaExec.exists())
+        if (javaExec != null && Files.exists(javaExec))
         {
-            jrePath = javaExec.getAbsolutePath();
+            jrePath = javaExec.toAbsolutePath();
         } else
         {
             embeddedJre = true;
@@ -797,32 +756,37 @@ public class LocalInstance implements IPack
         if (inUse.get()) return true;
         if (checkFiles)
         {
-            String dir = getDir();
-            File file = new File(dir);
-            if (!file.exists()) return false;
-            File modsFile = new File(dir, "mods");
-            if (modsFile.exists() && modsFile.canWrite())
+            Path dir = getDir();
+            if (Files.notExists(dir)) return false;
+            Path modsFile = dir.resolve("mods");
+            if (Files.exists(modsFile) && Files.isWritable(modsFile))
             {
-                File[] files = modsFile.listFiles();
-                if (files != null) {
-                    try(FileLock ignored = new RandomAccessFile(files[files.length - 1], "rw").getChannel().tryLock()) {} catch (Throwable t) {
-                        return true;
-                    }
+                boolean fileLocked = false;
+                try {
+                    fileLocked = Files.walk(modsFile)
+                            .filter(Files::isRegularFile)
+                            .anyMatch(e -> {
+                                try(FileLock ignored = new RandomAccessFile(e.toFile(), "rw").getChannel().tryLock()) {
+                                    return false;
+                                } catch (Throwable t) {
+                                    return true;
+                                }
+                            });
+                } catch (IOException ignored) {
+                }
+                if (fileLocked) {
+                    return true;
                 }
             }
 
-            File savesFile = new File(dir, "saves");
-            if (savesFile.exists() && savesFile.isDirectory())
+            Path savesFile = dir.resolve("saves");
+            if (Files.exists(savesFile) && Files.isDirectory(savesFile))
             {
-                File[] files = savesFile.listFiles();
-                if (files != null) {
-                    for(File savesDirectory : files) {
-                        if (savesDirectory.isDirectory())
-                        {
-                            File lockFile = new File(savesDirectory, "session.lock");
-                            if (lockFile.exists()) return true;
-                        }
-                    }
+                try {
+                    return Files.walk(savesFile, 1)
+                            .map(e -> e.resolve("session.lock"))
+                            .anyMatch(Files::exists);
+                } catch (IOException ignored) {
                 }
             }
         }
@@ -851,8 +815,8 @@ public class LocalInstance implements IPack
 
         for(S3ObjectSummary s3ObjectSummary : s3ObjectSummaries.values())
         {
-            File file = new File(Constants.INSTANCES_FOLDER_LOC + File.separator + s3ObjectSummary.getKey());
-            CreeperLogger.INSTANCE.debug(s3ObjectSummary.getKey() + " " + file.getAbsolutePath());
+            Path file = Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve(s3ObjectSummary.getKey());
+            CreeperLogger.INSTANCE.debug(s3ObjectSummary.getKey() + " " + file.toAbsolutePath());
 
             if(s3ObjectSummary.getKey().contains("/saves/"))
             {
@@ -868,7 +832,7 @@ public class LocalInstance implements IPack
                 continue;
             }
 
-            if(!file.exists())
+            if(Files.notExists(file))
             {
                 syncConflict.set(true);
                 break;
@@ -892,8 +856,8 @@ public class LocalInstance implements IPack
 
                 if(s3ObjectSummary.getKey().contains(this.uuid.toString()))
                 {
-                    File file = new File(Constants.INSTANCES_FOLDER_LOC + File.separator + s3ObjectSummary.getKey());
-                    if(!file.exists())
+                    Path file = Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve(s3ObjectSummary.getKey());
+                    if(Files.notExists(file))
                     {
                         try
                         {
@@ -928,8 +892,8 @@ public class LocalInstance implements IPack
 
                     OpenModalData.openModal("Please wait", "Synchronizing <br>" + percent + "%", List.of());
 
-                    File file = new File(Constants.INSTANCES_FOLDER_LOC + File.separator + s3ObjectSummary.getKey());
-                    if(!file.exists())
+                    Path file = Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve(s3ObjectSummary.getKey());
+                    if (Files.notExists(file))
                     {
                         try
                         {
@@ -965,7 +929,7 @@ public class LocalInstance implements IPack
         CreeperLauncher.isSyncing.set(false);
     }
 
-    public void cloudSyncLoop(String path, boolean ignoreInUse, CloudSyncType cloudSyncType, HashMap<String, S3ObjectSummary> existingObjects)
+    public void cloudSyncLoop(Path path, boolean ignoreInUse, CloudSyncType cloudSyncType, HashMap<String, S3ObjectSummary> existingObjects)
     {
         final String host = Constants.S3_HOST;
         final int port = 8080;
@@ -973,42 +937,41 @@ public class LocalInstance implements IPack
         final String secretAccessKey = Constants.S3_SECRET;
         final String bucketName = Constants.S3_BUCKET;
 
-        Path baseInstancesPath = Path.of(Settings.settings.getOrDefault("instancesLocation", Constants.INSTANCES_FOLDER_LOC));
+        Path baseInstancesPath = Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC);
 
-        File file = new File(path);
         CloudSaveManager.setup(host, port, accessKeyId, secretAccessKey, bucketName);
-        if(file.isDirectory())
+        if(Files.isDirectory(path))
         {
-            File[] dirContents = file.listFiles();
-            if(dirContents != null && dirContents.length > 0) {
-                for (File innerFile : dirContents) {
-                    cloudSyncLoop(innerFile.getAbsolutePath(), true, cloudSyncType, existingObjects);
+            List<Path> dirContents = FileUtils.listDir(path);
+            if (!dirContents.isEmpty()) {
+                for (Path innerFile : dirContents) {
+                    cloudSyncLoop(innerFile, true, cloudSyncType, existingObjects);
                 }
             } else {
                 try {
                     //Add a / to allow upload of empty directories
-
-                    File file1 = new File(file.getAbsoluteFile() + File.separator);
-                    CloudSaveManager.syncFile(file1, CloudSaveManager.fileToLocation(file1, baseInstancesPath), true, existingObjects);
-                } catch (Exception e) { e.printStackTrace(); }
+                    CloudSaveManager.syncFile(path, StringUtils.appendIfMissing(CloudSaveManager.fileToLocation(path, baseInstancesPath), "/"), true, existingObjects);
+                } catch (Exception e) {
+                    CreeperLogger.INSTANCE.error("Upload failed", e);
+                }
             }
         }
         else
         {
             try
             {
-                CreeperLogger.INSTANCE.debug("Uploading file " + file.getAbsolutePath());
+                CreeperLogger.INSTANCE.debug("Uploading file " + path.toAbsolutePath());
                 switch (cloudSyncType)
                 {
                     case SYNC_NORMAL:
                         try
                         {
-                            ArrayList<CompletableFuture> futures = new ArrayList<>();
+                            ArrayList<CompletableFuture<?>> futures = new ArrayList<>();
                             futures.add(CompletableFuture.runAsync(() ->
                             {
                                 try
                                 {
-                                    CloudSaveManager.syncFile(file, CloudSaveManager.fileToLocation(file, baseInstancesPath), true, existingObjects);
+                                    CloudSaveManager.syncFile(path, CloudSaveManager.fileToLocation(path, baseInstancesPath), true, existingObjects);
                                 } catch (Exception e) { e.printStackTrace(); }
                             }, DownloadTask.threadPool));
 
@@ -1019,10 +982,10 @@ public class LocalInstance implements IPack
                         }
                         break;
                     case SYNC_MANUAL_CLIENT:
-                        CloudSaveManager.syncManual(file, CloudSaveManager.fileToLocation(file, Path.of(Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC))), true, true, existingObjects);
+                        CloudSaveManager.syncManual(path, CloudSaveManager.fileToLocation(path, Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC)), true, true, existingObjects);
                         break;
                     case SYNC_MANUAL_SERVER:
-                        CloudSaveManager.syncManual(file, CloudSaveManager.fileToLocation(file, Path.of(Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC))), true, false, existingObjects);
+                        CloudSaveManager.syncManual(path, CloudSaveManager.fileToLocation(path, Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC)), true, false, existingObjects);
                         break;
                 }
             } catch (Exception e) { e.printStackTrace(); }

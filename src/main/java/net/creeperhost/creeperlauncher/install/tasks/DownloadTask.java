@@ -6,6 +6,7 @@ import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.IntegrityCheckException;
 import net.creeperhost.creeperlauncher.api.DownloadableFile;
 import net.creeperhost.creeperlauncher.api.data.other.InstalledFileEventData;
+import net.creeperhost.creeperlauncher.util.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,7 +38,7 @@ public class DownloadTask implements IInstallTask
         return CompletableFuture.runAsync(() ->
         {
             boolean complete = false;
-            Settings.webSocketAPI.sendMessage(new InstalledFileEventData.Reply(file.getId(), "preparing"));
+            FTBModPackInstallerTask.batchedFiles.put(file.getId(), "downloaded");
             while (!complete && tries < 3)
             {
                 try
@@ -49,7 +50,7 @@ public class DownloadTask implements IInstallTask
                 {
                     if (tries == 3)
                     {
-                        throw new IntegrityCheckException(err.getMessage(), -2, "", null, 0, 0, file.getUrl(), destination.toString());
+                        throw new IntegrityCheckException(err.getMessage(), -2, "", null, 0, 0, file.getUrl(), destination);
                     }
                 } catch (IOException e)
                 {
@@ -69,14 +70,14 @@ public class DownloadTask implements IInstallTask
                         {
                             if (checksum != null)
                             {
-                                File cachedFile = CreeperLauncher.localCache.get(checksum);
-                                if (destination.toFile().exists()) break;
+                                Path cachedFile = CreeperLauncher.localCache.get(checksum);
+                                if (Files.exists(destination)) break;
                                 try
                                 {
-                                    destination.toFile().getParentFile().mkdirs();
-                                    Files.copy(cachedFile.toPath(), destination);
-                                    FTBModPackInstallerTask.currentBytes.addAndGet(cachedFile.length());
-                                    Settings.webSocketAPI.sendMessage(new InstalledFileEventData.Reply(file.getId(), "downloaded"));
+                                    FileUtils.createDirectories(destination.toAbsolutePath().getParent());
+                                    Files.copy(cachedFile, destination);
+                                    FTBModPackInstallerTask.currentBytes.addAndGet(Files.size(cachedFile));
+                                    FTBModPackInstallerTask.batchedFiles.put(file.getId(), "downloaded");
                                     complete = true;
                                     break;
                                 } catch (IOException ignored)
@@ -100,7 +101,7 @@ public class DownloadTask implements IInstallTask
                         {
                             CreeperLogger.INSTANCE.error("Error whilst adding to cache: ", err);
                         }
-                        Settings.webSocketAPI.sendMessage(new InstalledFileEventData.Reply(file.getId(), "downloaded"));
+                        FTBModPackInstallerTask.batchedFiles.put(file.getId(), "downloaded");
                         complete = true;
                     } catch (Throwable e)
                     {
@@ -113,7 +114,7 @@ public class DownloadTask implements IInstallTask
                                 thrown = (IntegrityCheckException)e;
                             } else
                             {
-                                CreeperLogger.INSTANCE.debug("Unknown error whilst getting file: ", thrown = new IntegrityCheckException(e, -1, "", null, 0, 0, file.getUrl(), destination.toString())); // TODO: make this better
+                                CreeperLogger.INSTANCE.debug("Unknown error whilst getting file: ", thrown = new IntegrityCheckException(e, -1, "", null, 0, 0, file.getUrl(), destination)); // TODO: make this better
                             }
                             if(Settings.settings.getOrDefault("unforgiving", "false").equals("true"))
                             {

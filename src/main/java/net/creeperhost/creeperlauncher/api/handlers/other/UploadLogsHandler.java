@@ -21,12 +21,12 @@ public class UploadLogsHandler implements IMessageHandler<UploadLogsData> {
 
     public static void uploadLogs(String uiVersion, String frontendLogs, int requestId)
     {
-        Path logFile = Path.of(Constants.getDataDir() + File.separator + "ftbapp.log");//Path.of("./launcher.log");
+        Path logFile = Constants.getDataDir().resolve("ftbapp.log");
         Path errorLogFile = Path.of("./error.log");
 
         String launcherLog = null;
 
-        if(logFile.toFile().exists())
+        if(Files.exists(logFile))
         {
             try {
                 launcherLog = Files.readString(logFile);
@@ -36,7 +36,7 @@ public class UploadLogsHandler implements IMessageHandler<UploadLogsData> {
 
         String errorLog = null;
 
-        if(errorLogFile.toFile().exists())
+        if(Files.exists(errorLogFile))
         {
             try {
                 errorLog = Files.readString(errorLogFile);

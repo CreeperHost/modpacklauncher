@@ -4,9 +4,12 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import net.creeperhost.creeperlauncher.minetogether.cloudsaves.CloudSaveManager;
 import net.creeperhost.creeperlauncher.pack.LocalInstance;
+import net.creeperhost.creeperlauncher.util.FileUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
@@ -45,25 +48,25 @@ public class Instances
 
     public static void refreshInstances()
     {
-        File file = new File(Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC));
+        Path file = Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC);
         instances.clear();
-        File[] files = file.listFiles();
+        List<Path> files = FileUtils.listDir(file);
         int l=0,t=0;
         if (files != null)
         {
-            for (File f : files)
+            for (Path f : files)
             {
-                if (f.isDirectory())
+                if (Files.isDirectory(f))
                 {
                     t++;
                     try
                     {
-                        Instances.loadInstance(f.getName());
+                        Instances.loadInstance(f);
                         l++;
                     } catch (FileNotFoundException err)
                     {
-                        if(!f.getName().startsWith(".")) {
-                            CreeperLogger.INSTANCE.error("Not a valid instance '" + f.getName() + "', skipping...");
+                        if(!f.getFileName().toString().startsWith(".")) {
+                            CreeperLogger.INSTANCE.error("Not a valid instance '" + f.getFileName() + "', skipping...");
                         } else {
                             t--;
                         }
@@ -83,18 +86,17 @@ public class Instances
         }
     }
 
-    private static void loadInstance(String _uuid) throws FileNotFoundException
+    private static void loadInstance(Path path) throws FileNotFoundException
     {
-        File json = new File(Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC) + File.separator + _uuid, "instance.json");
-        if (!json.exists()) throw new FileNotFoundException("Instance corrupted; " + json.getAbsoluteFile());
+        Path json = path.resolve("instance.json");
+        if (Files.notExists(json)) throw new FileNotFoundException("Instance corrupted; " + json.toAbsolutePath());
         try {
-            UUID uuid = UUID.fromString(_uuid);
-            LocalInstance loadedInstance = new LocalInstance(uuid);
-            Instances.addInstance(uuid, loadedInstance);
+            LocalInstance loadedInstance = new LocalInstance(path);
+            Instances.addInstance(loadedInstance.getUuid(), loadedInstance);
         } catch(Exception e)
         {
             CreeperLogger.INSTANCE.error("Corrupted instance json!", e);
-            throw new FileNotFoundException("Instance corrupted; " + json.getAbsoluteFile());
+            throw new FileNotFoundException("Instance corrupted; " + json.toAbsolutePath());
         }
     }
 
