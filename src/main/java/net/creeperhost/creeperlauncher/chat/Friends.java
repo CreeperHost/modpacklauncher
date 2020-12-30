@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;
+import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.util.GsonUtils;
 import net.creeperhost.creeperlauncher.util.MiscUtils;
 import net.creeperhost.creeperlauncher.util.WebUtils;
@@ -78,9 +79,14 @@ public class Friends {
         CompletableFuture<UserProfile> response = new CompletableFuture<>();
         CompletableFuture.runAsync(() -> {
             String resp = WebUtils.postWebResponse("https://api.creeper.host/minetogether/profile", "{\"target\": \"" + hash + "\"}", "application/json");
-            JsonElement respEl = new JsonParser().parse(resp);
-            UserProfile userProfile = GsonUtils.GSON.fromJson(respEl.getAsJsonObject().getAsJsonObject("profileData").getAsJsonObject(hash.toUpperCase()), UserProfile.class);
-            response.complete(userProfile);
+            if(resp.equals("error")) {
+                CreeperLogger.INSTANCE.error("Error getting profile for hash:" + hash);
+                response.completeExceptionally(new RuntimeException(resp));
+            } else {
+                JsonElement respEl = new JsonParser().parse(resp);
+                UserProfile userProfile = GsonUtils.GSON.fromJson(respEl.getAsJsonObject().getAsJsonObject("profileData").getAsJsonObject(hash.toUpperCase()), UserProfile.class);
+                response.complete(userProfile);
+            }
         });
         return response;
     }
