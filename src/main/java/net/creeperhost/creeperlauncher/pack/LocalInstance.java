@@ -462,6 +462,11 @@ public class LocalInstance implements IPack
 
         Profile profile = (extraArgs.length() > 0) ? this.toProfile(extraArgs) : this.toProfile();
         tempLauncherPath = Constants.BIN_LOCATION;
+        if(jrePath.endsWith("javaw.exe") || jrePath.endsWith("java")) {
+            if(!jrePath.toFile().exists()) jrePath = null;
+        } else {
+            jrePath = null;
+        }
         if(!McUtils.injectProfile(tempLauncherPath.resolve("launcher_profiles.json"), profile, jrePath))
         {
             //Can't write to our normal directory, so we'll copy the launcher to a temporary directory and try there!
