@@ -161,8 +161,6 @@ public class    CreeperLauncher
                     });
         } catch (IOException ignored) {}
 
-        Instances.refreshInstances();
-
         SettingsChangeUtil.registerListener("instanceLocation", (key, value) -> {
             OpenModalData.openModal("Confirmation", "Are you sure you wish to move your instances to this location? <br tag='haha line break go brr'> All content in your current instance location will be moved, and if content exists with the same name in the destination it will be replaced.", List.of(
                     new OpenModalData.ModalButton( "Yes", "green", () -> {
