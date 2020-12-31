@@ -26,6 +26,7 @@ import oshi.util.FileUtil;
 import javax.swing.*;
 import java.awt.*;
 import java.io.*;
+import java.net.BindException;
 import java.net.MalformedURLException;
 import java.nio.channels.FileLock;
 import java.nio.file.*;
@@ -432,16 +433,14 @@ public class LocalInstance implements IPack
                     CompletableFuture.runAsync(() -> {
                         try {
                             CreeperLauncher.listenForClient(this.loadingModPort);
+                        } catch(BindException err) {
+                            CreeperLogger.INSTANCE.error("Error whilst starting mod socket on port '" + this.loadingModPort + "'...", err);
+                            hasErrored.set(true);
                         } catch (Exception err) {
-                            if (!CreeperLauncher.opened)
-                            {
-                                CreeperLogger.INSTANCE.error("Error whilst starting mod socket on port '" + this.loadingModPort + "'...", err);
-                                hasErrored.set(true);
-                            } else {
+                            if (!CreeperLauncher.opened) {
                                 CreeperLogger.INSTANCE.warning("Error whilst handling message from mod socket - probably nothing!", err);
                                 CreeperLauncher.opened = false;
                             }
-
                         }
                     });
                     try {
@@ -462,10 +461,12 @@ public class LocalInstance implements IPack
 
         Profile profile = (extraArgs.length() > 0) ? this.toProfile(extraArgs) : this.toProfile();
         tempLauncherPath = Constants.BIN_LOCATION;
-        if(jrePath.endsWith("javaw.exe") || jrePath.endsWith("java")) {
-            if(!jrePath.toFile().exists()) jrePath = null;
-        } else {
-            jrePath = null;
+        if(jrePath != null) {
+            if (jrePath.endsWith("javaw.exe") || jrePath.endsWith("java")) {
+                if (!jrePath.toFile().exists()) jrePath = null;
+            } else {
+                jrePath = null;
+            }
         }
         if(!McUtils.injectProfile(tempLauncherPath.resolve("launcher_profiles.json"), profile, jrePath))
         {
