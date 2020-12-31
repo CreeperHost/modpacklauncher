@@ -300,7 +300,7 @@ public class CreeperLauncher
 
         boolean startProcess = !isDevMode;
 
-        if(Args.containsKey("pid") && !isDevMode)
+        if(Args.containsKey("pid") && !isDevMode && !isOverwolf)
         {
             try {
                 long pid = Long.parseLong(Args.get("pid"));
