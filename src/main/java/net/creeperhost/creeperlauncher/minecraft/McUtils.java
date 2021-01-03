@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class McUtils {
 
@@ -312,7 +311,6 @@ public class McUtils {
     public static void downloadVanillaLauncher() {
         downloadVanillaLauncher(Constants.BIN_LOCATION);
     }
-    //TODO, we need to check for updates to the vanilla launcher.
     public static void downloadVanillaLauncher(Path binFolder) {
         CreeperLogger.INSTANCE.info("Downloading vanilla launcher.");
         String downloadurl = OSUtils.getMinecraftLauncherURL();
@@ -393,19 +391,6 @@ public class McUtils {
             case MAC:
                 if (Files.exists(path)) {
                     HashMap<String, Exception> errors = FileUtils.extractZip2ElectricBoogaloo(path, path.getParent());
-                    /*if(!errors.isEmpty())
-                    {
-                        String[] ccommand = {"/usr/bin/unzip", "-o", launcherFile.toString(), "-d", launcherFile.toPath().getParent().toString()};
-                        CreeperLogger.INSTANCE.error("Failed extraction... Trying via shell...");
-                        CreeperLogger.INSTANCE.warning(String.join(" ", ccommand));
-                        Process copy = Runtime.getRuntime().exec(ccommand);
-                        InputStream stdout = copy.getInputStream();
-                        BufferedReader br = new BufferedReader(new InputStreamReader(stdout));
-                        String str;
-                        while ((str = br.readLine()) != null) {
-                            CreeperLogger.INSTANCE.info(str);
-                        }
-                    }*/
                     if (!errors.isEmpty())
                     {
                         Set<String> strings = errors.keySet();
@@ -427,69 +412,6 @@ public class McUtils {
                     success = false;
                 }
                 break;
-            /*case MAC:
-                File installer = new File(path);
-                String[] mcommand = {"/usr/bin/hdiutil", "attach", path + File.separator + "launcher.dmg"};
-                CreeperLogger.INSTANCE.info("Mounting "+path + File.separator+"launcher.dmg");
-                CreeperLogger.INSTANCE.info(String.join(" ", mcommand));
-                Process mount = Runtime.getRuntime().exec(mcommand);
-                InputStream stdout = mount.getInputStream();
-                BufferedReader br = new BufferedReader(new InputStreamReader(stdout));
-                String str;
-                while ((str = br.readLine()) != null) {
-                    CreeperLogger.INSTANCE.info(str);
-                }
-                int loop = 0;
-                while (mount.isAlive() && loop < 5000) {
-                    Thread.sleep(500);
-                    loop++;
-                }
-
-                if (mount.exitValue() == 0) {
-                    try {
-                        FileUtils.copyDirectory(Path.of(Constants.MINECRAFT_MAC_LAUNCHER_VOLUME + File.separator), Path.of(path));
-                        success = true;
-                    } catch(Exception er)
-                    {
-                        CreeperLogger.INSTANCE.error("Error extracting Mojang launcher!", er);
-                        success=false;
-                    }
-                    if(!success) {
-                        String[] ccommand = {"/bin/cp", "-R", Constants.MINECRAFT_MAC_LAUNCHER_VOLUME + File.separator + "/Minecraft.app", Constants.BIN_LOCATION + File.separator};
-                        Process copy = Runtime.getRuntime().exec(ccommand);
-                        stdout = copy.getInputStream();
-                        br = new BufferedReader(new InputStreamReader(stdout));
-                        while ((str = br.readLine()) != null) {
-                            CreeperLogger.INSTANCE.info(str);
-                        }
-                        loop = 0;
-                        while (copy.isAlive() && loop < 30000) {
-                            Thread.sleep(500);
-                            loop++;
-                        }
-                        if (copy.exitValue() == 0) {
-                            success = true;
-                        }
-                    }
-                } else {
-                    System.out.print(stdout);
-                    CreeperLogger.INSTANCE.error("Failed to mount the Vanilla installer on MacOS.");
-                    success = false;
-                }
-                String[] ucommand = {"/usr/bin/hdiutil", "unmount", Constants.MINECRAFT_MAC_LAUNCHER_VOLUME};
-                CreeperLogger.INSTANCE.info(String.join(" ", ucommand));
-                Process unmount = Runtime.getRuntime().exec(ucommand);
-                loop = 0;
-                while (unmount.isAlive() && loop < 5000) {
-                    Thread.sleep(500);
-                    loop++;
-                }
-                if (unmount.exitValue() != 0) {
-                    CreeperLogger.INSTANCE.error("Somehow failed to clean up after sorting the Vanilla launcher on MacOS.");
-                } else {
-                    Files.delete(installer);
-                }
-                break;*/
             case LINUX:
                 Path installergzip = Constants.MINECRAFT_LAUNCHER_LOCATION;
                 if (Files.exists(installergzip)) {
