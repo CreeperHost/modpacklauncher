@@ -38,7 +38,7 @@ public class Profile
         this.type = type;
         this.gameDir = gameDir;
         this.ID = ID;
-        this.javaArgs = ("-Xmx" + ram + "M " + args.trim()).trim();
+        this.javaArgs = ("-Xmx" + ram + "M -Duser.language=en-GB " + args.trim()).trim();
         String[] img = icon.split(",");
         byte[] imageByte = img[1].getBytes();
         ByteArrayInputStream bis = new ByteArrayInputStream(Base64.getDecoder().decode(imageByte));

@@ -299,8 +299,11 @@ public class CreeperLauncher
         boolean isOverwolf = Args.containsKey("overwolf");
 
         boolean startProcess = !isDevMode;
-
-        if(Args.containsKey("pid") && !isDevMode && !isOverwolf)
+        if(isOverwolf)
+        {
+            CreeperLogger.INSTANCE.info("Overwolf integration mode");
+        }
+        if(Args.containsKey("pid") && !isDevMode)
         {
             try {
                 long pid = Long.parseLong(Args.get("pid"));
@@ -319,13 +322,18 @@ public class CreeperLauncher
                         }
                         CreeperLauncher.exit();
                     });
-                    Runtime.getRuntime().addShutdownHook(new Thread(handle::destroy));
+                    if(!isOverwolf) Runtime.getRuntime().addShutdownHook(new Thread(handle::destroy));
                 }
             } catch (Exception exception) {
                 CreeperLogger.INSTANCE.error("Error connecting to process", exception);
             }
         } else {
-            CreeperLogger.INSTANCE.info("No PID args");
+            if(isDevMode)
+            {
+                CreeperLogger.INSTANCE.info("Development mode");
+            } else {
+                CreeperLogger.INSTANCE.info("No PID args");
+            }
         }
 
         if(isDevMode || isOverwolf){
