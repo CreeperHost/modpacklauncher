@@ -372,7 +372,7 @@ public class McUtils {
         if (Files.exists(destinationFile)) {
             boolean osConfig = false;
             try {
-                osConfig = McUtils.prepareVanillaLauncher(file);
+                osConfig = McUtils.prepareVanillaLauncher(destinationFile);
             } catch (Exception err) {
                 err.printStackTrace();
             }
