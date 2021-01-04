@@ -7,6 +7,7 @@ public class LaunchInstanceData extends BaseData
 {
     public String uuid;
     public String extraArgs = "";
+    public boolean loadInApp = true;
 
     public static class Reply extends BaseData
     {

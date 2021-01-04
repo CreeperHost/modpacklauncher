@@ -6,16 +6,14 @@ import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.minecraft.modloader.ModLoader;
 import net.creeperhost.creeperlauncher.pack.LocalInstance;
-import net.creeperhost.creeperlauncher.util.DownloadUtils;
-import net.creeperhost.creeperlauncher.util.GsonUtils;
-import net.creeperhost.creeperlauncher.util.LoaderTarget;
-import net.creeperhost.creeperlauncher.util.MiscUtils;
+import net.creeperhost.creeperlauncher.util.*;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Date;
 import java.util.List;
 
@@ -37,7 +35,7 @@ public class FabricModLoader extends ModLoader
 	}
 
 	@Override
-	public File install(LocalInstance instance)
+	public Path install(LocalInstance instance)
 	{
 		CreeperLogger.INSTANCE.info("Minecraft version: " + getMinecraftVersion() + " Fabric version: " + getFabricVersion());
 		var profileName = String.format("fabric-loader-%s-%s", getFabricVersion(), getMinecraftVersion());
@@ -60,19 +58,16 @@ public class FabricModLoader extends ModLoader
 		libraries.add(getLibrary("net.fabricmc:intermediary:" + getMinecraftVersion(), FABRIC_MAVEN_URL));
 		libraries.add(getLibrary("net.fabricmc:fabric-loader:" + getFabricVersion(), FABRIC_MAVEN_URL));
 
-		var versionsDir = new File(Constants.VERSIONS_FOLDER_LOC);
-		var profileDir = new File(versionsDir, profileName);
-		var profileJson = new File(profileDir, profileName + ".json");
+		var versionsDir = Constants.VERSIONS_FOLDER_LOC;
+		var profileDir = versionsDir.resolve(profileName);
+		var profileJson = profileDir.resolve(profileName + ".json");
 
-		if (!profileDir.exists())
-		{
-			profileDir.mkdirs();
-		}
+        FileUtils.createDirectories(profileDir);
 
-		File dummyJar = new File(profileDir, profileName + ".jar");
+		Path dummyJar = profileDir.resolve(profileName + ".jar");
 		try
 		{
-			dummyJar.createNewFile();
+			Files.createFile(dummyJar);
 		} catch (IOException e) {
 			CreeperLogger.INSTANCE.error("Failed to create fabric jar, is the game running?");
 			return null;
@@ -97,7 +92,7 @@ public class FabricModLoader extends ModLoader
 
 		try
 		{
-			Files.write(profileJson.toPath(), GsonUtils.GSON.toJson(profile).getBytes(StandardCharsets.UTF_8));
+			Files.write(profileJson, GsonUtils.GSON.toJson(profile).getBytes(StandardCharsets.UTF_8));
 		} catch (IOException e) {
 			CreeperLogger.INSTANCE.error("Failed to create fabric profile json, is the game running?");
 			return null;

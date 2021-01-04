@@ -1,5 +1,6 @@
 package net.creeperhost.creeperlauncher.api.handlers.instances;
 
+import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.data.instances.InstanceInfoData;
 import net.creeperhost.creeperlauncher.api.handlers.IMessageHandler;
@@ -16,7 +17,7 @@ public class InstanceInfoHandler implements IMessageHandler<InstanceInfoData>
         HashMap<String, String> instanceInfo = new HashMap<>();
         try
         {
-            LocalInstance instance = new LocalInstance(UUID.fromString(data.uuid));
+            LocalInstance instance = new LocalInstance(Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve(data.uuid));
             instanceInfo.put("uuid", instance.getUuid().toString());
             instanceInfo.put("name", instance.getName());
             instanceInfo.put("memory", String.valueOf(instance.memory));

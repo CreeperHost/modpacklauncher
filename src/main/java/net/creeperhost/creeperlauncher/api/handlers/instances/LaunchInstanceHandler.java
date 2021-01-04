@@ -20,7 +20,7 @@ public class LaunchInstanceHandler implements IMessageHandler<LaunchInstanceData
         if(Handler.isConnected()){
             Handler.disconnect();
         }
-        instance.play(data.extraArgs);
+        instance.play(data.extraArgs, data.loadInApp);
         Settings.webSocketAPI.sendMessage(new LaunchInstanceData.Reply(data, "success"));
     }
 }

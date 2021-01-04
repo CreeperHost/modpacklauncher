@@ -1,6 +1,5 @@
 package net.creeperhost.creeperlauncher.minecraft;
 
-import com.sun.jna.platform.KeyboardUtils;
 import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.CreeperLauncher;
 import net.creeperhost.creeperlauncher.CreeperLogger;
@@ -16,7 +15,6 @@ import net.creeperhost.creeperlauncher.util.window.WindowUtils;
 
 import java.awt.*;
 import java.awt.event.KeyEvent;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,21 +27,21 @@ import java.util.concurrent.CompletableFuture;
 public class GameLauncher
 {
     public static Process process;
-    public static String prepareGame()
+    public static Path prepareGame()
     {
         try {
-            Path stored = Path.of(Constants.BIN_LOCATION);
-            File test = new File(stored.toString() + File.separator + Constants.MINECRAFT_LAUNCHER_NAME);
+            Path stored = Constants.BIN_LOCATION;
+            Path test = stored.resolve(Constants.MINECRAFT_LAUNCHER_NAME);
             Path exec = Files.createTempDirectory("ftba");
-            if(!test.exists())
+            if(!Files.exists(test))
             {
                 //If we don't have it in our bin dir... Let's download it to where we need it, this is terrible but I don't care if it works and we can iterate its design later
-                McUtils.downloadVanillaLauncher(exec.toString());
-                McUtils.prepareVanillaLauncher(exec.toString() + File.separator + Constants.MINECRAFT_LAUNCHER_NAME);
+                McUtils.downloadVanillaLauncher(exec);
+                McUtils.prepareVanillaLauncher(exec.resolve(Constants.MINECRAFT_LAUNCHER_NAME));
             } else {
                 FileUtils.copyDirectory(stored, exec);
             }
-            return exec.toString();
+            return exec;
         } catch(Exception err)
         {
             CreeperLogger.INSTANCE.warning("Unable to copy Mojang launcher.", err);
@@ -54,26 +52,25 @@ public class GameLauncher
     {
         launchGame(Constants.BIN_LOCATION);
     }
-    public static Process launchGame(String path)
+    public static Process launchGame(Path path)
     {
-        String exe = path + File.separator + Constants.MINECRAFT_LAUNCHER_NAME;
+        Path exe = path.resolve(Constants.MINECRAFT_LAUNCHER_NAME);
         OS os = OSUtils.getOs();
         if (os == OS.MAC)
         {
-            exe = path + File.separator + "Minecraft.app" + File.separator + "Contents" + File.separator + "MacOS" + File.separator + "launcher";
+            exe = path.resolve(Constants.MINECRAFT_MAC_LAUNCHER_EXECUTABLE_NAME);
         }
         if (os == OS.LINUX)
         {
-            exe = path + File.separator + "minecraft-launcher" + File.separator + "minecraft-launcher";
+            exe = path.resolve(Constants.MINECRAFT_LINUX_LAUNCHER_EXECUTABLE_NAME);
         }
         try
         {
-            String command = exe;
-            ProcessBuilder builder = new ProcessBuilder(command, "--workDir", path);
+            ProcessBuilder builder = new ProcessBuilder(exe.toAbsolutePath().toString(), "--workDir", path.toAbsolutePath().toString());
             if(os == OS.MAC)
             {
-                CreeperLogger.INSTANCE.warning("/usr/bin/open " + path + File.separator + "Minecraft.app" + " --args --workDir " + path);
-                builder = new ProcessBuilder("/usr/bin/open", path + File.separator + "Minecraft.app", "--args", "--workDir", path);
+                CreeperLogger.INSTANCE.warning("/usr/bin/open " + path.resolve("Minecraft.app") + " --args --workDir " + path);
+                builder = new ProcessBuilder("/usr/bin/open", path.resolve("Minecraft.app").toAbsolutePath().toString(), "--args", "--workDir", path.toAbsolutePath().toString());
             }
 
             Map<String, String> environment = builder.environment();
@@ -123,16 +120,16 @@ public class GameLauncher
     {
         downloadLauncherProfiles(Constants.BIN_LOCATION);
     }
-    public static void downloadLauncherProfiles(String path)
+    public static void downloadLauncherProfiles(Path path)
     {
         try {
-            File file = new File(Constants.LAUNCHER_PROFILES_JSON);
-            if(!file.exists())
+            Path file = path.resolve(Constants.LAUNCHER_PROFILES_JSON_NAME);
+            if(Files.notExists(file))
             {
                 //Some reason the vanilla launcher is not creating the launcher_profiles.json
-                DownloadableFile defaultConfig = new DownloadableFile("", file.getAbsolutePath(), "https://apps.modpacks.ch/FTB2/launcher_profiles.json", new ArrayList<>(), 0, true, false, 0, "config", "launcher_profiles.json", "");
+                DownloadableFile defaultConfig = new DownloadableFile("", file, "https://apps.modpacks.ch/FTB2/launcher_profiles.json", new ArrayList<>(), 0, true, false, 0, "config", "launcher_profiles.json", "");
                 defaultConfig.prepare();
-                defaultConfig.download(file.toPath(), true, false);
+                defaultConfig.download(file, true, false);
             }
         } catch (Throwable ignored) {
         }
@@ -143,26 +140,27 @@ public class GameLauncher
     {
         launchGameAndClose(Constants.BIN_LOCATION);
     }
-    public static void launchGameAndClose(String path)
+    public static void launchGameAndClose(Path path)
     {
         CompletableFuture.runAsync(() ->
         {
-            String exe = Constants.MINECRAFT_LAUNCHER_LOCATION;
+            Path exe = path.resolve(Constants.MINECRAFT_LAUNCHER_NAME);
             OS os = OSUtils.getOs();
             if (os == OS.MAC)
             {
-                exe = Constants.MINECRAFT_MAC_LAUNCHER_EXECUTABLE;
+                exe = path.resolve(Constants.MINECRAFT_MAC_LAUNCHER_EXECUTABLE_NAME);
             }
             if (os == OS.LINUX)
             {
-                exe = Constants.MINECRAFT_LINUX_LAUNCHER_EXECUTABLE;
+                exe = path.resolve(Constants.MINECRAFT_LINUX_LAUNCHER_EXECUTABLE_NAME);
             }
             try
             {
                 Process process = launchGame(path);
-                File file = new File(Constants.LAUNCHER_PROFILES_JSON);
+                Path file = path.resolve(Constants.LAUNCHER_PROFILES_JSON_NAME);
                 int tryCount = 0;
-                while (!file.exists())
+                //TODO this wait loop doesnt check if the launcher is running at all still
+                while (Files.notExists(file))
                 {
                     try
                     {
@@ -188,21 +186,21 @@ public class GameLauncher
                         process.destroyForcibly();
                     }
                 }
-                if(!file.exists())
+                if(Files.notExists(Constants.LAUNCHER_PROFILES_JSON))
                 {
                     //Some reason the vanilla launcher is not creating the launcher_profiles.json
-                    DownloadableFile defaultConfig = new DownloadableFile("", file.getAbsolutePath(), "https://apps.modpacks.ch/FTB2/launcher_profiles.json", new ArrayList<>(), 0, true, false, 0, "config", "launcher_profiles.json", "");
+                    DownloadableFile defaultConfig = new DownloadableFile("", file, "https://apps.modpacks.ch/FTB2/launcher_profiles.json", new ArrayList<>(), 0, true, false, 0, "config", "launcher_profiles.json", "");
                     defaultConfig.prepare();
-                    defaultConfig.download(file.toPath(), true, false);
+                    defaultConfig.download(file, true, false);
                 }
-                String finalExe = exe;
+                Path finalExe = exe;
                 //Now we have to do horrible stuff because if the launcher binary we downloaded is older than the latest (Don't know why they do this), the auto updater closes and reopens the launcher thus meaning our process handle is wrong.
                 ProcessHandle.allProcesses().forEach((processh) ->
                 {
-                    if (processh.info().commandLine().toString().contains(Constants.BIN_LOCATION))
+                    if (processh.info().commandLine().toString().contains(Constants.BIN_LOCATION.toAbsolutePath().toString()))
                     {
                         //It is one of our processes...
-                        if (processh.info().commandLine().toString().contains(finalExe))
+                        if (processh.info().commandLine().toString().contains(finalExe.toAbsolutePath().toString()))
                         {
                             //It's the process we're looking for...
                             CreeperLogger.INSTANCE.debug("Destroy instance calling");
