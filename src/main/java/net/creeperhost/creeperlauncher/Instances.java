@@ -4,12 +4,19 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import net.creeperhost.creeperlauncher.minetogether.cloudsaves.CloudSaveManager;
 import net.creeperhost.creeperlauncher.pack.LocalInstance;
+import net.creeperhost.creeperlauncher.util.FileUtils;
+import net.creeperhost.creeperlauncher.util.MiscUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class Instances
@@ -45,56 +52,63 @@ public class Instances
 
     public static void refreshInstances()
     {
-        File file = new File(Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC));
+        Path file = Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC);
         instances.clear();
-        File[] files = file.listFiles();
-        int l=0,t=0;
+        List<Path> files = FileUtils.listDir(file);
+        ArrayList<CompletableFuture<?>> futures = new ArrayList<>();
+        AtomicInteger l = new AtomicInteger(0);
+        AtomicInteger t = new AtomicInteger(0);
         if (files != null)
         {
-            for (File f : files)
+            for (Path f : files)
             {
-                if (f.isDirectory())
-                {
-                    t++;
-                    try
+                futures.add(CompletableFuture.runAsync(() -> {
+                    if (Files.isDirectory(f))
                     {
-                        Instances.loadInstance(f.getName());
-                        l++;
-                    } catch (FileNotFoundException err)
-                    {
-                        if(!f.getName().startsWith(".")) {
-                            CreeperLogger.INSTANCE.error("Not a valid instance '" + f.getName() + "', skipping...");
-                        } else {
-                            t--;
+                        t.getAndIncrement();
+                        try
+                        {
+                            Instances.loadInstance(f);
+                            l.getAndIncrement();
+                        } catch (FileNotFoundException err)
+                        {
+                            if(!f.getFileName().toString().startsWith(".")) {
+                                CreeperLogger.INSTANCE.error("Not a valid instance '" + f.getFileName() + "', skipping...");
+                            } else {
+                                t.getAndDecrement();
+                            }
+                            //err.printStackTrace();
                         }
-                        //err.printStackTrace();
                     }
+                }));
+            }
+        }
+        futures.add(CompletableFuture.runAsync(() -> {
+            if(Constants.S3_HOST != null && Constants.S3_BUCKET != null && Constants.S3_KEY != null && Constants.S3_SECRET != null) {
+                if (!Constants.S3_HOST.isEmpty() && !Constants.S3_BUCKET.isEmpty() && !Constants.S3_KEY.isEmpty() && !Constants.S3_SECRET.isEmpty()) {
+                    CreeperLogger.INSTANCE.info("Loading cloud instances");
+
+                    cloudInstances = loadCloudInstances();
+                    CreeperLogger.INSTANCE.info("Loaded " + cloudInstances().size() + " cloud instances.");
                 }
             }
-        }
-        CreeperLogger.INSTANCE.info("Loaded "+l+" out of "+t+" instances.");
-        if(Constants.S3_HOST != null && Constants.S3_BUCKET != null && Constants.S3_KEY != null && Constants.S3_SECRET != null) {
-            if (!Constants.S3_HOST.isEmpty() && !Constants.S3_BUCKET.isEmpty() && !Constants.S3_KEY.isEmpty() && !Constants.S3_SECRET.isEmpty()) {
-                CreeperLogger.INSTANCE.info("Loading cloud instances");
+        }));
+        MiscUtils.allFutures(futures).join();
+        CreeperLogger.INSTANCE.info("Loaded "+l.get()+" out of "+t.get()+" instances.");
 
-                cloudInstances = loadCloudInstances();
-                CreeperLogger.INSTANCE.info("Loaded " + cloudInstances().size() + " cloud instances.");
-            }
-        }
     }
 
-    private static void loadInstance(String _uuid) throws FileNotFoundException
+    private static void loadInstance(Path path) throws FileNotFoundException
     {
-        File json = new File(Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC) + File.separator + _uuid, "instance.json");
-        if (!json.exists()) throw new FileNotFoundException("Instance corrupted; " + json.getAbsoluteFile());
+        Path json = path.resolve("instance.json");
+        if (Files.notExists(json)) throw new FileNotFoundException("Instance corrupted; " + json.toAbsolutePath());
         try {
-            UUID uuid = UUID.fromString(_uuid);
-            LocalInstance loadedInstance = new LocalInstance(uuid);
-            Instances.addInstance(uuid, loadedInstance);
+            LocalInstance loadedInstance = new LocalInstance(path);
+            Instances.addInstance(loadedInstance.getUuid(), loadedInstance);
         } catch(Exception e)
         {
             CreeperLogger.INSTANCE.error("Corrupted instance json!", e);
-            throw new FileNotFoundException("Instance corrupted; " + json.getAbsoluteFile());
+            throw new FileNotFoundException("Instance corrupted; " + json.toAbsolutePath());
         }
     }
 

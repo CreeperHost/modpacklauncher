@@ -2,47 +2,50 @@ package net.creeperhost.creeperlauncher;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.stream.JsonReader;
+import com.google.gson.reflect.TypeToken;
 import net.creeperhost.creeperlauncher.api.WebSocketAPI;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.*;
+import java.lang.reflect.Type;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
 
 public class Settings
 {
+    private static final Type settingsToken = new TypeToken<HashMap<String, String>>(){}.getType();
+    private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
     public static HashMap<String, String> settings = new HashMap<>();
     public static WebSocketAPI webSocketAPI;
 
     public static void saveSettings()
     {
-        try
+        Path json = Constants.BIN_LOCATION.resolve("settings.json");
+        try (BufferedWriter writer = Files.newBufferedWriter(json, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE))
         {
-            Gson gson = new GsonBuilder().setPrettyPrinting().create();
-            String jsonSettings = gson.toJson(Settings.settings);
-            File json = new File(Constants.BIN_LOCATION, "settings.json");
-            if (!json.exists()) json.createNewFile();
-            BufferedWriter fileWriter = new BufferedWriter(new FileWriter(json.getAbsolutePath()));
-            fileWriter.write(jsonSettings);
-            fileWriter.close();
-        } catch (Exception ignored) {}
+            gson.toJson(settings, settingsToken, writer);
+        }
+        catch (IOException ignored) {}
     }
 
     public static void loadSettings()
     {
-        loadSettings(new File(Constants.BIN_LOCATION, "settings.json"), true);
+        loadSettings(Constants.BIN_LOCATION.resolve("settings.json"), true);
     }
 
     // Only use directly during migrate logic to avoid saving settings immediately
-    public static void  loadSettings(File json, boolean save)
+    public static void loadSettings(Path json, boolean save)
     {
         try
         {
 
-            if (json.exists()) {
-                Gson gson = new Gson();
-                JsonReader jr = new JsonReader(new BufferedReader(new FileReader(json.getAbsoluteFile())));
-                Settings.settings = gson.fromJson(jr, HashMap.class);
+            if (Files.exists(json)) {
+                try (BufferedReader reader = Files.newBufferedReader(json)) {
+                    Settings.settings = gson.fromJson(reader, settingsToken);
+                }
                 if (Settings.settings.getClass() != HashMap.class)
                 {
                     Settings.settings = new HashMap<>();
@@ -50,7 +53,7 @@ public class Settings
             } else {
                 Settings.settings = new HashMap<>();
             }
-            Settings.settings.put("instanceLocation", Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC));
+            Settings.settings.put("instanceLocation", Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC.toAbsolutePath().toString()));
             if (save)
             {
                 saveSettings();
@@ -58,12 +61,24 @@ public class Settings
         } catch (Exception err)
         {
             Settings.settings = new HashMap<>();
-            Settings.settings.put("instanceLocation", Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC));
+            Settings.settings.put("instanceLocation", Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC.toAbsolutePath().toString()));
             if (save)
             {
                 saveSettings();
             }
         }
+    }
+
+    public static Path getPathOpt(String opt, Path default_) {
+        String value = settings.get(opt);
+        if (StringUtils.isEmpty(value)) {
+            return default_;
+        }
+        return Paths.get(value);
+    }
+
+    public static Path getInstanceLocOr(Path default_) {
+        return getPathOpt("instanceLocation", default_);
     }
 
     public static String getDefaultThreadLimit(String arg)

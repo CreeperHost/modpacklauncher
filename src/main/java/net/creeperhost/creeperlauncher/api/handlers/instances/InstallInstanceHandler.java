@@ -1,9 +1,6 @@
 package net.creeperhost.creeperlauncher.api.handlers.instances;
 
-import net.creeperhost.creeperlauncher.CreeperLauncher;
-import net.creeperhost.creeperlauncher.CreeperLogger;
-import net.creeperhost.creeperlauncher.Settings;
-import net.creeperhost.creeperlauncher.Instances;
+import net.creeperhost.creeperlauncher.*;
 import net.creeperhost.creeperlauncher.api.SimpleDownloadableFile;
 import net.creeperhost.creeperlauncher.api.data.instances.InstallInstanceData;
 import net.creeperhost.creeperlauncher.api.data.other.InstalledFileEventData;
@@ -46,7 +43,7 @@ public class InstallInstanceHandler implements IMessageHandler<InstallInstanceDa
         if(data.uuid != null && data.uuid.length() > 0)
         {
             try {
-                instance = new LocalInstance(UUID.fromString(data.uuid));
+                instance = new LocalInstance(Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve(data.uuid));
                 install = instance.update(data.version);
             } catch (Exception ignored) {
                 lastError.set("Instance not found, aborting update.");
@@ -121,12 +118,29 @@ public class InstallInstanceHandler implements IMessageHandler<InstallInstanceDa
                     FTBModPackInstallerTask.batchedFiles.clear();
                 } else
                 {
-                    Settings.webSocketAPI.sendMessage(new InstallInstanceData.Progress(data, 0.00d, speed, curBytes, -1, FTBModPackInstallerTask.currentStage));
-                    curProgress = 0d;
-                }
-                if (curProgress > 0)
-                {
-                    ++sinceLastChange;
+                    if (FTBModPackInstallerTask.currentStage != FTBModPackInstallerTask.Stage.DOWNLOADS)
+                    {
+                        Settings.webSocketAPI.sendMessage(new InstallInstanceData.Progress(data, 0.00d, speed, curBytes, -1, FTBModPackInstallerTask.currentStage));
+                        curProgress = 0d;
+                    }
+                    if (curProgress > 0)
+                    {
+                        sinceLastChange = 0;
+                        Settings.webSocketAPI.sendMessage(new InstallInstanceData.Progress(data, curProgress, speed, curBytes, FTBModPackInstallerTask.overallBytes.get(), FTBModPackInstallerTask.Stage.DOWNLOADS));
+                        Settings.webSocketAPI.sendMessage(new InstalledFileEventData.Reply(FTBModPackInstallerTask.batchedFiles));
+                        FTBModPackInstallerTask.batchedFiles.clear();
+                    } else
+                    {
+                        if (FTBModPackInstallerTask.currentStage != FTBModPackInstallerTask.Stage.DOWNLOADS)
+                        {
+                            Settings.webSocketAPI.sendMessage(new InstallInstanceData.Progress(data, 0.00d, speed, curBytes, -1, FTBModPackInstallerTask.currentStage));
+                            curProgress = 0d;
+                        }
+                        if (curProgress > 0)
+                        {
+                            ++sinceLastChange;
+                        }
+                    }
                 }
                 if (sinceLastChange > 120)
                 {

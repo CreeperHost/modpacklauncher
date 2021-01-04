@@ -3,117 +3,117 @@ package net.creeperhost.creeperlauncher.install.tasks;
 import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.CreeperLogger;
+import net.creeperhost.creeperlauncher.util.FileUtils;
 import net.creeperhost.creeperlauncher.util.MiscUtils;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 public class LocalCache
 {
-    private List<UUID> files = new ArrayList<UUID>();
-    private Path cacheLocation = Path.of(Settings.settings.getOrDefault("instanceLocation", Constants.INSTANCES_FOLDER_LOC), ".localCache");
+    //TODO, Using name UUID's here is not unique and can cause collisions as the
+    // SHA1 passed in gets converted to an MD5 then represented as a UUID.
+    // This should be switched to at least Map<HashCode, Path>
+    private final Map<UUID, Path> files = new HashMap<>();
+    private final Path cacheLocation = Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve(".localCache");
 
     public LocalCache()
     {
-        File cache = cacheLocation.toFile();
-        if (!cache.exists()) cache.mkdirs();
-        File[] cached = cache.listFiles();
-        if (cached != null)
-        {
-            for (File f : cached)
-            {
-                try
-                {
-                    files.add(UUID.fromString(f.getName()));
-                } catch (Exception ignored)
-                {
+        FileUtils.createDirectories(cacheLocation);
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(cacheLocation)) {
+            for (Path file : stream) {
+                if (Files.isRegularFile(file)) {
+                    String name = file.getFileName().toString();
+                    try {
+                        files.put(UUID.fromString(name), file);
+                    } catch (Exception e) {
+                        CreeperLogger.INSTANCE.warning("Deleting invalid file from cache directory: " + file);
+                        try {
+                            Files.delete(file);
+                        } catch (IOException ignored) {
+                        }
+                    }
                 }
             }
+        } catch (IOException ignored) {
         }
     }
 
     public boolean exists(String sha1Hash)
     {
         if (sha1Hash == null) return false;
-        return files.contains(UUID.nameUUIDFromBytes(sha1Hash.getBytes()));
+        return exists(UUID.nameUUIDFromBytes(sha1Hash.getBytes()));
     }
 
     public boolean exists(UUID uuid)
     {
-        return files.contains(uuid);
+        return files.containsKey(uuid);
     }
 
-    public File get(String sha1Hash)
+    public Path get(String sha1Hash)
     {
-        return new File(cacheLocation.toFile(), UUID.nameUUIDFromBytes(sha1Hash.getBytes()).toString());
+        return files.get(UUID.nameUUIDFromBytes(sha1Hash.getBytes()));
     }
 
-    public boolean put(File f, String sha1Hash)
+    private Path pathOf(String hash) {
+        return cacheLocation.resolve(UUID.nameUUIDFromBytes(hash.getBytes()).toString());
+    }
+
+    public boolean put(Path f, String sha1Hash)
     {
-        if (!f.exists()) return false;
-        if (sha1Hash == null) return false;
+        if (Files.notExists(f) || sha1Hash == null) return false;
         UUID uuid = UUID.nameUUIDFromBytes(sha1Hash.getBytes());
         if (exists(uuid)) return false;
-        if (get(sha1Hash).exists()) return false;
+        Path cachePath = pathOf(sha1Hash);
+        if (Files.exists(cachePath)) return false;
         try
         {
-            Files.copy(f.toPath(), get(sha1Hash).toPath());
+            Files.copy(f, cachePath);
+            files.put(uuid, cachePath);
         } catch (IOException err)
         {
-            CreeperLogger.INSTANCE.error("Failed to add '" + f.getAbsolutePath() + "' to local cache.");
+            CreeperLogger.INSTANCE.error("Failed to add '" + f.toAbsolutePath() + "' to local cache.");
             return false;
         }
-        files.add(uuid);
         return true;
     }
 
     public void clean()
     {
-        File file = cacheLocation.toFile();
-        File[] cached = file.listFiles();
-        Long cacheLife = Long.valueOf(Settings.settings.getOrDefault("cacheLife", "5184000"));
+        long cacheLife = Long.parseLong(Settings.settings.getOrDefault("cacheLife", "5184000"));
         if (cacheLife < 0) cacheLife = 900L;
-        if (cached != null)
+        for (Map.Entry<UUID, Path> entry : files.entrySet())
         {
-            for (File f : cached)
+            UUID uuid = entry.getKey();
+            Path file = entry.getValue();
+            if (!Files.isRegularFile(file)) {
+                continue;
+            }
+            BasicFileAttributes attrs;
+            try
             {
-                BasicFileAttributes attrs = null;
-                try
+                attrs = Files.readAttributes(file, BasicFileAttributes.class);
+            } catch (IOException e)
+            {
+                CreeperLogger.INSTANCE.warning("Unable to remove local cache file '" + file.toAbsolutePath() + "': " + e.getMessage());
+                continue;
+            }
+            FileTime time = attrs.lastAccessTime();
+            if (time == null) time = attrs.creationTime();
+            long fileAge = MiscUtils.unixtime() - (time.toMillis() / 1000);
+            if (fileAge > cacheLife)
+            {
+                if (Files.exists(file))
                 {
-                    attrs = Files.readAttributes(f.toPath(), BasicFileAttributes.class);
-                } catch (IOException e)
-                {
-                    CreeperLogger.INSTANCE.warning("Unable to remove local cache file '" + f.getName() + "': " + e.getMessage());
-                }
-                FileTime time = attrs.lastAccessTime();
-                if (time == null) time = attrs.creationTime();
-                Long fileAge = MiscUtils.unixtime() - (time.toMillis() / 1000);
-                UUID uuid;
-                try
-                {
-                    uuid = UUID.fromString(f.getName());
-                } catch (Exception err)
-                {
-                    if (f.exists())
-                    {
-                        f.delete();
-                        CreeperLogger.INSTANCE.warning("Deleting invalid file '" + f.getName() + "' which is " + fileAge + " seconds old.");
-                    }
-                    continue;
-                }
-                if (fileAge > cacheLife)
-                {
-                    if (files.contains(uuid) && f.exists())
-                    {
-                        files.remove(uuid);
-                        f.delete();
+                    files.remove(uuid);
+                    try {
+                        Files.delete(file);
+                    } catch (IOException ignored) {
                     }
                 }
             }

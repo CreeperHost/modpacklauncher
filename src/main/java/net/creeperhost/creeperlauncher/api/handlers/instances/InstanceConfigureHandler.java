@@ -1,11 +1,13 @@
 package net.creeperhost.creeperlauncher.api.handlers.instances;
 
+import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.Instances;
 import net.creeperhost.creeperlauncher.api.data.instances.InstanceConfigureData;
 import net.creeperhost.creeperlauncher.api.handlers.IMessageHandler;
 import net.creeperhost.creeperlauncher.pack.LocalInstance;
 
+import java.nio.file.Paths;
 import java.util.Map;
 import java.util.UUID;
 
@@ -16,7 +18,8 @@ public class InstanceConfigureHandler implements IMessageHandler<InstanceConfigu
     {
         try
         {
-            LocalInstance instance = new LocalInstance(UUID.fromString(data.uuid));
+            //TODO, instance lookup?
+            LocalInstance instance = new LocalInstance(Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve(data.uuid));
             for (Map.Entry<String, String> setting : data.instanceInfo.entrySet())
             {
                 switch (setting.getKey().toLowerCase())
@@ -42,10 +45,10 @@ public class InstanceConfigureHandler implements IMessageHandler<InstanceConfigu
                     case "jrepath":
                         if(setting.getValue().length() == 0){
                             instance.embeddedJre = true;
-                            instance.jrePath = "";
+                            instance.jrePath = null;
                         } else {
                             instance.embeddedJre = false;
-                            instance.jrePath = setting.getValue();
+                            instance.jrePath = Paths.get(setting.getValue());
                         }
                         break;
                 }

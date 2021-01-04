@@ -1,5 +1,6 @@
 package net.creeperhost.creeperlauncher.api.handlers.friends;
 
+import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.data.friends.GetFriendsData;
 import net.creeperhost.creeperlauncher.api.handlers.IMessageHandler;
@@ -26,19 +27,28 @@ public class GetFriendsHandler implements IMessageHandler<GetFriendsData> {
                     try {
                         List<Friends.Friend> friends = new ArrayList<>();
                         for (CompletableFuture<Friends.Friend> friendCompletableFuture : friendComList) {
-                            Friends.Friend friend = friendCompletableFuture.get();
-                            friends.add(friend);
+                            if(!friendCompletableFuture.isCompletedExceptionally()){
+                                Friends.Friend friend = friendCompletableFuture.get();
+                                friends.add(friend);
+                            }
                         }
                         List<Friends.Friend> requests = new ArrayList<>();
                         for (CompletableFuture<Friends.Friend> friendCompletableFuture : requestComList) {
-                            Friends.Friend friend = friendCompletableFuture.get();
-                            requests.add(friend);
+                            if(!friendCompletableFuture.isCompletedExceptionally()){
+                                Friends.Friend friend = friendCompletableFuture.get();
+                                requests.add(friend);
+                            }
                         }
                         listFriendResponse.friends = friends;
                         listFriendResponse.requests = requests;
-                        Settings.webSocketAPI.sendMessage(new GetFriendsData.Reply(data, listFriendResponse));
-                    } catch(Exception ignored) {}
+                    } catch(Exception ignored) {
+                        CreeperLogger.INSTANCE.error("Error sorting profiles", ignored);
+                        ignored.printStackTrace();
+                    }
+                    Settings.webSocketAPI.sendMessage(new GetFriendsData.Reply(data, listFriendResponse));
                 });
+            } else {
+                Settings.webSocketAPI.sendMessage(new GetFriendsData.Reply(data, null));
             }
         });
     }
