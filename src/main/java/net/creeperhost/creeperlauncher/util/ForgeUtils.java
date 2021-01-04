@@ -13,6 +13,7 @@ import java.lang.reflect.Method;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 
 public class ForgeUtils
 {
@@ -86,7 +87,7 @@ public class ForgeUtils
         return null;
     }
 
-    public static boolean validateJson(File file, LocalInstance instance)
+    public static boolean validateJson(Path file, LocalInstance instance)
     {
         StartJson sj = getFromJson(file);
         if (sj == null) return false;
@@ -98,7 +99,7 @@ public class ForgeUtils
         String jstring = GsonUtils.GSON.toJson(sj);
         try
         {
-            Files.write(file.toPath(), jstring.getBytes(StandardCharsets.UTF_8));
+            Files.write(file, jstring.getBytes(StandardCharsets.UTF_8));
         } catch (IOException e)
         {
             e.printStackTrace();
@@ -106,9 +107,9 @@ public class ForgeUtils
         return true;
     }
 
-    public static StartJson getFromJson(File target)
+    public static StartJson getFromJson(Path target)
     {
-        try (InputStream stream = new FileInputStream(target))
+        try (InputStream stream = Files.newInputStream(target))
         {
             JsonObject json = new JsonParser().parse(new InputStreamReader(stream, StandardCharsets.UTF_8)).getAsJsonObject();
             stream.close();
@@ -117,15 +118,15 @@ public class ForgeUtils
         return null;
     }
 
-    public static boolean updateForgeJson(File target, String newname, String minecraftversion)
+    public static boolean updateForgeJson(Path target, String newname, String minecraftversion)
     {
         CreeperLogger.INSTANCE.info("Attempting to update forge json");
         try
         {
-            JsonObject json = null;
-            try (InputStream stream = new FileInputStream(target))
+            JsonObject json;
+            try (BufferedReader reader = Files.newBufferedReader(target))
             {
-                json = new JsonParser().parse(new InputStreamReader(stream, StandardCharsets.UTF_8)).getAsJsonObject();
+                json = GsonUtils.GSON.fromJson(reader, JsonObject.class);
             } catch (IOException e)
             {
                 CreeperLogger.INSTANCE.error("Failed to read " + target);
@@ -161,7 +162,7 @@ public class ForgeUtils
                     }
                 }
                 String jstring = GsonUtils.GSON.toJson(json);
-                Files.write(target.toPath(), jstring.getBytes(StandardCharsets.UTF_8));
+                Files.write(target, jstring.getBytes(StandardCharsets.UTF_8));
                 return true;
             }
         } catch (IOException e)
@@ -183,28 +184,26 @@ public class ForgeUtils
         }
     }
 
-    public static boolean extractJson(String path, String name)
+    public static boolean extractJson(Path path, String name)
     {
-        File jar_location = new File(path);
         try
         {
-            FileUtils.fileFromZip(jar_location, new File(jar_location.getParent(), name), "version.json");
+            FileUtils.fileFromZip(path, path.resolveSibling(name), "version.json");
             return true;
         } catch (IOException err)
         {
-            CreeperLogger.INSTANCE.error("Failed to extract 'version.json' from '" + path + "' to '" + name + "'");
+            CreeperLogger.INSTANCE.error("Failed to extract 'version.json' from '" + path + "' to '" + name + "'", err);
         }
         return false;
     }
 
     @SuppressWarnings("all")
-    public static void runForgeInstaller(String jarloc)
+    public static void runForgeInstaller(Path jarloc)
     {
         try
         {
-            File jar = new File(jarloc);
-            System.out.println(jar.exists());
-            URLClassLoader child = new URLClassLoader(new URL[]{jar.toURI().toURL()}, CreeperLauncher.class.getClassLoader());
+            System.out.println(Files.exists(jarloc));
+            URLClassLoader child = new URLClassLoader(new URL[]{jarloc.toUri().toURL()}, CreeperLauncher.class.getClassLoader());
             Class<?> simpleInstallerClass = Class.forName("net.minecraftforge.installer.SimpleInstaller", true, child);
             simpleInstallerClass.getDeclaredField("headless").set(null, true);
             Class<?> utilClass = Class.forName("net.minecraftforge.installer.json.Util", true, child);
@@ -218,7 +217,7 @@ public class ForgeUtils
             Object clientInstall = constructor.newInstance(install, progress);
             Method runMethod = clientInstallClass.getDeclaredMethod("run", File.class, java.util.function.Predicate.class);
             java.util.function.Predicate<String> pred = (p) -> true;
-            runMethod.invoke(clientInstall, new File(Constants.BIN_LOCATION), pred);
+            runMethod.invoke(clientInstall, Constants.BIN_LOCATION.toFile(), pred);
             System.out.println(install);
             System.out.println(progress);
             System.out.println(clientInstall);

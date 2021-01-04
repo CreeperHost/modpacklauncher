@@ -1,5 +1,6 @@
 package net.creeperhost.creeperlauncher.api;
 
+import java.net.BindException;
 import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.CreeperLauncher;
 import net.creeperhost.creeperlauncher.CreeperLogger;
@@ -90,6 +91,15 @@ public class WebSocketAPI extends WebSocketServer
             CreeperLogger.INSTANCE.error("an error occurred on connection " + conn.getRemoteSocketAddress() + ":" + ex, ex);
         } catch (NullPointerException ignored)
         {
+            if(ex instanceof BindException) {
+                CreeperLauncher.websocketPort = generateRandomPort();
+                CreeperLogger.INSTANCE.info("New Port: " + CreeperLauncher.websocketPort);
+                Settings.webSocketAPI = new WebSocketAPI(new InetSocketAddress(InetAddress.getLoopbackAddress(), CreeperLauncher.websocketPort));
+                Settings.webSocketAPI.start();
+                try {
+                    stop();
+                } catch (Exception ignoredTwo) {}
+            }
         }
     }
 
