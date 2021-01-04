@@ -329,13 +329,13 @@ public class McUtils {
             }
         }
         Path file = binFolder.resolve(Constants.MINECRAFT_LAUNCHER_NAME);
+        Path destinationFile = Constants.MINECRAFT_LAUNCHER_LOCATION;
         OS os = OSUtils.getOs();
         if (os == OS.MAC) {
             file = binFolder.resolve(Constants.MINECRAFT_MAC_LAUNCHER_EXECUTABLE_NAME);
         }
         if (Files.notExists(file)) {
             CreeperLogger.INSTANCE.info("Starting download of the vanilla launcher");
-            Path destinationFile = Constants.MINECRAFT_LAUNCHER_LOCATION;
             DownloadableFile remoteFile = new DownloadableFile("official", destinationFile, downloadurl, new ArrayList<>(), 0, false, false, 0, "Vanilla", "vanilla", String.valueOf(System.currentTimeMillis() / 1000L));
             Path destinationDir = Constants.BIN_LOCATION;
             Path moveDestination = null;
@@ -369,7 +369,7 @@ public class McUtils {
                 return;
             }
         }
-        if (Files.exists(file)) {
+        if (Files.exists(destinationFile)) {
             boolean osConfig = false;
             try {
                 osConfig = McUtils.prepareVanillaLauncher(file);
