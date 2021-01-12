@@ -23,6 +23,7 @@ public class InstalledInstancesHandler implements IMessageHandler<InstalledInsta
             List<LocalInstance> installedInstances;
             List<JsonObject> cloudInstances;
             try {
+                //TODO, an exception will never be produced here.
                 Instances.allInstances();
                 Instances.cloudInstances();
             } catch(Throwable t)

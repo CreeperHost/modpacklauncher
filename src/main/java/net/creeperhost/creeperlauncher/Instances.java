@@ -4,25 +4,21 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import net.creeperhost.creeperlauncher.minetogether.cloudsaves.CloudSaveManager;
 import net.creeperhost.creeperlauncher.pack.LocalInstance;
+import net.creeperhost.creeperlauncher.util.ElapsedTimer;
 import net.creeperhost.creeperlauncher.util.FileUtils;
-import net.creeperhost.creeperlauncher.util.MiscUtils;
+import org.apache.commons.lang3.StringUtils;
 
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class Instances
 {
-    private static HashMap<UUID, LocalInstance> instances = new HashMap<UUID, LocalInstance>();
-    private static HashMap<UUID, JsonObject> cloudInstances = new HashMap<UUID, JsonObject>();
+    private static Map<UUID, LocalInstance> instances = new HashMap<>();
+    private static Map<UUID, JsonObject> cloudInstances = new HashMap<>();
 
     public static boolean addInstance(UUID uuid, LocalInstance instance)
     {
@@ -40,75 +36,73 @@ public class Instances
         return instances.keySet().stream().map(UUID::toString).collect(Collectors.toList());
     }
 
+    //TODO, do these need to copy?
     public static List<LocalInstance> allInstances()
     {
-        return Instances.instances.values().stream().collect(Collectors.toList());
+        return new ArrayList<>(Instances.instances.values());
     }
 
     public static List<JsonObject> cloudInstances()
     {
-        return Instances.cloudInstances.values().stream().collect(Collectors.toList());
+        return new ArrayList<>(Instances.cloudInstances.values());
     }
 
-    public static void refreshInstances()
-    {
-        Path file = Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC);
+    public static void refreshInstances() {
+        ElapsedTimer totalTimer = new ElapsedTimer();
+        Path instancesDir = Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC);
+
+        CreeperLogger.INSTANCE.info("Reloading instances..");
         instances.clear();
-        List<Path> files = FileUtils.listDir(file);
-        ArrayList<CompletableFuture<?>> futures = new ArrayList<>();
-        AtomicInteger l = new AtomicInteger(0);
-        AtomicInteger t = new AtomicInteger(0);
-        if (files != null)
-        {
-            for (Path f : files)
-            {
-                futures.add(CompletableFuture.runAsync(() -> {
-                    if (Files.isDirectory(f))
-                    {
-                        t.getAndIncrement();
-                        try
-                        {
-                            Instances.loadInstance(f);
-                            l.getAndIncrement();
-                        } catch (FileNotFoundException err)
-                        {
-                            if(!f.getFileName().toString().startsWith(".")) {
-                                CreeperLogger.INSTANCE.error("Not a valid instance '" + f.getFileName() + "', skipping...");
-                            } else {
-                                t.getAndDecrement();
-                            }
-                            //err.printStackTrace();
-                        }
-                    }
-                }));
-            }
-        }
-        futures.add(CompletableFuture.runAsync(() -> {
-            if(Constants.S3_HOST != null && Constants.S3_BUCKET != null && Constants.S3_KEY != null && Constants.S3_SECRET != null) {
-                if (!Constants.S3_HOST.isEmpty() && !Constants.S3_BUCKET.isEmpty() && !Constants.S3_KEY.isEmpty() && !Constants.S3_SECRET.isEmpty()) {
-                    CreeperLogger.INSTANCE.info("Loading cloud instances");
 
-                    cloudInstances = loadCloudInstances();
-                    CreeperLogger.INSTANCE.info("Loaded " + cloudInstances().size() + " cloud instances.");
-                }
-            }
-        }));
-        MiscUtils.allFutures(futures).join();
-        CreeperLogger.INSTANCE.info("Loaded "+l.get()+" out of "+t.get()+" instances.");
+        CompletableFuture<?> cloudFuture = reloadCloudInstances();
+
+        if (!Files.exists(instancesDir)) {
+            CreeperLogger.INSTANCE.info("Instances directory missing, skipping..");
+        } else {
+            ElapsedTimer timer = new ElapsedTimer();
+            List<LocalInstance> loadedInstances = FileUtils.listDir(instancesDir).stream()
+                    .parallel()
+                    .filter(e -> !e.getFileName().toString().startsWith("."))
+                    .map(Instances::loadInstance)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+            instances = loadedInstances.stream().collect(Collectors.toMap(LocalInstance::getUuid, Function.identity()));
+            CreeperLogger.INSTANCE.info(String.format("Loaded %s out of %s instances in %s.", instances.size(), loadedInstances.size(), timer.elapsedStr()));
+        }
+
+        if (cloudFuture != null) {
+            cloudFuture.join();
+        }
+
+        CreeperLogger.INSTANCE.info(String.format("Finished instance reload in %s", totalTimer.elapsedStr()));
 
     }
 
-    private static void loadInstance(Path path) throws FileNotFoundException
-    {
+
+    public static CompletableFuture<?> reloadCloudInstances() {
+        if (StringUtils.isNotEmpty(Constants.S3_HOST) && StringUtils.isNotEmpty(Constants.S3_BUCKET) && StringUtils.isNotEmpty(Constants.S3_KEY) && StringUtils.isNotEmpty(Constants.S3_SECRET)) {
+            return CompletableFuture.runAsync(() -> {
+                ElapsedTimer timer = new ElapsedTimer();
+                CreeperLogger.INSTANCE.info("Loading cloud instances");
+                cloudInstances = loadCloudInstances();
+                CreeperLogger.INSTANCE.info(String.format("Loaded %s cloud instances in %s.", cloudInstances.size(), timer.elapsedStr()));
+            });
+        }
+        CreeperLogger.INSTANCE.info("Skipping Cloud instance reload.");
+        return null;
+    }
+
+    private static LocalInstance loadInstance(Path path) {
         Path json = path.resolve("instance.json");
-        if (Files.notExists(json)) throw new FileNotFoundException("Instance corrupted; " + json.toAbsolutePath());
+        if (Files.notExists(json)) {
+            CreeperLogger.INSTANCE.error("Instance missing 'instance.json', Ignoring. " + json.toAbsolutePath());
+            return null;
+        }
         try {
-            LocalInstance loadedInstance = new LocalInstance(path);
-            Instances.addInstance(loadedInstance.getUuid(), loadedInstance);
-        } catch(Exception e)
-        {
-            CreeperLogger.INSTANCE.error("Corrupted instance json!", e);
-            throw new FileNotFoundException("Instance corrupted; " + json.toAbsolutePath());
+            return new LocalInstance(path);
+        } catch(Exception e) {
+            CreeperLogger.INSTANCE.error("Instance has corrupted 'instance.json'. " + json.toAbsolutePath());
+            return null;
         }
     }
 
