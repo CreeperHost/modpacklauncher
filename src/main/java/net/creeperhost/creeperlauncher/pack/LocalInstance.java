@@ -185,9 +185,7 @@ public class LocalInstance implements IPack
             this.jrePath = jsonOutput.jrePath;
             this.dir = this.path;
             this.cloudSaves = jsonOutput.cloudSaves;
-            CompletableFuture.runAsync(() -> {
-                this.hasLoadingMod = checkForLaunchMod();
-            });
+            CompletableFuture.runAsync(() -> this.hasLoadingMod = checkForLaunchMod());
         } catch(Exception e)
         {
             throw new RuntimeException("Instance is corrupted!", e);
@@ -204,17 +202,6 @@ public class LocalInstance implements IPack
         this.hasLoadingMod = checkForLaunchMod();
     }
 
-    public LocalInstance(LocalInstance originalInstance)
-    {
-        //this = originalInstance;
-        UUID uuid = UUID.randomUUID();
-        this.uuid = uuid;
-        this.path = Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve(uuid.toString());
-        CompletableFuture.runAsync(() -> {
-            this.hasLoadingMod = checkForLaunchMod();
-        });
-    }
-
     private static final String[] candidates = new String[] {
             "net/creeperhost/traylauncher/TrayLauncher.class",
             "net/creeperhost/launchertray/LauncherTray.class",
@@ -222,29 +209,36 @@ public class LocalInstance implements IPack
     };
 
     private boolean checkForLaunchMod() {
-        List<Path> modsDir = FileUtils.listDir(path.resolve("mods"));
-        if (modsDir.isEmpty()) return false;
-
-        for (Path file : modsDir) {
-            if (!Files.isRegularFile(file)) continue;
-
-            try (ZipInputStream zin = new ZipInputStream(Files.newInputStream(file))) {
-                Set<String> entries = new HashSet<>();
-
-                ZipEntry entry;
-                while ((entry = zin.getNextEntry()) != null) {
-                    entries.add(entry.getName());
-                }
-
-                for (String candidate: candidates) {
-                    if (entries.contains(candidate)) {
-                        return true;
-                    }
-                }
-            } catch (IOException ignored) {
-            }
+        Path modsDir = path.resolve("mods");
+        if (!Files.exists(modsDir)) {
+            return false;
         }
-        return false;
+        ElapsedTimer timer = new ElapsedTimer();
+
+        CreeperLogger.INSTANCE.info(String.format("Checking for Launch Mod for instance %s(%s)..", uuid, name));
+        boolean ret = FileUtils.listDir(modsDir).parallelStream()
+                .anyMatch(file -> {
+                    if (!Files.isRegularFile(file)) return false;
+
+                    try (ZipInputStream zin = new ZipInputStream(Files.newInputStream(file))) {
+                        Set<String> entries = new HashSet<>();
+
+                        ZipEntry entry;
+                        while ((entry = zin.getNextEntry()) != null) {
+                            entries.add(entry.getName());
+                        }
+
+                        for (String candidate : candidates) {
+                            if (entries.contains(candidate)) {
+                                return true;
+                            }
+                        }
+                    } catch (IOException ignored) {
+                    }
+                    return false;
+                });
+        CreeperLogger.INSTANCE.info(String.format("%s Launch Mod for instance %s(%s) in %s.", ret ? "Found" : "Didn't find", uuid, name, timer.elapsedStr()));
+        return ret;
     }
 
     private LocalInstance()
