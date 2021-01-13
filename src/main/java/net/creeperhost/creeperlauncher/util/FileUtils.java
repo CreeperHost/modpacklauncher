@@ -38,7 +38,7 @@ public class FileUtils
                 if (entry.isDirectory()) continue;
 
                 FileUtils.createDirectories(outputFile.getParent());
-                Files.copy(tarStream, outputFile);
+                Files.copy(tarStream, outputFile, StandardCopyOption.REPLACE_EXISTING);
                 untaredFiles.add(outputFile);
             }
         }
