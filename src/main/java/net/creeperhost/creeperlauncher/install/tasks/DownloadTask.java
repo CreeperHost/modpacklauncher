@@ -54,7 +54,7 @@ public class DownloadTask implements IInstallTask
                     }
                 } catch (IOException e)
                 {
-                    CreeperLogger.INSTANCE.error("Unable to download " + file.getName());
+                    CreeperLogger.INSTANCE.error("Unable to download " + file.getName(), e);
                     return;
                 }
             }
