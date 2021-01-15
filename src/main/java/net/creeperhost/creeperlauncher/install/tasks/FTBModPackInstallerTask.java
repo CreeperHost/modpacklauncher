@@ -6,7 +6,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.CreeperLauncher;
-import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.DownloadableFile;
 import net.creeperhost.creeperlauncher.api.SimpleDownloadableFile;
@@ -19,6 +18,8 @@ import net.creeperhost.creeperlauncher.os.OSUtils;
 import net.creeperhost.creeperlauncher.pack.FTBPack;
 import net.creeperhost.creeperlauncher.pack.LocalInstance;
 import net.creeperhost.creeperlauncher.util.*;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.*;
 import java.net.MalformedURLException;
@@ -36,6 +37,8 @@ import static net.creeperhost.creeperlauncher.util.MiscUtils.allFutures;
 
 public class FTBModPackInstallerTask implements IInstallTask<Void>
 {
+    private static final Logger LOGGER = LogManager.getLogger();
+
     private static final Gson gson = new Gson();
     public static AtomicLong currentSpeed = new AtomicLong(0);
     public static AtomicLong averageSpeed = new AtomicLong(0);
@@ -75,25 +78,25 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
     @Override
     public CompletableFuture<Void> execute()
     {
-        CreeperLogger.INSTANCE.debug("Running install execute");
+        LOGGER.debug("Running install execute");
         return currentTask = CompletableFuture.runAsync(() ->
         {
-            CreeperLogger.INSTANCE.debug("Actually running install execute");
+            LOGGER.debug("Actually running install execute");
             currentStage = Stage.INIT;
             overallBytes.set(0);
             currentBytes.set(0);
             currentSpeed.set(0);
             startTime.set(System.currentTimeMillis());
             lastError.set("");
-            CreeperLogger.INSTANCE.info(instance.getName() + " " + instance.getId() + " " + instance.getVersionId());
+            LOGGER.info("{} {} {}", instance.getName(), instance.getId(), instance.getVersionId());
             Path instanceRoot = Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC);
             FileUtils.createDirectories(instanceRoot);
-            CreeperLogger.INSTANCE.debug("Setting stage to VANILLA");
+            LOGGER.debug("Setting stage to VANILLA");
             currentStage = Stage.VANILLA;
-            CreeperLogger.INSTANCE.debug("About to download launcher");
+            LOGGER.debug("About to download launcher");
             McUtils.downloadVanillaLauncher();
             Path profileJson = Constants.LAUNCHER_PROFILES_JSON;
-            CreeperLogger.INSTANCE.debug("Launching game and close");
+            LOGGER.debug("Launching game and close");
             if (Files.notExists(profileJson)) GameLauncher.downloadLauncherProfiles();
             Path instanceDir = instance.getDir();
             FileUtils.createDirectories(instanceDir);
@@ -123,7 +126,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
 
     public boolean downloadJsons(Path instanceDir, boolean _private)
     {
-        CreeperLogger.INSTANCE.info("Preparing instance folder for " + instanceDir.toAbsolutePath().toString());
+        LOGGER.info("Preparing instance folder for {}", instanceDir.toAbsolutePath());
         FileUtils.createDirectories(instanceDir);
 
         Path modpackJson = instanceDir.resolve("modpack.json");
@@ -141,7 +144,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                 Files.delete(versionJson);
             } catch (IOException e)
             {
-                CreeperLogger.INSTANCE.error("version.json must be exclusively locked elsewhere, we can't remove it to put the new one in!", e);
+                LOGGER.error("version.json must be exclusively locked elsewhere, we can't remove it to put the new one in!", e);
                 return false;
             }
         }
@@ -152,7 +155,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
 
     public static FTBPack getPackFromAPI(long packId, long versionId, boolean _private)
     {
-        CreeperLogger.INSTANCE.info("Getting pack from api.");
+        LOGGER.info("Getting pack from api.");
         String modpackURL = Constants.getCreeperhostModpackSearch2(_private) + packId;
         String versionURL = modpackURL + "/" + versionId;
         String name = "";
@@ -175,7 +178,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
             JsonObject object = jElement.getAsJsonObject();
             if(object.getAsJsonPrimitive("status").getAsString().equalsIgnoreCase("error"))
             {
-                CreeperLogger.INSTANCE.error("Unable to load modpack from '" + modpackURL + "'...");
+                LOGGER.error("Unable to load modpack from '" + modpackURL + "'...");
                 return null;
             }
             description = object.getAsJsonPrimitive("description").getAsString();
@@ -420,7 +423,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                         Path localPath = artifact.getLocalPath(Constants.LIBRARY_LOCATION);
                         if (!ForgeUtils.isUrlValid(uri))
                         {
-                            CreeperLogger.INSTANCE.error("Not valid url " + uri);
+                            LOGGER.error("Not valid url {}", uri);
                         }
                         FileUtils.createDirectories(localPath.toAbsolutePath().getParent());
                         String version = "unknown";
@@ -451,7 +454,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
 
     void downloadFiles(Path instanceDir, Path forgeLibs)
     {
-        CreeperLogger.INSTANCE.info("Attempting to downloaded required files");
+        LOGGER.info("Attempting to downloaded required files");
 
         ArrayList<CompletableFuture<?>> futures = new ArrayList<>();
         overallBytes.set(0);

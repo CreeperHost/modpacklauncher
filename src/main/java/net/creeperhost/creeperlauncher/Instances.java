@@ -7,6 +7,8 @@ import net.creeperhost.creeperlauncher.pack.LocalInstance;
 import net.creeperhost.creeperlauncher.util.ElapsedTimer;
 import net.creeperhost.creeperlauncher.util.FileUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -17,6 +19,8 @@ import java.util.stream.Collectors;
 
 public class Instances
 {
+    private static final Logger LOGGER = LogManager.getLogger();
+
     private static Map<UUID, LocalInstance> instances = new HashMap<>();
     private static Map<UUID, JsonObject> cloudInstances = new HashMap<>();
 
@@ -51,13 +55,13 @@ public class Instances
         ElapsedTimer totalTimer = new ElapsedTimer();
         Path instancesDir = Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC);
 
-        CreeperLogger.INSTANCE.info("Reloading instances..");
+        LOGGER.info("Reloading instances..");
         instances.clear();
 
         CompletableFuture<?> cloudFuture = reloadCloudInstances();
 
         if (!Files.exists(instancesDir)) {
-            CreeperLogger.INSTANCE.info("Instances directory missing, skipping..");
+            LOGGER.info("Instances directory missing, skipping..");
         } else {
             ElapsedTimer timer = new ElapsedTimer();
             List<LocalInstance> loadedInstances = FileUtils.listDir(instancesDir).stream()
@@ -67,14 +71,14 @@ public class Instances
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
             instances = loadedInstances.stream().collect(Collectors.toMap(LocalInstance::getUuid, Function.identity()));
-            CreeperLogger.INSTANCE.info(String.format("Loaded %s out of %s instances in %s.", instances.size(), loadedInstances.size(), timer.elapsedStr()));
+            LOGGER.info("Loaded {} out of {} instances in {}.", instances.size(), loadedInstances.size(), timer.elapsedStr());
         }
 
         if (cloudFuture != null) {
             cloudFuture.join();
         }
 
-        CreeperLogger.INSTANCE.info(String.format("Finished instance reload in %s", totalTimer.elapsedStr()));
+        LOGGER.info("Finished instance reload in {}", totalTimer.elapsedStr());
 
     }
 
@@ -83,25 +87,25 @@ public class Instances
         if (StringUtils.isNotEmpty(Constants.S3_HOST) && StringUtils.isNotEmpty(Constants.S3_BUCKET) && StringUtils.isNotEmpty(Constants.S3_KEY) && StringUtils.isNotEmpty(Constants.S3_SECRET)) {
             return CompletableFuture.runAsync(() -> {
                 ElapsedTimer timer = new ElapsedTimer();
-                CreeperLogger.INSTANCE.info("Loading cloud instances");
+                LOGGER.info("Loading cloud instances");
                 cloudInstances = loadCloudInstances();
-                CreeperLogger.INSTANCE.info(String.format("Loaded %s cloud instances in %s.", cloudInstances.size(), timer.elapsedStr()));
+                LOGGER.info("Loaded {} cloud instances in {}.", cloudInstances.size(), timer.elapsedStr());
             });
         }
-        CreeperLogger.INSTANCE.info("Skipping Cloud instance reload.");
+        LOGGER.info("Skipping Cloud instance reload.");
         return null;
     }
 
     private static LocalInstance loadInstance(Path path) {
         Path json = path.resolve("instance.json");
         if (Files.notExists(json)) {
-            CreeperLogger.INSTANCE.error("Instance missing 'instance.json', Ignoring. " + json.toAbsolutePath());
+            LOGGER.error("Instance missing 'instance.json', Ignoring. {}", json.toAbsolutePath());
             return null;
         }
         try {
             return new LocalInstance(path);
         } catch(Exception e) {
-            CreeperLogger.INSTANCE.error("Instance has corrupted 'instance.json'. " + json.toAbsolutePath());
+            LOGGER.error("Instance has corrupted 'instance.json'. {}", json.toAbsolutePath());
             return null;
         }
     }
@@ -124,7 +128,7 @@ public class Instances
                 }
             } catch (Exception e)
             {
-                CreeperLogger.INSTANCE.error("Invalid cloudsave found with UUID of " + uuid.toString());
+                LOGGER.error("Invalid cloudsave found with UUID of {}", uuid);
             }
 
         }

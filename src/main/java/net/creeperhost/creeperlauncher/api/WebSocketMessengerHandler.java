@@ -6,7 +6,6 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 import net.creeperhost.creeperlauncher.CreeperLauncher;
-import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.api.data.*;
 import net.creeperhost.creeperlauncher.api.data.friends.AddFriendData;
 import net.creeperhost.creeperlauncher.api.data.friends.BlockFriendData;
@@ -21,12 +20,16 @@ import net.creeperhost.creeperlauncher.api.handlers.friends.GetFriendsHandler;
 import net.creeperhost.creeperlauncher.api.handlers.instances.*;
 import net.creeperhost.creeperlauncher.api.handlers.irc.*;
 import net.creeperhost.creeperlauncher.api.handlers.other.*;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.HashMap;
 import java.util.concurrent.CompletableFuture;
 
 public class WebSocketMessengerHandler
 {
+    private static final Logger LOGGER = LogManager.getLogger();
+
     private static HashMap<TypeToken<? extends BaseData>, IMessageHandler<? extends BaseData>> handlers = new HashMap<TypeToken<? extends BaseData>, IMessageHandler<? extends BaseData>>();
     private static HashMap<String, Class<? extends BaseData>> dataMap = new HashMap<>();
     static Gson gson = new Gson();
@@ -124,8 +127,7 @@ public class WebSocketMessengerHandler
                         BaseData parsedData = gson.fromJson(data, typeToken.getType());
                         if (CreeperLauncher.isDevMode || (parsedData.secret != null && parsedData.secret.equals(CreeperLauncher.websocketSecret))) {
                             CompletableFuture.runAsync(() -> iMessageHandler.handle(parsedData), CreeperLauncher.taskExeggutor).exceptionally((t) -> {
-                                CreeperLogger.INSTANCE.debug("Error handling message", t.getCause());
-                                t.printStackTrace();
+                                LOGGER.error("Error handling message", t);
                                 return null;
                             });
                         }

@@ -1,16 +1,14 @@
 package net.creeperhost.creeperlauncher.minecraft;
 
 import com.google.gson.JsonObject;
-import net.creeperhost.creeperlauncher.CreeperLogger;
-import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.util.GsonUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import javax.imageio.ImageIO;
-import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Base64;
 
@@ -18,6 +16,8 @@ import static net.creeperhost.creeperlauncher.util.ImageUtils.resizeImage;
 
 public class Profile
 {
+    private static final Logger LOGGER = LogManager.getLogger();
+
     private String name;
     private String mcVersion;
     private String lastVersionId;
@@ -48,7 +48,7 @@ public class Profile
             ImageIO.write(art, "png", bos);
             this.icon = "data:image/png;base64,"+Base64.getEncoder().encodeToString(bos.toByteArray());
         } catch (Throwable e) {
-            CreeperLogger.INSTANCE.warning("Unable to resize pack art for Mojang launcher.", e);
+            LOGGER.warn("Unable to resize pack art for Mojang launcher.", e);
             this.icon = icon;
         }
         this.resolution = new McResolution(width, height);

@@ -3,6 +3,8 @@ package net.creeperhost.creeperlauncher.util;
 import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.os.OSUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import javax.net.ssl.HttpsURLConnection;
 import java.io.BufferedReader;
@@ -19,6 +21,7 @@ import java.util.Map;
 //Copied from Minetogether
 public class WebUtils
 {
+    private static final Logger LOGGER = LogManager.getLogger();
     private static List<String> cookies;
     private static boolean logHide;
     /*public static String URLBuilder(String Base, String... parts)
@@ -219,7 +222,7 @@ public class WebUtils
             {
                 if (!silent)
                 {
-                    t.printStackTrace();
+                    LOGGER.error(t);
                 }
             }
 

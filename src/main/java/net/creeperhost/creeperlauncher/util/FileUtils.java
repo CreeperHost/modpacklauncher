@@ -1,13 +1,12 @@
 package net.creeperhost.creeperlauncher.util;
 
-import net.creeperhost.creeperlauncher.CreeperLogger;
+import net.covers1624.quack.collection.ColUtils;
+import net.covers1624.quack.util.SneakyUtils;
 import org.apache.commons.compress.archivers.ArchiveEntry;
-import org.apache.commons.compress.archivers.ArchiveException;
-import org.apache.commons.compress.archivers.ArchiveStreamFactory;
-import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.tika.detect.Detector;
-import org.apache.tika.io.IOUtils;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.mime.MediaType;
 import org.apache.tika.parser.AutoDetectParser;
@@ -25,8 +24,12 @@ import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+import static net.covers1624.quack.util.SneakyUtils.*;
+
 public class FileUtils
 {
+    private static final Logger LOGGER = LogManager.getLogger();
+
     public static List<Path> unTar(InputStream is, final Path outputDir) throws IOException
     {
         final List<Path> untaredFiles = new LinkedList<>();
@@ -62,7 +65,7 @@ public class FileUtils
                 Path targetPath = destinationDir.resolve(sourceDir.relativize(sourcePath));
                 Files.copy(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
             } catch (IOException ex) {
-                CreeperLogger.INSTANCE.error("File copy I/O error: ", ex);
+                LOGGER.error("File copy I/O error: ", ex);
                 error.set(true);
             }
         });
@@ -78,26 +81,17 @@ public class FileUtils
     {
         HashMap<String, Exception> errors = new HashMap<>();
         try (ZipFile zipFile = new ZipFile(launcherFile.toFile())) {
-            ArrayList<String> entries = new ArrayList<>();
-            zipFile.stream().map(ZipEntry::getName).forEach(entries::add);
-            for(String ze : entries) {
-                CreeperLogger.INSTANCE.debug("Extracting '" + ze + "'...");
-                ZipEntry entry = zipFile.getEntry(ze);
+            for (ZipEntry entry : ColUtils.toIterable(zipFile.entries())) {
+                LOGGER.debug("Extracting '{}'...", entry.getName());
                 try {
-                    Path DestFile = destination.resolve(entry.getName());
-                    if (entry.isDirectory())
-                    {
-                        DestFile.getParent().toFile().mkdir();
-                        continue;
-                    }
-                    DestFile.getParent().toFile().mkdirs();
-                    InputStream inputStream = zipFile.getInputStream(entry);
-                    byte[] bytes = inputStream.readAllBytes();
-                    CreeperLogger.INSTANCE.debug("Writing to " + DestFile);
-                    Files.write(DestFile, bytes);
-                    inputStream.close();
-                } catch (Exception e) {
-                    CreeperLogger.INSTANCE.debug("Failed extracting file " + entry.getName(), e);
+                    Path dest = destination.resolve(entry.getName());
+                    if (entry.isDirectory()) continue;
+
+                    createDirectories(dest.getParent());
+                    LOGGER.debug("Writing to {}", dest);
+                    Files.copy(zipFile.getInputStream(entry), dest, StandardCopyOption.REPLACE_EXISTING);
+                } catch (IOException e) {
+                    LOGGER.debug("Failed extracting file {}", entry.getName(), e);
                     errors.put(entry.getName(), e);
                     if (!continueOnError) {
                         return errors;
@@ -105,7 +99,7 @@ public class FileUtils
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("Error extracting zip file {}", launcherFile.toAbsolutePath(), e);
         }
         return errors;
     }
@@ -115,12 +109,12 @@ public class FileUtils
         if (Files.notExists(file)) return;
         try {
             Files.walk(file)
+                    .filter(Files::exists)
                     .sorted(Comparator.reverseOrder())
-                    .map(Path::toFile)
-                    .forEach(File::delete);
+                    .forEach(sneak(Files::delete));
 
         } catch (IOException e) {
-            CreeperLogger.INSTANCE.error("Failed to delete directory. " + file, e);
+            LOGGER.error("Failed to delete directory. {}", file, e);
         }
     }
 
@@ -219,7 +213,7 @@ public class FileUtils
                             Files.deleteIfExists(file);
                         }
                     } catch (Exception e) {
-                        CreeperLogger.INSTANCE.error("Failed to delete entry from META-INF", e);
+                        LOGGER.error("Failed to delete entry from META-INF", e);
                     }
                     return FileVisitResult.CONTINUE;
                 }
@@ -228,7 +222,7 @@ public class FileUtils
 //            FileUtils.deleteDirectory(meta);
             return true;
         } catch (IOException e) {
-            CreeperLogger.INSTANCE.error("Failed to remove meta from " + file, e);
+            LOGGER.error("Failed to remove meta from {}", file, e);
         }
         return false;
     }
@@ -268,7 +262,7 @@ public class FileUtils
         try {
             Files.createDirectories(dir);
         } catch (IOException e) {
-            CreeperLogger.INSTANCE.error("Failed to create directories.", e);
+            LOGGER.error("Failed to create directories.", e);
         }
     }
 
@@ -277,7 +271,7 @@ public class FileUtils
             return stream.filter(e -> !e.equals(dir))
                     .collect(Collectors.toList());
         } catch (IOException e) {
-            CreeperLogger.INSTANCE.error("Failed to list directory. " + dir.toAbsolutePath(), e);
+            LOGGER.error("Failed to list directory. {}", dir.toAbsolutePath(), e);
             return Collections.emptyList();
         }
     }
@@ -306,7 +300,7 @@ public class FileUtils
             Files.move(in, out);
             return errors;
         } catch (IOException e) {
-            CreeperLogger.INSTANCE.warning("Could not move " + in + " to " + out + " - trying another method", e);
+            LOGGER.warn("Could not move {} to {} - trying another method", in, out, e);
         }
 
         try {

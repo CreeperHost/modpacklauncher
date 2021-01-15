@@ -3,10 +3,11 @@ package net.creeperhost.creeperlauncher.api;
 import java.net.BindException;
 import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.CreeperLauncher;
-import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.data.BaseData;
 import net.creeperhost.creeperlauncher.util.GsonUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.java_websocket.WebSocket;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
@@ -20,6 +21,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class WebSocketAPI extends WebSocketServer
 {
+    private static final Logger LOGGER = LogManager.getLogger();
+
     public WebSocketAPI(InetSocketAddress address)
     {
         super(address);
@@ -46,7 +49,7 @@ public class WebSocketAPI extends WebSocketServer
         {
             conn.send("{\"port\": \"" + CreeperLauncher.websocketPort + "\", \"secret\": \"" + CreeperLauncher.websocketSecret + "\"}");
             conn.close();
-            CreeperLogger.INSTANCE.info("Front end connected: " + conn.getRemoteSocketAddress() + " - sending our socket and secret and relaunching websocket");
+            LOGGER.info("Front end connected: {} - sending our socket and secret and relaunching websocket", conn.getRemoteSocketAddress());
             CreeperLauncher.defaultWebsocketPort = false;
             Settings.webSocketAPI = new WebSocketAPI(new InetSocketAddress(InetAddress.getLoopbackAddress(), CreeperLauncher.websocketPort));
             Settings.webSocketAPI.start();
@@ -58,7 +61,7 @@ public class WebSocketAPI extends WebSocketServer
             CreeperLauncher.websocketDisconnect = false;
         }
 
-        CreeperLogger.INSTANCE.info("Front end connected: " + conn.getRemoteSocketAddress());
+        LOGGER.info("Front end connected: {}", conn.getRemoteSocketAddress());
         connections++;
         notConnectedQueue.forEach(conn::send);
     }
@@ -68,7 +71,7 @@ public class WebSocketAPI extends WebSocketServer
     {
         connections--;
         if (connections == 0) CreeperLauncher.websocketDisconnect = true;
-        CreeperLogger.INSTANCE.info("closed " + conn.getRemoteSocketAddress() + " with exit code " + code + " additional info: " + reason);
+        LOGGER.info("closed {} with exit code {} additional info: {}", conn.getRemoteSocketAddress(), code, reason);
     }
 
     @Override
@@ -88,12 +91,12 @@ public class WebSocketAPI extends WebSocketServer
         try
         {
             CreeperLauncher.websocketDisconnect = true;
-            CreeperLogger.INSTANCE.error("an error occurred on connection " + conn.getRemoteSocketAddress() + ":" + ex, ex);
+            LOGGER.error("an error occurred on connection {}", conn.getRemoteSocketAddress(), ex);
         } catch (NullPointerException ignored)
         {
             if(ex instanceof BindException) {
                 CreeperLauncher.websocketPort = generateRandomPort();
-                CreeperLogger.INSTANCE.info("New Port: " + CreeperLauncher.websocketPort);
+                LOGGER.info("New Port: {}", CreeperLauncher.websocketPort);
                 Settings.webSocketAPI = new WebSocketAPI(new InetSocketAddress(InetAddress.getLoopbackAddress(), CreeperLauncher.websocketPort));
                 Settings.webSocketAPI.start();
                 try {
@@ -106,7 +109,7 @@ public class WebSocketAPI extends WebSocketServer
     @Override
     public void onStart()
     {
-        CreeperLogger.INSTANCE.info("Server started successfully - " + Constants.APPVERSION);
+        LOGGER.info("Server started successfully - {}", Constants.APPVERSION);
     }
 
     // TODO: ensure thread safety

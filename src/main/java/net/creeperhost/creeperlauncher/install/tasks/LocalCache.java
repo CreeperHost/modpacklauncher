@@ -2,9 +2,10 @@ package net.creeperhost.creeperlauncher.install.tasks;
 
 import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.Settings;
-import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.util.FileUtils;
 import net.creeperhost.creeperlauncher.util.MiscUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
@@ -16,6 +17,8 @@ import java.util.*;
 
 public class LocalCache
 {
+    private static final Logger LOGGER = LogManager.getLogger();
+
     //TODO, Using name UUID's here is not unique and can cause collisions as the
     // SHA1 passed in gets converted to an MD5 then represented as a UUID.
     // This should be switched to at least Map<HashCode, Path>
@@ -32,7 +35,7 @@ public class LocalCache
                     try {
                         files.put(UUID.fromString(name), file);
                     } catch (Exception e) {
-                        CreeperLogger.INSTANCE.warning("Deleting invalid file from cache directory: " + file);
+                        LOGGER.warn("Deleting invalid file from cache directory: {}", file);
                         try {
                             Files.delete(file);
                         } catch (IOException ignored) {
@@ -77,7 +80,7 @@ public class LocalCache
             files.put(uuid, cachePath);
         } catch (IOException err)
         {
-            CreeperLogger.INSTANCE.error("Failed to add '" + f.toAbsolutePath() + "' to local cache.");
+            LOGGER.error("Failed to add '{}' to local cache.", f.toAbsolutePath());
             return false;
         }
         return true;
@@ -100,7 +103,7 @@ public class LocalCache
                 attrs = Files.readAttributes(file, BasicFileAttributes.class);
             } catch (IOException e)
             {
-                CreeperLogger.INSTANCE.warning("Unable to remove local cache file '" + file.toAbsolutePath() + "': " + e.getMessage());
+                LOGGER.warn("Unable to remove local cache file '{}': ", file.toAbsolutePath(), e);
                 continue;
             }
             FileTime time = attrs.lastAccessTime();

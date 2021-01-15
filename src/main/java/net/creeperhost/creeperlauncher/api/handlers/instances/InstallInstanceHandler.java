@@ -11,6 +11,8 @@ import net.creeperhost.creeperlauncher.pack.FTBPack;
 import net.creeperhost.creeperlauncher.pack.LocalInstance;
 import net.creeperhost.creeperlauncher.util.GsonUtils;
 import net.creeperhost.creeperlauncher.util.MiscUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.List;
 import java.util.UUID;
@@ -20,6 +22,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class InstallInstanceHandler implements IMessageHandler<InstallInstanceData>
 {
+    private static final Logger LOGGER = LogManager.getLogger();
+
     //TODO: Make these local instead of static once Exceptions work properly again
     public static AtomicBoolean hasError = new AtomicBoolean(false);
     public static AtomicReference<String> lastError = new AtomicReference<>();
@@ -28,7 +32,7 @@ public class InstallInstanceHandler implements IMessageHandler<InstallInstanceDa
     @Override
     public void handle(InstallInstanceData data)
     {
-        CreeperLogger.INSTANCE.debug("Received install pack message");
+        LOGGER.debug("Received install pack message");
         hasError.set(false);
         if (CreeperLauncher.isInstalling.get())
         {
@@ -56,7 +60,7 @@ public class InstallInstanceHandler implements IMessageHandler<InstallInstanceDa
             instance = new LocalInstance(pack, data.version);
             Instances.addInstance(instance.getUuid(), instance);
             data.uuid = instance.getUuid().toString();
-            CreeperLogger.INSTANCE.debug("Running install task");
+            LOGGER.debug("Running install task");
             install = instance.install();
         }
         install.currentTask.exceptionally((t) ->
@@ -73,7 +77,7 @@ public class InstallInstanceHandler implements IMessageHandler<InstallInstanceDa
                 if (indexOf != -1)
                     msg = msg.substring(indexOf + 2);
 
-                CreeperLogger.INSTANCE.error("Error occurred whilst downloading pack:", t);
+                LOGGER.error("Error occurred whilst downloading pack:", t);
                 lastError.set(msg);
                 hasError.set(true);
                 CreeperLauncher.currentInstall.get().cancel();

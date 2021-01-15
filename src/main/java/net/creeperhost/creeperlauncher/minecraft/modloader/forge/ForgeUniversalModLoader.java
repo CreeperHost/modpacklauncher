@@ -1,17 +1,16 @@
 package net.creeperhost.creeperlauncher.minecraft.modloader.forge;
 
 import net.creeperhost.creeperlauncher.Constants;
-import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.api.DownloadableFile;
 import net.creeperhost.creeperlauncher.install.tasks.DownloadTask;
 import net.creeperhost.creeperlauncher.minecraft.McUtils;
 import net.creeperhost.creeperlauncher.pack.LocalInstance;
-import net.creeperhost.creeperlauncher.util.DownloadUtils;
 import net.creeperhost.creeperlauncher.util.FileUtils;
 import net.creeperhost.creeperlauncher.util.ForgeUtils;
 import net.creeperhost.creeperlauncher.util.LoaderTarget;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-import java.io.File;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -21,6 +20,8 @@ import java.util.List;
 
 public class ForgeUniversalModLoader extends ForgeModLoader
 {
+    private static final Logger LOGGER = LogManager.getLogger();
+
 	public ForgeUniversalModLoader(List<LoaderTarget> loaderTargets)
 	{
 		super(loaderTargets);
@@ -38,7 +39,7 @@ public class ForgeUniversalModLoader extends ForgeModLoader
         Path returnFile = null;
 		String newname = getMinecraftVersion() + "-forge" + getMinecraftVersion() + "-" + getForgeVersion();
 		instance.modLoader = newname;
-		CreeperLogger.INSTANCE.info("Minecraft version: " + getMinecraftVersion() + " Forge version: " + getForgeVersion());
+        LOGGER.info("Minecraft version: {} Forge version: {}", getMinecraftVersion(), getForgeVersion());
         Path file = Constants.VERSIONS_FOLDER_LOC.resolve(newname);
         FileUtils.createDirectories(file);
 
@@ -64,7 +65,7 @@ public class ForgeUniversalModLoader extends ForgeModLoader
 			DownloadTask task = new DownloadTask(forge, forgeFile);
 			task.execute().join();
 
-			CreeperLogger.INSTANCE.info("Completed download of " + newname);
+            LOGGER.info("Completed download of {}", newname);
 
 			if (Files.exists(forgeFile))
 			{
@@ -72,7 +73,7 @@ public class ForgeUniversalModLoader extends ForgeModLoader
 				Path forgeJson = file.resolve(newname + ".json");
 				if(!extracted)
 				{
-					CreeperLogger.INSTANCE.error("Failed to extract version json, attempting to download it from repo");
+                    LOGGER.error("Failed to extract version json, attempting to download it from repo");
 					String downloadName = "forge-" + getMinecraftVersion() + ".json";
 					DownloadableFile fjson = new DownloadableFile(forgeJson.getFileName().toString(), forgeJson, "https://apps.modpacks.ch/versions/minecraftjsons/" + downloadName, new ArrayList<>(), 0, false, false, 0, downloadName, "modloader", String.valueOf(System.currentTimeMillis() / 1000L));
 					DownloadTask ftask = new DownloadTask(fjson, forgeJson);
@@ -90,13 +91,12 @@ public class ForgeUniversalModLoader extends ForgeModLoader
 					returnFile = forgeJson;
 				} else
 				{
-					CreeperLogger.INSTANCE.error("Failed to get the 'version.json' for '" + newname + "'");
+                    LOGGER.error("Failed to get the 'version.json' for '{}'", newname);
 				}
 			}
 		} catch (Throwable e)
 		{
-			CreeperLogger.INSTANCE.error(e.toString());
-			e.printStackTrace();
+		    LOGGER.error(e);
 		}
 		try
 		{

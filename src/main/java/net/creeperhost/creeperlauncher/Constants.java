@@ -2,12 +2,16 @@ package net.creeperhost.creeperlauncher;
 
 import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.os.OSUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class Constants
 {
+    private static final Logger LOGGER = LogManager.getLogger();
+
     //CWD
     public static final Path WORKING_DIR = Paths.get(System.getProperty("user.dir"));
     private static final String INNER_DATA_DIR = ".ftba";
@@ -80,7 +84,7 @@ public class Constants
         }
         if(Constants.KEY.isEmpty() && _private)
         {
-            CreeperLogger.INSTANCE.error("Tried to access a private pack without having configured the secret and key.");
+            LOGGER.error("Tried to access a private pack without having configured the secret and key.");
         }
         return Constants.CREEPERHOST_MODPACK + "/" + Constants.KEY + "/modpack/";
     }

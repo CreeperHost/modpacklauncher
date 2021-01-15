@@ -51,7 +51,7 @@ public class OkHttpClientImpl implements IHttpClient
 
         Response response = client.newCall(request).execute();
 
-        BufferedSink sink = Okio.buffer(Okio.sink(destination.toFile()));
+        BufferedSink sink = Okio.buffer(Okio.sink(destination));
         sink.writeAll(response.body().source());
         sink.close();
 

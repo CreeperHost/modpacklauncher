@@ -6,6 +6,8 @@ import com.sun.jna.platform.win32.WinNT;
 import com.sun.jna.platform.win32.WinReg;
 import net.creeperhost.creeperlauncher.CreeperLauncher;
 import net.creeperhost.creeperlauncher.os.OSUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.tika.io.IOUtils;
 
 import java.io.File;
@@ -24,6 +26,7 @@ import java.util.regex.Pattern;
 
 public class MiscUtils
 {
+    private static final Logger LOGGER = LogManager.getLogger();
     public static final DateFormat ISO_8601 = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
 
     public static CompletableFuture<?> allFutures(ArrayList<CompletableFuture<?>> futures)
@@ -31,7 +34,7 @@ public class MiscUtils
         CompletableFuture<Void> combinedFuture = CompletableFuture.allOf(
                 futures.toArray(new CompletableFuture[0])).exceptionally((t) ->
                 {
-                    t.printStackTrace();
+                    LOGGER.warn("Future failed.", t);
                     return null;
                 }
         );

@@ -3,6 +3,7 @@ package net.creeperhost.creeperlauncher;
 import com.google.gson.JsonObject;
 import com.install4j.api.launcher.ApplicationLauncher;
 import com.install4j.api.update.UpdateChecker;
+import net.covers1624.quack.logging.log4j2.Log4jUtils;
 import net.creeperhost.creeperlauncher.api.WebSocketAPI;
 import net.creeperhost.creeperlauncher.api.data.other.ClientLaunchData;
 import net.creeperhost.creeperlauncher.api.data.other.CloseModalData;
@@ -14,6 +15,8 @@ import net.creeperhost.creeperlauncher.minetogether.vpn.MineTogetherConnect;
 import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.os.OSUtils;
 import net.creeperhost.creeperlauncher.util.*;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.*;
 import java.net.InetAddress;
@@ -30,6 +33,10 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class CreeperLauncher
 {
+    private static final Logger LOGGER = LogManager.getLogger();
+
+    private static final Object DIE_LOCK = new Object();
+
     public static HashMap<String, String> javaVersions;
     public static int missedPings = 0;
     public static ServerSocket serverSocket = null;
@@ -40,6 +47,7 @@ public class CreeperLauncher
 
     static
     {
+        Log4jUtils.redirectStreams();
         System.setProperty("apple.awt.UIElement", "true");
     }
 
@@ -122,9 +130,9 @@ public class CreeperLauncher
             FileUtils.move(Path.of(Constants.BIN_LOCATION_OURS, "launcher_profiles.json"), Path.of(Constants.LAUNCHER_PROFILES_JSON));
             FileUtils.move(Path.of(Constants.BIN_LOCATION_OURS, "launcher_settings.json"), Path.of(Constants.LAUNCHER_PROFILES_JSON));
             FileUtils.move(Path.of(Constants.BIN_LOCATION_OURS, "libraries"), Path.of(Constants.LIBRARY_LOCATION));*/
-            CreeperLogger.INSTANCE.close(); // close so we can move the existing logs and everything
+//            CreeperLogger.INSTANCE.close(); // close so we can move the existing logs and everything
             HashMap<Pair<Path, Path>, IOException> move = FileUtils.move(Constants.getDataDirOld(), Constants.getDataDir(), false, false);
-            CreeperLogger.INSTANCE.reinitialise(); // try re-open logger
+//            CreeperLogger.INSTANCE.reinitialise(); // try re-open logger
             if (move.size() > 0)
             {
                 migrateError = true;
@@ -132,7 +140,7 @@ public class CreeperLauncher
                 for(Map.Entry<Pair<Path, Path>, IOException> entry : move.entrySet()) {
                     errorString.append(entry.getKey().getLeft()).append(" ").append(entry.getKey().getRight()).append(":").append(entry.getValue().getMessage()).append("\n");
                 }
-                CreeperLogger.INSTANCE.warning(errorString.toString());
+                LOGGER.warn(errorString.toString());
             }
             if (migrateInstances)
             {
@@ -170,7 +178,7 @@ public class CreeperLauncher
                         Path newInstanceDir = Path.of(value);
                         boolean failed = false;
                         HashMap<Pair<Path, Path>, IOException> lastError = new HashMap<>();
-                        CreeperLogger.INSTANCE.info("Moving instances from " + currentInstanceLoc + " to " + value);
+                        LOGGER.info("Moving instances from {} to {}", currentInstanceLoc, value);
                         if (subFiles != null) {
                             for (Path file : subFiles) {
                                 String fileName = file.getFileName().toString();
@@ -187,15 +195,15 @@ public class CreeperLauncher
                                 lastError = FileUtils.move(file, dstPath, true, true);
                                 failed = !lastError.isEmpty() && !fileName.equals(".localCache");
                                 if (failed) break;
-                                CreeperLogger.INSTANCE.info("Moved " + file + " to " + dstPath + " successfully");
+                                LOGGER.info("Moved {} to {} successfully", file, dstPath);
                             }
                         }
                         if (failed) {
-                            CreeperLogger.INSTANCE.error("Error occurred whilst migrating instances to the new location. Errors follow.");
+                            LOGGER.error("Error occurred whilst migrating instances to the new location. Errors follow.");
                             lastError.forEach((moveKey, moveValue) -> {
-                                CreeperLogger.INSTANCE.error("Moving " + moveKey.getLeft() + " to " + moveKey.getRight() + " failed:", moveValue);
+                                LOGGER.error("Moving {} to {} failed:", moveKey.getLeft(), moveKey.getRight(), moveValue);
                             });
-                            CreeperLogger.INSTANCE.error("Moving any successful instance moves back");
+                            LOGGER.error("Moving any successful instance moves back");
                             List<Path> newInstanceDirFiles = FileUtils.listDir(newInstanceDir);
                             if (newInstanceDirFiles != null) {
                                 for (Path file : newInstanceDirFiles) {
@@ -301,7 +309,7 @@ public class CreeperLauncher
         boolean startProcess = !isDevMode;
         if(isOverwolf)
         {
-            CreeperLogger.INSTANCE.info("Overwolf integration mode");
+            LOGGER.info("Overwolf integration mode");
         }
         if(Args.containsKey("pid") && !isDevMode)
         {
@@ -325,14 +333,14 @@ public class CreeperLauncher
                     if(!isOverwolf) Runtime.getRuntime().addShutdownHook(new Thread(handle::destroy));
                 }
             } catch (Exception exception) {
-                CreeperLogger.INSTANCE.error("Error connecting to process", exception);
+                LOGGER.error("Error connecting to process", exception);
             }
         } else {
             if(isDevMode)
             {
-                CreeperLogger.INSTANCE.info("Development mode");
+                LOGGER.info("Development mode");
             } else {
-                CreeperLogger.INSTANCE.info("No PID args");
+                LOGGER.info("No PID args");
             }
         }
 
@@ -349,7 +357,7 @@ public class CreeperLauncher
         } catch(Throwable t)
         {
             websocketDisconnect=true;
-            CreeperLogger.INSTANCE.error("Unable to open websocket port or websocket has disconnected...", t);
+            LOGGER.error("Unable to open websocket port or websocket has disconnected...", t);
         }
 
         if (startProcess) {
@@ -374,6 +382,14 @@ public class CreeperLauncher
             );
         }
         MiscUtils.updateJavaVersions();
+
+        //Hang indefinitely until this lock is interrupted.
+        try {
+            synchronized (DIE_LOCK) {
+                DIE_LOCK.wait();
+            }
+        } catch (InterruptedException ignored) {
+        }
     }
 
     @SuppressWarnings("ConstantConditions")
@@ -423,21 +439,21 @@ public class CreeperLauncher
            }
        }
      }).thenRun(() -> {
-         if(!websocketDisconnect) {
-             CreeperLogger.INSTANCE.error("Closed backend due to no response from frontend for " + (missedPings * 3) + " seconds...");
+         if (!websocketDisconnect) {
+             LOGGER.error("Closed backend due to no response from frontend for {} seconds...", (missedPings * 3));
          } else {
-             CreeperLogger.INSTANCE.error("Closed backend due to websocket error! Also no messages from frontend for "+(missedPings * 3) + " seconds.");
+             LOGGER.error("Closed backend due to websocket error! Also no messages from frontend for {} seconds.", (missedPings * 3));
          }
          CreeperLauncher.exit();
      });
     }
     public static void listenForClient(int port) throws IOException {
-        CreeperLogger.INSTANCE.info("Starting mod socket on port " + port);
+        LOGGER.info("Starting mod socket on port {}", port);
         serverSocket = new ServerSocket(port);
         opened = true;
         socket = serverSocket.accept();
         socketWrite = socket.getOutputStream();
-        CreeperLogger.INSTANCE.info("Connection received");
+        LOGGER.info("Connection received");
         Runtime.getRuntime().addShutdownHook(new Thread(CreeperLauncher::closeOldClient));
         String lastInstance = "";
         ClientLaunchData.Reply reply;
@@ -470,7 +486,7 @@ public class CreeperLauncher
                             Settings.webSocketAPI.sendMessage(reply);
                         } catch(Throwable t)
                         {
-                            CreeperLogger.INSTANCE.warning("Unable to send MC client loading update to frontend!", t);
+                            LOGGER.warn("Unable to send MC client loading update to frontend!", t);
                         }
                     }
                     if (isDone) {
@@ -568,13 +584,13 @@ public class CreeperLauncher
         {
             try
             {
-                CreeperLogger.INSTANCE.info("Starting Electron: " + String.join(" ", args));
+                LOGGER.info("Starting Electron: " + String.join(" ", args));
                 elect = app.start();
-                StreamGobblerLog.redirectToLogger(elect.getErrorStream(), CreeperLogger.INSTANCE::error);
-                StreamGobblerLog.redirectToLogger(elect.getInputStream(), CreeperLogger.INSTANCE::info);
+                StreamGobblerLog.redirectToLogger(elect.getErrorStream(), LOGGER::error);
+                StreamGobblerLog.redirectToLogger(elect.getInputStream(), LOGGER::info);
             } catch (IOException e)
             {
-                CreeperLogger.INSTANCE.error("Error starting Electron: ", e);
+                LOGGER.error("Error starting Electron: ", e);
             }
             CompletableFuture<Process> completableFuture = elect.onExit();
             completableFuture.thenRun(CreeperLauncher::exit);

@@ -3,12 +3,12 @@ package net.creeperhost.creeperlauncher.minecraft.modloader.fabric;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import net.creeperhost.creeperlauncher.Constants;
-import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.minecraft.modloader.ModLoader;
 import net.creeperhost.creeperlauncher.pack.LocalInstance;
 import net.creeperhost.creeperlauncher.util.*;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -19,6 +19,7 @@ import java.util.List;
 
 public class FabricModLoader extends ModLoader
 {
+    private static final Logger LOGGER = LogManager.getLogger();
 
 	private static final String FABRIC_MET_URL = "https://meta.fabricmc.net/v2/";
 	private static final String FABRIC_MAVEN_URL = "https://maven.fabricmc.net/";
@@ -37,7 +38,7 @@ public class FabricModLoader extends ModLoader
 	@Override
 	public Path install(LocalInstance instance)
 	{
-		CreeperLogger.INSTANCE.info("Minecraft version: " + getMinecraftVersion() + " Fabric version: " + getFabricVersion());
+        LOGGER.info("Minecraft version: {} Fabric version: {}", getMinecraftVersion(), getFabricVersion());
 		var profileName = String.format("fabric-loader-%s-%s", getFabricVersion(), getMinecraftVersion());
 
 		instance.modLoader = profileName;
@@ -47,7 +48,7 @@ public class FabricModLoader extends ModLoader
 		{
 			loaderMeta = getInstallMeta();
 		} catch (IOException e) {
-			CreeperLogger.INSTANCE.error("Failed to get fabric install meta");
+            LOGGER.error("Failed to get fabric install meta", e);
 			return null;
 		}
 
@@ -69,7 +70,7 @@ public class FabricModLoader extends ModLoader
 		{
 			Files.createFile(dummyJar);
 		} catch (IOException e) {
-			CreeperLogger.INSTANCE.error("Failed to create fabric jar, is the game running?");
+            LOGGER.error("Failed to create fabric jar, is the game running?", e);
 			return null;
 		}
 
@@ -94,14 +95,14 @@ public class FabricModLoader extends ModLoader
 		{
 			Files.write(profileJson, GsonUtils.GSON.toJson(profile).getBytes(StandardCharsets.UTF_8));
 		} catch (IOException e) {
-			CreeperLogger.INSTANCE.error("Failed to create fabric profile json, is the game running?");
+            LOGGER.error("Failed to create fabric profile json, is the game running?", e);
 			return null;
 		}
 
 		try {
 			instance.saveJson();
 		} catch (IOException e) {
-			CreeperLogger.INSTANCE.error("Failed to save instance");
+            LOGGER.error("Failed to save instance", e);
 			return null;
 		}
 
