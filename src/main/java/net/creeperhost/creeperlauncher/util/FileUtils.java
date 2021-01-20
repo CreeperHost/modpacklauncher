@@ -276,6 +276,7 @@ public class FileUtils
         }
     }
 
+    @Deprecated// Use move(Path, Path, boolean)
     private static HashMap<Pair<Path, Path>, IOException> moveDirectory(Path in, Path out, boolean replaceExisting, boolean failFast) {
         HashMap<Pair<Path, Path>, IOException> errors = new HashMap<>();
         if (!in.getFileName().toString().equals(out.getFileName().toString()))
@@ -361,11 +362,13 @@ public class FileUtils
         return errors;
     }
 
+    @Deprecated// Use move(Path, Path, boolean)
     public static HashMap<Pair<Path, Path>, IOException> move(Path in, Path out)
     {
         return move(in, out, false, true);
     }
 
+    @Deprecated// Use move(Path, Path, boolean)
     public static HashMap<Pair<Path, Path>, IOException> move(Path in, Path out, boolean replaceExisting, boolean failFast)
     {
         if (Files.isDirectory(in))
@@ -388,5 +391,27 @@ public class FileUtils
             errors.put(new Pair<>(in, out), e);
         }
         return errors;
+    }
+
+    public static void move(Path from, Path to, boolean replaceExisting) throws IOException {
+        if (Files.isDirectory(from)) {
+            if (!Files.isDirectory(to)) throw new IllegalArgumentException("Requested to move directory into file.");
+            try (Stream<Path> children = Files.list(from)) {
+                children.filter(e -> e != from)
+                        .forEach(sneak(e -> {
+                            move(e, to.resolve(e.getFileName()), replaceExisting);
+                        }));
+
+            }
+        } else {
+            if (Files.exists(from)) {
+                Files.createDirectories(from.toAbsolutePath().getParent());
+                if(replaceExisting) {
+                    Files.move(from, to, StandardCopyOption.REPLACE_EXISTING);
+                } else {
+                    Files.move(from, to);
+                }
+            }
+        }
     }
 }
