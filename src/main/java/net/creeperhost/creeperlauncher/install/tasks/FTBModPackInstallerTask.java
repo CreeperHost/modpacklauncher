@@ -3,7 +3,6 @@ package net.creeperhost.creeperlauncher.install.tasks;
 import com.google.gson.*;
 import com.google.gson.stream.JsonReader;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.CreeperLauncher;
 import net.creeperhost.creeperlauncher.Settings;
@@ -405,7 +404,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                                         }
                                     }
                                 }
-                                if (ruleTarget == OSUtils.getOs())
+                                if (ruleTarget == OS.current())
                                 {
                                     Pattern versRegex = Pattern.compile(_ruleTarget.get("version").getAsString());
                                     Matcher versMatch = versRegex.matcher(OSUtils.getVersion());

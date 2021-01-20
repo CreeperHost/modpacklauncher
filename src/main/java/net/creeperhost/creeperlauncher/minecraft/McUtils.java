@@ -281,7 +281,7 @@ public class McUtils {
             if(!Files.isWritable(target))
             {
                 LOGGER.error("'{}' is write protected to this process! Security configuration on this system is blocking access.", target.toAbsolutePath());
-                if(OSUtils.getOs() == OS.WIN)
+                if(OS.current() == OS.WIN)
                 {
                     try {
                         LOGGER.warn("=== Process list ===");
@@ -330,8 +330,7 @@ public class McUtils {
         }
         Path file = binFolder.resolve(Constants.MINECRAFT_LAUNCHER_NAME);
         Path destinationFile = Constants.MINECRAFT_LAUNCHER_LOCATION;
-        OS os = OSUtils.getOs();
-        if (os == OS.MAC) {
+        if (OS.current() == OS.MAC) {
             file = binFolder.resolve(Constants.MINECRAFT_MAC_LAUNCHER_EXECUTABLE_NAME);
         }
         if (Files.notExists(file)) {
@@ -384,10 +383,9 @@ public class McUtils {
     }
     public static boolean prepareVanillaLauncher(Path path) throws IOException, InterruptedException {
         LOGGER.info("Preparing Vanilla Launcher");
-        OS os = OSUtils.getOs();
         //All OS's are not equal, sometimes we need to unpackage the launcher.
         boolean success = false;
-        switch (os) {
+        switch (OS.current()) {
             case MAC:
                 if (Files.exists(path)) {
                     HashMap<String, Exception> errors = FileUtils.extractZip2ElectricBoogaloo(path, path.getParent());

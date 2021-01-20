@@ -5,9 +5,7 @@ import net.creeperhost.creeperlauncher.CreeperLauncher;
 import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.DownloadableFile;
 import net.creeperhost.creeperlauncher.os.OS;
-import net.creeperhost.creeperlauncher.os.OSUtils;
 import net.creeperhost.creeperlauncher.util.FileUtils;
-import net.creeperhost.creeperlauncher.util.StreamGobblerLog;
 import net.creeperhost.creeperlauncher.util.window.IMonitor;
 import net.creeperhost.creeperlauncher.util.window.IWindow;
 import net.creeperhost.creeperlauncher.util.window.WindowUtils;
@@ -58,14 +56,14 @@ public class GameLauncher
     public static Process launchGame(Path path)
     {
         Path exe = path.resolve(Constants.MINECRAFT_LAUNCHER_NAME);
-        OS os = OSUtils.getOs();
-        if (os == OS.MAC)
-        {
-            exe = path.resolve(Constants.MINECRAFT_MAC_LAUNCHER_EXECUTABLE_NAME);
-        }
-        if (os == OS.LINUX)
-        {
-            exe = path.resolve(Constants.MINECRAFT_LINUX_LAUNCHER_EXECUTABLE_NAME);
+        OS os = OS.current();
+        switch (os) {
+            case MAC:
+                exe = path.resolve(Constants.MINECRAFT_MAC_LAUNCHER_EXECUTABLE_NAME);
+                break;
+            case LINUX:
+                exe = path.resolve(Constants.MINECRAFT_LINUX_LAUNCHER_EXECUTABLE_NAME);
+                break;
         }
         try
         {
@@ -146,14 +144,14 @@ public class GameLauncher
         CompletableFuture.runAsync(() ->
         {
             Path exe = path.resolve(Constants.MINECRAFT_LAUNCHER_NAME);
-            OS os = OSUtils.getOs();
-            if (os == OS.MAC)
-            {
-                exe = path.resolve(Constants.MINECRAFT_MAC_LAUNCHER_EXECUTABLE_NAME);
-            }
-            if (os == OS.LINUX)
-            {
-                exe = path.resolve(Constants.MINECRAFT_LINUX_LAUNCHER_EXECUTABLE_NAME);
+            OS os = OS.current();
+            switch (os) {
+                case MAC:
+                    exe = path.resolve(Constants.MINECRAFT_MAC_LAUNCHER_EXECUTABLE_NAME);
+                    break;
+                case LINUX:
+                    exe = path.resolve(Constants.MINECRAFT_LINUX_LAUNCHER_EXECUTABLE_NAME);
+                    break;
             }
             try
             {

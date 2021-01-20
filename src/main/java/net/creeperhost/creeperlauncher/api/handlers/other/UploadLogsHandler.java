@@ -5,7 +5,7 @@ import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.data.other.UploadLogsData;
 import net.creeperhost.creeperlauncher.api.handlers.IMessageHandler;
-import net.creeperhost.creeperlauncher.os.OSUtils;
+import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.util.WebUtils;
 
 import java.io.IOException;
@@ -35,7 +35,7 @@ public class UploadLogsHandler implements IMessageHandler<UploadLogsData> {
         String uploadData = "UI Version: " + (uiVersion != null ? uiVersion : "Unknown") + "\n" +
             "App Version: " + Constants.APPVERSION + "\n" +
             "Platform: " + Constants.PLATFORM + "\n" +
-            "Operating System: " + OSUtils.getOs() + "\n" +
+            "Operating System: " + OS.current() + "\n" +
             "\n" +
             "\n" +
             padString(" debug.log ") + "\n" +

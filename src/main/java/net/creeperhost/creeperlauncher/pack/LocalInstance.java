@@ -2,7 +2,6 @@ package net.creeperhost.creeperlauncher.pack;
 
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.google.gson.*;
-import com.google.gson.stream.JsonReader;
 import net.creeperhost.creeperlauncher.api.data.other.CloseModalData;
 import net.creeperhost.creeperlauncher.api.data.other.OpenModalData;
 import net.creeperhost.creeperlauncher.minetogether.cloudsaves.CloudSaveManager;
@@ -22,10 +21,7 @@ import net.creeperhost.creeperlauncher.install.tasks.FTBModPackInstallerTask;
 import net.creeperhost.creeperlauncher.minecraft.GameLauncher;
 import net.creeperhost.creeperlauncher.minecraft.McUtils;
 import net.creeperhost.creeperlauncher.minecraft.Profile;
-import net.creeperhost.creeperlauncher.os.OSUtils;
-import oshi.util.FileUtil;
 
-import javax.swing.*;
 import java.awt.*;
 import java.io.*;
 import java.net.BindException;
@@ -401,7 +397,7 @@ public class LocalInstance implements IPack
 
         this.hasLoadingMod = checkForLaunchMod();
         //TODO: THIS IS FOR TESTING ONLY, PLEASE REMOVE ME IN FUTURE
-        if(OSUtils.getOs() == OS.WIN && loadInApp)
+        if(OS.current() == OS.WIN && loadInApp)
         {
             if (!this.hasLoadingMod) {
                 if (modLoader.startsWith("1.7.10")) {
@@ -686,7 +682,7 @@ public class LocalInstance implements IPack
     {
         Path javaExec = null;
         String javaBinary = "javaw.exe";
-        switch (OSUtils.getOs())
+        switch (OS.current())
         {
             case LINUX:
             case MAC:

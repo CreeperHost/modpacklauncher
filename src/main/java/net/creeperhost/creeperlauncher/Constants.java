@@ -91,12 +91,13 @@ public class Constants
     public static Path getDataDir()
     {
         Path ret = DATA_DIR;
-        if(OSUtils.getOs() == OS.WIN)
-        {
-            ret = Paths.get(System.getenv("LOCALAPPDATA"), INNER_DATA_DIR);
-        } else if (OSUtils.getOs() == OS.MAC)
-        {
-            ret = Paths.get(System.getProperty("user.home"), "Library", "Application Support", INNER_DATA_DIR);
+        switch (OS.current()) {
+            case WIN:
+                ret = Paths.get(System.getenv("LOCALAPPDATA"), INNER_DATA_DIR);
+                break;
+            case MAC:
+                ret = Paths.get(System.getProperty("user.home"), "Library", "Application Support", INNER_DATA_DIR);
+                break;
         }
         return ret.toAbsolutePath().normalize();
     }

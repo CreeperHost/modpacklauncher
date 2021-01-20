@@ -13,7 +13,6 @@ import net.creeperhost.creeperlauncher.install.tasks.FTBModPackInstallerTask;
 import net.creeperhost.creeperlauncher.install.tasks.LocalCache;
 import net.creeperhost.creeperlauncher.minetogether.vpn.MineTogetherConnect;
 import net.creeperhost.creeperlauncher.os.OS;
-import net.creeperhost.creeperlauncher.os.OSUtils;
 import net.creeperhost.creeperlauncher.util.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -353,7 +352,7 @@ public class CreeperLauncher
             Settings.webSocketAPI = new WebSocketAPI(new InetSocketAddress(InetAddress.getLoopbackAddress(), defaultWebsocketPort || isDevMode ? Constants.WEBSOCKET_PORT : websocketPort));
             Settings.webSocketAPI.setConnectionLostTimeout(0);
             Settings.webSocketAPI.start();
-            if(OSUtils.getOs() == OS.WIN) pingPong();
+            if(OS.current() == OS.WIN) pingPong();
         } catch(Throwable t)
         {
             websocketDisconnect=true;
@@ -544,12 +543,11 @@ public class CreeperLauncher
 
     private static void startElectron() {
         Path electron;
-        OS os = OSUtils.getOs();
 
         ArrayList<String> args = new ArrayList<>();
 
 
-        switch (os)
+        switch (OS.current())
         {
             case MAC:
                 electron = Constants.BIN_LOCATION_OURS.resolve("ftbapp.app");

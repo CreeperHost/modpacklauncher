@@ -3,6 +3,7 @@ package net.creeperhost.creeperlauncher.minetogether.vpn;
 import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.DownloadableFile;
+import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.os.OSUtils;
 import net.creeperhost.creeperlauncher.util.FileUtils;
 import org.apache.logging.log4j.LogManager;
@@ -66,8 +67,9 @@ public class MineTogetherConnect {
     {
         if(!enabled) return false;
         if(vpnProcess != null && vpnProcess.isAlive()) return false;
-        List<String> executable = new ArrayList<String>();
-        switch(OSUtils.getOs())
+        List<String> executable = new ArrayList<>();
+        OS os = OS.current();
+        switch(os)
         {
             case WIN:
                 //executable.add(System.getenv("WINDIR") + "\\system32\\rundll32.exe");
@@ -78,7 +80,7 @@ public class MineTogetherConnect {
                 executable.add(Constants.MTCONNECT_DIR.resolve(binary).toAbsolutePath().toString());
                 break;
             default:
-                LOGGER.warn("Unsupported operating system {}", OSUtils.getOs());
+                LOGGER.warn("Unsupported operating system {}", os);
                 break;
         }
         if(executable.size() == 0 || binary.isEmpty()) return false;
