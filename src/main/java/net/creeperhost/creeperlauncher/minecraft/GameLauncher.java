@@ -2,16 +2,15 @@ package net.creeperhost.creeperlauncher.minecraft;
 
 import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.CreeperLauncher;
-import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.DownloadableFile;
 import net.creeperhost.creeperlauncher.os.OS;
-import net.creeperhost.creeperlauncher.os.OSUtils;
 import net.creeperhost.creeperlauncher.util.FileUtils;
-import net.creeperhost.creeperlauncher.util.StreamGobblerLog;
 import net.creeperhost.creeperlauncher.util.window.IMonitor;
 import net.creeperhost.creeperlauncher.util.window.IWindow;
 import net.creeperhost.creeperlauncher.util.window.WindowUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.awt.*;
 import java.awt.event.KeyEvent;
@@ -26,6 +25,8 @@ import java.util.concurrent.CompletableFuture;
 
 public class GameLauncher
 {
+    private static final Logger LOGGER = LogManager.getLogger();
+
     public static Process process;
     public static Path prepareGame()
     {
@@ -44,7 +45,7 @@ public class GameLauncher
             return exec;
         } catch(Exception err)
         {
-            CreeperLogger.INSTANCE.warning("Unable to copy Mojang launcher.", err);
+            LOGGER.warn("Unable to copy Mojang launcher.", err);
         }
         return null;
     }
@@ -55,21 +56,20 @@ public class GameLauncher
     public static Process launchGame(Path path)
     {
         Path exe = path.resolve(Constants.MINECRAFT_LAUNCHER_NAME);
-        OS os = OSUtils.getOs();
-        if (os == OS.MAC)
-        {
-            exe = path.resolve(Constants.MINECRAFT_MAC_LAUNCHER_EXECUTABLE_NAME);
-        }
-        if (os == OS.LINUX)
-        {
-            exe = path.resolve(Constants.MINECRAFT_LINUX_LAUNCHER_EXECUTABLE_NAME);
+        OS os = OS.current();
+        switch (os) {
+            case MAC:
+                exe = path.resolve(Constants.MINECRAFT_MAC_LAUNCHER_EXECUTABLE_NAME);
+                break;
+            case LINUX:
+                exe = path.resolve(Constants.MINECRAFT_LINUX_LAUNCHER_EXECUTABLE_NAME);
+                break;
         }
         try
         {
             ProcessBuilder builder = new ProcessBuilder(exe.toAbsolutePath().toString(), "--workDir", path.toAbsolutePath().toString());
             if(os == OS.MAC)
             {
-                CreeperLogger.INSTANCE.warning("/usr/bin/open " + path.resolve("Minecraft.app") + " --args --workDir " + path);
                 builder = new ProcessBuilder("/usr/bin/open", path.resolve("Minecraft.app").toAbsolutePath().toString(), "--args", "--workDir", path.toAbsolutePath().toString());
             }
 
@@ -83,7 +83,6 @@ public class GameLauncher
             {
                 Locale.setDefault(Locale.US);
             }
-            CreeperLogger.INSTANCE.error(Locale.getDefault().toString());
             process = builder.start();
             process.onExit().thenRunAsync(() -> {
                     CreeperLauncher.mojangProcesses.getAndUpdate((List<Process> processes) -> {
@@ -105,13 +104,13 @@ public class GameLauncher
                 if(process != null) {
                     tryAutomation(process);
                 } else {
-                    CreeperLogger.INSTANCE.error("Minecraft Launcher process failed to start, could not automate.");
+                    LOGGER.error("Minecraft Launcher process failed to start, could not automate.");
                 }
             }
             return process;
         } catch (IOException e)
         {
-            CreeperLogger.INSTANCE.error("Unable to launch vanilla launcher! ", e);
+            LOGGER.error("Unable to launch vanilla launcher! ", e);
             return null;
         }
     }
@@ -145,14 +144,14 @@ public class GameLauncher
         CompletableFuture.runAsync(() ->
         {
             Path exe = path.resolve(Constants.MINECRAFT_LAUNCHER_NAME);
-            OS os = OSUtils.getOs();
-            if (os == OS.MAC)
-            {
-                exe = path.resolve(Constants.MINECRAFT_MAC_LAUNCHER_EXECUTABLE_NAME);
-            }
-            if (os == OS.LINUX)
-            {
-                exe = path.resolve(Constants.MINECRAFT_LINUX_LAUNCHER_EXECUTABLE_NAME);
+            OS os = OS.current();
+            switch (os) {
+                case MAC:
+                    exe = path.resolve(Constants.MINECRAFT_MAC_LAUNCHER_EXECUTABLE_NAME);
+                    break;
+                case LINUX:
+                    exe = path.resolve(Constants.MINECRAFT_LINUX_LAUNCHER_EXECUTABLE_NAME);
+                    break;
             }
             try
             {
@@ -174,15 +173,15 @@ public class GameLauncher
                     //((3 * 60) * 1000) / 50
                     if(tryCount > 3600)
                     {
-                        CreeperLogger.INSTANCE.warning("Timed out waiting for Mojang launcher...");
+                        LOGGER.warn("Timed out waiting for Mojang launcher...");
                         break;
                     }
                 }
                 if(process != null) {
-                    CreeperLogger.INSTANCE.debug("Destroy instance calling");
+                    LOGGER.debug("Destroy instance calling");
                     process.destroy();
                     if (process.isAlive()) {
-                        CreeperLogger.INSTANCE.debug("Destroy instance forcibly calling");
+                        LOGGER.debug("Destroy instance forcibly calling");
                         process.destroyForcibly();
                     }
                 }
@@ -203,11 +202,11 @@ public class GameLauncher
                         if (processh.info().commandLine().toString().contains(finalExe.toAbsolutePath().toString()))
                         {
                             //It's the process we're looking for...
-                            CreeperLogger.INSTANCE.debug("Destroy instance calling");
+                            LOGGER.debug("Destroy instance calling");
                             processh.destroy();
                             if (processh.isAlive())
                             {
-                                CreeperLogger.INSTANCE.debug("Destroy instance forcibly calling");
+                                LOGGER.debug("Destroy instance forcibly calling");
                                 processh.destroyForcibly();
                             }
                             return;
@@ -216,7 +215,7 @@ public class GameLauncher
                 });
             } catch (Throwable e)
             {
-                CreeperLogger.INSTANCE.error("Failed ot start the Minecraft launcher " + e.toString());
+                LOGGER.error("Failed to start the Minecraft launcher", e);
             }
         }).join();
     }

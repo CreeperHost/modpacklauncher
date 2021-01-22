@@ -1,16 +1,17 @@
 package net.creeperhost.creeperlauncher.api.handlers.instances;
 
 import net.creeperhost.creeperlauncher.Constants;
-import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.data.instances.UninstallInstanceData;
 import net.creeperhost.creeperlauncher.api.handlers.IMessageHandler;
 import net.creeperhost.creeperlauncher.pack.LocalInstance;
-
-import java.util.UUID;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class UninstallInstanceHandler implements IMessageHandler<UninstallInstanceData>
 {
+    private static final Logger LOGGER = LogManager.getLogger();
+
     @Override
     public void handle(UninstallInstanceData data)
     {
@@ -22,7 +23,7 @@ public class UninstallInstanceHandler implements IMessageHandler<UninstallInstan
             Settings.webSocketAPI.sendMessage(new UninstallInstanceData.Reply(data, "success", ""));
         } catch (Exception err)
         {
-            CreeperLogger.INSTANCE.error("Error uninstalling pack", err);
+            LOGGER.error("Error uninstalling pack", err);
             Settings.webSocketAPI.sendMessage(new UninstallInstanceData.Reply(data, "error", err.toString()));
         }
 

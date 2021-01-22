@@ -2,7 +2,10 @@ package net.creeperhost.creeperlauncher.util;
 
 import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.Settings;
+import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.os.OSUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import javax.net.ssl.HttpsURLConnection;
 import java.io.BufferedReader;
@@ -13,12 +16,14 @@ import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
 //Copied from Minetogether
 public class WebUtils
 {
+    private static final Logger LOGGER = LogManager.getLogger();
     private static List<String> cookies;
     private static boolean logHide;
     /*public static String URLBuilder(String Base, String... parts)
@@ -51,7 +56,7 @@ public class WebUtils
                     conn.addRequestProperty("Cookie", cookie.split(";", 2)[0]);
                 }
             }
-            conn.setRequestProperty("User-Agent", "modpacklauncher/" + Constants.APPVERSION + " Mozilla/5.0 (" + OSUtils.getOs().name() + ") AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.138 Safari/537.36 Vivaldi/1.8.770.56");
+            conn.setRequestProperty("User-Agent", "modpacklauncher/" + Constants.APPVERSION + " Mozilla/5.0 (" + OS.current().name() + ") AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.138 Safari/537.36 Vivaldi/1.8.770.56");
             if(!Constants.KEY.isEmpty() | !Constants.SECRET.isEmpty())
             {
                 conn.addRequestProperty("USER_SECRET", Constants.SECRET);
@@ -93,7 +98,7 @@ public class WebUtils
             conn.setRequestMethod("GET");
             conn.addRequestProperty("APP_AUTH", Settings.settings.get("sessionString"));
 
-            conn.setRequestProperty("User-Agent", "modpacklauncher/" + Constants.APPVERSION + " Mozilla/5.0 (" + OSUtils.getOs().name() + ") AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.138 Safari/537.36 Vivaldi/1.8.770.56");
+            conn.setRequestProperty("User-Agent", "modpacklauncher/" + Constants.APPVERSION + " Mozilla/5.0 (" + OS.current().name() + ") AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.138 Safari/537.36 Vivaldi/1.8.770.56");
             BufferedReader rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));
             String line;
             StringBuilder respData = new StringBuilder();
@@ -129,7 +134,7 @@ public class WebUtils
                     conn.addRequestProperty("Cookie", cookie.split(";", 2)[0]);
                 }
             }
-            conn.setRequestProperty("User-Agent", "modpacklauncher/" + Constants.APPVERSION + " Mozilla/5.0 (" + OSUtils.getOs().name() + ") AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.138 Safari/537.36 Vivaldi/1.8.770.56");
+            conn.setRequestProperty("User-Agent", "modpacklauncher/" + Constants.APPVERSION + " Mozilla/5.0 (" + OS.current().name() + ") AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.138 Safari/537.36 Vivaldi/1.8.770.56");
             BufferedReader rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));
             String line;
             StringBuilder respData = new StringBuilder();
@@ -165,7 +170,7 @@ public class WebUtils
         {
             for (Map.Entry<String, String> entry : map.entrySet())
             {
-                postDataStringBuilder.append(URLEncoder.encode(entry.getKey(), "UTF-8")).append("=").append(URLEncoder.encode(entry.getValue(), "UTF-8")).append("&");
+                postDataStringBuilder.append(URLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8)).append("=").append(URLEncoder.encode(entry.getValue(), "UTF-8")).append("&");
             }
         } catch (Exception ignored)
         {
@@ -190,13 +195,13 @@ public class WebUtils
     {
         try
         {
-            byte[] postData = postDataString.getBytes(Charset.forName("UTF-8"));
+            byte[] postData = postDataString.getBytes(StandardCharsets.UTF_8);
             int postDataLength = postData.length;
 
             URL url = new URL(urlString);
 
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestProperty("User-Agent", "modpacklauncher/" + Constants.APPVERSION + " Mozilla/5.0 (" + OSUtils.getOs().name() + ") AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.138 Safari/537.36 Vivaldi/1.8.770.56");
+            conn.setRequestProperty("User-Agent", "modpacklauncher/" + Constants.APPVERSION + " Mozilla/5.0 (" + OS.current().name() + ") AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.138 Safari/537.36 Vivaldi/1.8.770.56");
             conn.setRequestMethod(method);
             if (cookies != null)
             {
@@ -219,7 +224,7 @@ public class WebUtils
             {
                 if (!silent)
                 {
-                    t.printStackTrace();
+                    LOGGER.error(t);
                 }
             }
 

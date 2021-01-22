@@ -5,10 +5,9 @@ import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.data.other.UploadLogsData;
 import net.creeperhost.creeperlauncher.api.handlers.IMessageHandler;
-import net.creeperhost.creeperlauncher.os.OSUtils;
+import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.util.WebUtils;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -21,25 +20,14 @@ public class UploadLogsHandler implements IMessageHandler<UploadLogsData> {
 
     public static void uploadLogs(String uiVersion, String frontendLogs, int requestId)
     {
-        Path logFile = Constants.getDataDir().resolve("ftbapp.log");
-        Path errorLogFile = Path.of("./error.log");
+        Path debugLogFile = Constants.getDataDir().resolve("logs/debug.log");
 
-        String launcherLog = null;
+        String debugLogs = null;
 
-        if(Files.exists(logFile))
+        if(Files.exists(debugLogFile))
         {
             try {
-                launcherLog = Files.readString(logFile);
-            } catch (IOException ignored) {
-            }
-        }
-
-        String errorLog = null;
-
-        if(Files.exists(errorLogFile))
-        {
-            try {
-                errorLog = Files.readString(errorLogFile);
+                debugLogs = Files.readString(debugLogFile);
             } catch (IOException ignored) {
             }
         }
@@ -47,15 +35,11 @@ public class UploadLogsHandler implements IMessageHandler<UploadLogsData> {
         String uploadData = "UI Version: " + (uiVersion != null ? uiVersion : "Unknown") + "\n" +
             "App Version: " + Constants.APPVERSION + "\n" +
             "Platform: " + Constants.PLATFORM + "\n" +
-            "Operating System: " + OSUtils.getOs() + "\n" +
+            "Operating System: " + OS.current() + "\n" +
             "\n" +
             "\n" +
-            padString(" ftbapp.log ") + "\n" +
-            (launcherLog == null ? "Not available" : launcherLog) + "\n" +
-            "\n" +
-            "\n" +
-            padString(" error.log ") + "\n" +
-            (errorLog == null ? "Not available" : errorLog) + "\n" +
+            padString(" debug.log ") + "\n" +
+            (debugLogs == null ? "Not available" : debugLogs) + "\n" +
             "\n" +
             "\n" +
             padString(" main.log ") + "\n" +
@@ -71,7 +55,6 @@ public class UploadLogsHandler implements IMessageHandler<UploadLogsData> {
         }
 
         Settings.webSocketAPI.sendMessage(new UploadLogsData.Reply(requestId, code));
-
     }
 
     private static String padString(String stringToPad) {

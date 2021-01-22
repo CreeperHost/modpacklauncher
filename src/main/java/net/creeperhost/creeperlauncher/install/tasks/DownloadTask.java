@@ -2,13 +2,12 @@ package net.creeperhost.creeperlauncher.install.tasks;
 
 import net.creeperhost.creeperlauncher.CreeperLauncher;
 import net.creeperhost.creeperlauncher.Settings;
-import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.IntegrityCheckException;
 import net.creeperhost.creeperlauncher.api.DownloadableFile;
-import net.creeperhost.creeperlauncher.api.data.other.InstalledFileEventData;
 import net.creeperhost.creeperlauncher.util.FileUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.nio.file.Files;
@@ -17,6 +16,8 @@ import java.util.concurrent.*;
 
 public class DownloadTask implements IInstallTask
 {
+    private static final Logger LOGGER = LogManager.getLogger();
+
     private final Path destination;
     private boolean canChecksum = false;
     private boolean checksumComplete;
@@ -54,7 +55,7 @@ public class DownloadTask implements IInstallTask
                     }
                 } catch (IOException e)
                 {
-                    CreeperLogger.INSTANCE.error("Unable to download " + file.getName(), e);
+                    LOGGER.error("Unable to download {}", file.getName(), e);
                     return;
                 }
             }
@@ -99,7 +100,7 @@ public class DownloadTask implements IInstallTask
                             CreeperLauncher.localCache.put(file.getLocalFile(), file.getSha1());
                         } catch (Exception err)
                         {
-                            CreeperLogger.INSTANCE.error("Error whilst adding to cache: ", err);
+                            LOGGER.error("Error whilst adding to cache: ", err);
                         }
                         FTBModPackInstallerTask.batchedFiles.put(file.getId(), "downloaded");
                         complete = true;
@@ -110,11 +111,12 @@ public class DownloadTask implements IInstallTask
                             IntegrityCheckException thrown;
                             if (e instanceof IntegrityCheckException)
                             {
-                                CreeperLogger.INSTANCE.debug("Integrity error whilst getting file: ", e);
+                                LOGGER.debug("Integrity error whilst getting file: ", e);
                                 thrown = (IntegrityCheckException)e;
                             } else
                             {
-                                CreeperLogger.INSTANCE.debug("Unknown error whilst getting file: ", thrown = new IntegrityCheckException(e, -1, "", null, 0, 0, file.getUrl(), destination)); // TODO: make this better
+                                thrown = new IntegrityCheckException(e, -1, "", null, 0, 0, file.getUrl(), destination);// TODO: make this better
+                                LOGGER.debug("Unknown error whilst getting file: ", thrown);
                             }
                             if(Settings.settings.getOrDefault("unforgiving", "false").equals("true"))
                             {

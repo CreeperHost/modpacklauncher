@@ -2,12 +2,16 @@ package net.creeperhost.creeperlauncher;
 
 import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.os.OSUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class Constants
 {
+    private static final Logger LOGGER = LogManager.getLogger();
+
     //CWD
     public static final Path WORKING_DIR = Paths.get(System.getProperty("user.dir"));
     private static final String INNER_DATA_DIR = ".ftba";
@@ -80,19 +84,20 @@ public class Constants
         }
         if(Constants.KEY.isEmpty() && _private)
         {
-            CreeperLogger.INSTANCE.error("Tried to access a private pack without having configured the secret and key.");
+            LOGGER.error("Tried to access a private pack without having configured the secret and key.");
         }
         return Constants.CREEPERHOST_MODPACK + "/" + Constants.KEY + "/modpack/";
     }
     public static Path getDataDir()
     {
         Path ret = DATA_DIR;
-        if(OSUtils.getOs() == OS.WIN)
-        {
-            ret = Paths.get(System.getenv("LOCALAPPDATA"), INNER_DATA_DIR);
-        } else if (OSUtils.getOs() == OS.MAC)
-        {
-            ret = Paths.get(System.getProperty("user.home"), "Library", "Application Support", INNER_DATA_DIR);
+        switch (OS.current()) {
+            case WIN:
+                ret = Paths.get(System.getenv("LOCALAPPDATA"), INNER_DATA_DIR);
+                break;
+            case MAC:
+                ret = Paths.get(System.getProperty("user.home"), "Library", "Application Support", INNER_DATA_DIR);
+                break;
         }
         return ret.toAbsolutePath().normalize();
     }

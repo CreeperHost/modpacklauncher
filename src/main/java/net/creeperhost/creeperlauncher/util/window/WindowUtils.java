@@ -12,8 +12,7 @@ import java.util.List;
 public class WindowUtils {
     static IWindowUtilImplementation IMPLEMENTATION;
     static {
-        OS os = OSUtils.getOs();
-        switch(os) {
+        switch(OS.current()) {
             case WIN:
                 IMPLEMENTATION = new WindowsWindowUtilImplementation();
                 break;

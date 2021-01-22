@@ -1,14 +1,14 @@
 package net.creeperhost.creeperlauncher.minecraft.modloader.forge;
 
 import net.creeperhost.creeperlauncher.Constants;
-import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.minecraft.McUtils;
 import net.creeperhost.creeperlauncher.pack.LocalInstance;
 import net.creeperhost.creeperlauncher.util.DownloadUtils;
 import net.creeperhost.creeperlauncher.util.ForgeUtils;
 import net.creeperhost.creeperlauncher.util.LoaderTarget;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -16,6 +16,8 @@ import java.util.List;
 
 public class ForgeInstallerModLoader extends ForgeModLoader
 {
+    private static final Logger LOGGER = LogManager.getLogger();
+
 	public ForgeInstallerModLoader(List<LoaderTarget> loaderTargets)
 	{
 		super(loaderTargets);
@@ -33,7 +35,7 @@ public class ForgeInstallerModLoader extends ForgeModLoader
 		String forgeUrl = "https://apps.modpacks.ch/versions/net/minecraftforge/forge/" + getMinecraftVersion() + "-" + getForgeVersion() + "/forge-" + getMinecraftVersion() + "-" + getForgeVersion() + "-installer.jar";
 		String forgeUrlJson = "https://apps.modpacks.ch/versions/net/minecraftforge/forge/" + getMinecraftVersion() + "-" + getForgeVersion() + "/forge-" + getMinecraftVersion() + "-" + getForgeVersion() + "-installer.json";
 
-		CreeperLogger.INSTANCE.info("Attempting to download " + forgeUrl);
+        LOGGER.info("Attempting to download {}.", forgeUrl);
 		Path installerFile = instance.getDir().resolve("installer.jar");
         Path installerJson = instance.getDir().resolve("installer.json");
 

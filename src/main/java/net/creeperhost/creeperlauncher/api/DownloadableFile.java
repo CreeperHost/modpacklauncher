@@ -1,13 +1,14 @@
 package net.creeperhost.creeperlauncher.api;
 
 import net.creeperhost.creeperlauncher.Settings;
-import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.IntegrityCheckException;
 import net.creeperhost.creeperlauncher.install.tasks.FTBModPackInstallerTask;
 import net.creeperhost.creeperlauncher.install.tasks.http.DownloadedFile;
 import net.creeperhost.creeperlauncher.install.tasks.http.IHttpClient;
 import net.creeperhost.creeperlauncher.install.tasks.http.OkHttpClientImpl;
 import net.creeperhost.creeperlauncher.util.FileUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -23,6 +24,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class DownloadableFile
 {
+    private static final Logger LOGGER = LogManager.getLogger();
+
     String version;
     Path path;
     String downloadUrl;
@@ -116,10 +119,10 @@ public class DownloadableFile
                 if(connection.getResponseCode() == 200)
                 {
                     remoteExists = true;
-                    CreeperLogger.INSTANCE.warning(this.getName() + " unable to get content length from HTTP headers!");
+                    LOGGER.warn("{} unable to get content length from HTTP headers!", getName());
                     remoteSize = this.getSize();
                 } else {
-                    CreeperLogger.INSTANCE.warning(this.getName() + " error "+connection.getResponseCode()+": "+connection.getResponseMessage()+"!");
+                    LOGGER.warn("{} error {}: {}!", getName(), connection.getResponseCode(), connection.getResponseMessage());
                 }
             }
             connection.disconnect();
@@ -129,7 +132,7 @@ public class DownloadableFile
             if (this.getSize() > 0)
             {
                 FTBModPackInstallerTask.overallBytes.set(FTBModPackInstallerTask.overallBytes.get() - this.getSize());
-                CreeperLogger.INSTANCE.warning(this.getName() + " size expected does not match remote file size. File size updated.");
+                LOGGER.warn("{} size expected does not match remote file size. File size updated.", getName());
             }
             this.size = remoteSize;
             FTBModPackInstallerTask.overallBytes.addAndGet(this.getSize());
@@ -156,7 +159,7 @@ public class DownloadableFile
                 } else
                 {
 
-                    CreeperLogger.INSTANCE.warning(this.getName() + " already exists.");
+                    LOGGER.warn("{} already exists.", getName());
                 }
             }
         }
@@ -194,7 +197,7 @@ public class DownloadableFile
         try {
             dstSize = Files.size(destination);
         } catch (IOException ignored) {
-            CreeperLogger.INSTANCE.warning("Failed to get size of file: " + destination);
+            LOGGER.warn("Failed to get size of file: {}", destination);
         }
         if ((sha1 != null && sha1.length() > 0) && (expectedChecksums != null && expectedChecksums.size() > 0))
         {
@@ -211,7 +214,7 @@ public class DownloadableFile
                     throw new IntegrityCheckException("SHA1 checksum does not match.", -1, sha1, expectedChecksums, dstSize, size, downloadUrl, path);
                 } else
                 {
-                    CreeperLogger.INSTANCE.warning(this.getName() + "'s SHA1 checksum failed.");
+                    LOGGER.warn("{}'s SHA1 checksum failed.", getName());
                 }
             }
         }
@@ -222,7 +225,7 @@ public class DownloadableFile
                 throw new IntegrityCheckException("Downloaded file is not the same size.", -1, sha1, expectedChecksums, dstSize, getSize(), downloadUrl, path);
             } else
             {
-                CreeperLogger.INSTANCE.warning(this.getName() + " size incorrect.");
+                LOGGER.warn("{} size incorrect.", getName());
             }
         }
     }

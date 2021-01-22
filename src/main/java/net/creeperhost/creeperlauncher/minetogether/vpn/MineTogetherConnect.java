@@ -1,11 +1,13 @@
 package net.creeperhost.creeperlauncher.minetogether.vpn;
 
 import net.creeperhost.creeperlauncher.Constants;
-import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.DownloadableFile;
+import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.os.OSUtils;
 import net.creeperhost.creeperlauncher.util.FileUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -18,6 +20,8 @@ import java.util.concurrent.CompletableFuture;
 import static net.creeperhost.creeperlauncher.util.WebUtils.mtAPIGet;
 
 public class MineTogetherConnect {
+    private static final Logger LOGGER = LogManager.getLogger();
+
     private boolean enabled;
     private String config;
     private String ipv6;
@@ -30,7 +34,7 @@ public class MineTogetherConnect {
     {
         if(Constants.MT_HASH == null || Constants.MT_HASH.isEmpty())
         {
-            CreeperLogger.INSTANCE.info("Tried to initialize MineTogether Connect before storing MineTogether identifier...");
+            LOGGER.info("Tried to initialize MineTogether Connect before storing MineTogether identifier...");
             this.enabled = false;
             return;
         }
@@ -63,8 +67,9 @@ public class MineTogetherConnect {
     {
         if(!enabled) return false;
         if(vpnProcess != null && vpnProcess.isAlive()) return false;
-        List<String> executable = new ArrayList<String>();
-        switch(OSUtils.getOs())
+        List<String> executable = new ArrayList<>();
+        OS os = OS.current();
+        switch(os)
         {
             case WIN:
                 //executable.add(System.getenv("WINDIR") + "\\system32\\rundll32.exe");
@@ -75,7 +80,7 @@ public class MineTogetherConnect {
                 executable.add(Constants.MTCONNECT_DIR.resolve(binary).toAbsolutePath().toString());
                 break;
             default:
-                CreeperLogger.INSTANCE.warning("Unsupported operating system "+OSUtils.getOs());
+                LOGGER.warn("Unsupported operating system {}", os);
                 break;
         }
         if(executable.size() == 0 || binary.isEmpty()) return false;
@@ -83,19 +88,19 @@ public class MineTogetherConnect {
         FileUtils.createDirectories(primaryPath);
         if(!Files.isWritable(primaryPath))
         {
-            CreeperLogger.INSTANCE.error("Unable to write to '"+primaryPath.toAbsolutePath()+"'...");
+            LOGGER.error("Unable to write to '{}'...", primaryPath.toAbsolutePath());
             return false;
         }
         Path fullPath = Constants.MTCONNECT_DIR.resolve(binary);
         if(Files.notExists(fullPath))
         {
-            CreeperLogger.INSTANCE.info("First run... Downloading binaries...");
+            LOGGER.info("First run... Downloading binaries...");
             if(!download(fullPath)) return false;
         }
         Path config = Constants.MTCONNECT_DIR.resolve("MTConnect.ovpn");
         if(Files.exists(config) && !Files.isWritable(config))
         {
-            CreeperLogger.INSTANCE.error("Unable to write to '"+config.toAbsolutePath()+"'...");
+            LOGGER.error("Unable to write to '{}'...", config.toAbsolutePath());
             return false;
         }
         try(BufferedWriter fw = Files.newBufferedWriter(config)) {
@@ -104,12 +109,12 @@ public class MineTogetherConnect {
             this.config = mtAPIGet("https://minetogether.io/api/mtConnect");
             if(this.config.equals("error") || this.config.length() == 0)
             {
-                CreeperLogger.INSTANCE.error("Unable to grab configuration file... Not high enough supporter tier?");
+                LOGGER.error("Unable to grab configuration file... Not high enough supporter tier?");
                 return false;
             }
             fw.write(this.config);
         } catch (IOException e) {
-            CreeperLogger.INSTANCE.error("Unable to grab configuration file...", e);
+            LOGGER.error("Unable to grab configuration file...", e);
             return false;
         }
         executable.add(config.toAbsolutePath().toString());
@@ -117,7 +122,7 @@ public class MineTogetherConnect {
         try {
             vpnProcess = pb.start();
         } catch (IOException e) {
-            CreeperLogger.INSTANCE.error("Unable to launch VPN elevation process...", e);
+            LOGGER.error("Unable to launch VPN elevation process...", e);
             return false;
         }
         //TODO: Add code to connect to named pipe, and get new process id, then replace vpnProcess with the handle of the new process. (Yay, elevation!)
@@ -143,7 +148,7 @@ public class MineTogetherConnect {
             remoteFile.download(path, true, false);
         } catch(Throwable e)
         {
-            CreeperLogger.INSTANCE.error("Unable to grab binaries...", e);
+            LOGGER.error("Unable to grab binaries...", e);
             return false;
         }
         if(!Files.exists(path)) return false;
