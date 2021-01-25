@@ -5,6 +5,7 @@ build:
     - branches
   except:
     - tags
+    - /^no-ci/.*$/
   stage: build
   script:
     - cd /Users/aaronmills
