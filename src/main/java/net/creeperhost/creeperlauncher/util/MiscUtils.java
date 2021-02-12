@@ -6,7 +6,6 @@ import com.sun.jna.platform.win32.WinNT;
 import com.sun.jna.platform.win32.WinReg;
 import net.creeperhost.creeperlauncher.CreeperLauncher;
 import net.creeperhost.creeperlauncher.os.OS;
-import net.creeperhost.creeperlauncher.os.OSUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tika.io.IOUtils;
@@ -80,7 +79,7 @@ public class MiscUtils
     public static void updateJavaVersions()
     {
         HashMap<String, String> versions = new HashMap<>();
-        switch(OS.current()) {
+        switch(OS.CURRENT) {
             case WIN:
                 versions.put("Mojang Built-in", "");
                 for (String location : javaRegLocationsOracle)

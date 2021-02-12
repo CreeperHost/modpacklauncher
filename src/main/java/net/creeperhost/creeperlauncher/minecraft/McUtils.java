@@ -2,15 +2,9 @@ package net.creeperhost.creeperlauncher.minecraft;
 
 import com.google.gson.*;
 import net.creeperhost.creeperlauncher.Constants;
-import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.DownloadableFile;
-import net.creeperhost.creeperlauncher.api.data.other.CloseModalData;
-import net.creeperhost.creeperlauncher.api.data.other.OpenModalData;
-import net.creeperhost.creeperlauncher.install.tasks.DownloadTask;
 import net.creeperhost.creeperlauncher.os.OS;
-import net.creeperhost.creeperlauncher.os.OSUtils;
 import net.creeperhost.creeperlauncher.util.*;
-import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -21,9 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
 
 public class McUtils {
 
@@ -281,7 +273,7 @@ public class McUtils {
             if(!Files.isWritable(target))
             {
                 LOGGER.error("'{}' is write protected to this process! Security configuration on this system is blocking access.", target.toAbsolutePath());
-                if(OS.current() == OS.WIN)
+                if(OS.CURRENT == OS.WIN)
                 {
                     try {
                         LOGGER.warn("=== Process list ===");
@@ -306,128 +298,6 @@ public class McUtils {
             return false;
         }
         return true;
-    }
-
-    public static void downloadVanillaLauncher() {
-        downloadVanillaLauncher(Constants.BIN_LOCATION);
-    }
-    public static void downloadVanillaLauncher(Path binFolder) {
-        LOGGER.info("Downloading vanilla launcher.");
-        String downloadurl = OSUtils.getMinecraftLauncherURL();
-        FileUtils.createDirectories(binFolder);
-        if (Files.notExists(binFolder)) {
-            if(!Files.isWritable(binFolder))
-            {
-                LOGGER.error("Cannot write to data directory {}.", Constants.getDataDir());
-                return;
-            } else {
-                OpenModalData.openModal("Error", "Data directory does not exist.", List.of(
-                        new OpenModalData.ModalButton("Ok", "red", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
-                ));
-                LOGGER.error("Data directory {} does not exist.", Constants.getDataDir());
-                return;
-            }
-        }
-        Path file = binFolder.resolve(Constants.MINECRAFT_LAUNCHER_NAME);
-        Path destinationFile = Constants.MINECRAFT_LAUNCHER_LOCATION;
-        if (OS.current() == OS.MAC) {
-            file = binFolder.resolve(Constants.MINECRAFT_MAC_LAUNCHER_EXECUTABLE_NAME);
-        }
-        if (Files.notExists(file)) {
-            LOGGER.info("Starting download of the vanilla launcher");
-            DownloadableFile remoteFile = new DownloadableFile("official", destinationFile, downloadurl, new ArrayList<>(), 0, false, false, 0, "Vanilla", "vanilla", String.valueOf(System.currentTimeMillis() / 1000L));
-            Path destinationDir = Constants.BIN_LOCATION;
-            Path moveDestination = null;
-            if(!Files.isWritable(destinationDir))
-            {
-                moveDestination = destinationFile;
-                LOGGER.error("Cannot write Minecraft launcher to data directory '{}', File '{}', trying temporary file '{}'.", Constants.getDataDir(), moveDestination.toAbsolutePath(), destinationFile.toAbsolutePath());
-                try {
-                    destinationFile = Files.createTempFile("launcher", null);
-                } catch (IOException e) {
-                    LOGGER.error("Unable to create Temp file.", e);
-                    return;
-                }
-            }
-            DownloadTask task = new DownloadTask(remoteFile, destinationFile);
-            task.execute().join();
-            if(moveDestination != null)
-            {
-                try {
-                    Files.move(destinationFile, moveDestination);
-                } catch (IOException e) {
-                    LOGGER.error("Unable to move temporary file from '{}' to '{}'.", destinationFile.toAbsolutePath(), moveDestination.toAbsolutePath());
-                }
-                destinationFile = moveDestination;
-            }
-            if(Files.notExists(destinationFile))
-            {
-                OpenModalData.openModal("Error", "Failed to download Mojang launcher.", List.of(
-                        new OpenModalData.ModalButton("Ok", "red", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
-                ));
-                return;
-            }
-        }
-        if (Files.exists(destinationFile)) {
-            boolean osConfig = false;
-            try {
-                osConfig = McUtils.prepareVanillaLauncher(destinationFile);
-            } catch (Exception err) {
-                err.printStackTrace();
-            }
-            if (!osConfig) LOGGER.error("Failed to configure Vanilla launcher for this OS!");
-        }
-    }
-    public static boolean prepareVanillaLauncher() throws IOException, InterruptedException {
-        return prepareVanillaLauncher(Constants.MINECRAFT_LAUNCHER_LOCATION);
-    }
-    public static boolean prepareVanillaLauncher(Path path) throws IOException, InterruptedException {
-        LOGGER.info("Preparing Vanilla Launcher");
-        //All OS's are not equal, sometimes we need to unpackage the launcher.
-        boolean success = false;
-        switch (OS.current()) {
-            case MAC:
-                if (Files.exists(path)) {
-                    HashMap<String, Exception> errors = FileUtils.extractZip2ElectricBoogaloo(path, path.getParent());
-                    if (!errors.isEmpty())
-                    {
-                        Set<String> strings = errors.keySet();
-                        StringBuilder builder = new StringBuilder();
-                        strings.forEach((str) -> builder.append(str).append("\n"));
-                        LOGGER.error("Errors extracting these files from zip: \n {}", builder);
-                        success = false;
-                    }
-                    Files.deleteIfExists(path);
-                    String[] executableFiles = new String[] {"Minecraft.app/Contents/MacOS/launcher", "Minecraft.app/Contents/Minecraft Updater.app/Contents/MacOS/nativeUpdater"};
-                    for(String filePath: executableFiles) {
-                        Path executableFilePath = path.getParent().resolve(filePath);
-                        boolean b = executableFilePath.toFile().setExecutable(true);
-                        if (!b) LOGGER.warn("Unable to set '{}' to executable", executableFilePath);
-                    }
-                    success = true;
-                } else {
-                    LOGGER.error("Launcher does not exist at '{}'...", path);
-                    success = false;
-                }
-                break;
-            case LINUX:
-                Path installergzip = Constants.MINECRAFT_LAUNCHER_LOCATION;
-                if (Files.exists(installergzip)) {
-                    try {
-                        FileUtils.unTar(new GzipCompressorInputStream(Files.newInputStream(installergzip)), Constants.BIN_LOCATION);
-                        FileUtils.setFilePermissions(Constants.MINECRAFT_LINUX_LAUNCHER_EXECUTABLE);
-                        Files.delete(installergzip);
-                        success = true;
-                    } catch (Exception e) {
-                        LOGGER.error("Failed to extract tarball {}", installergzip, e);
-                        success = false;
-                    }
-                }
-                break;
-            default:
-                success = true;
-        }
-        return success;
     }
 
     public static int parseMinorVersion(String minecraftVersion) {

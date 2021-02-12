@@ -5,7 +5,7 @@ import net.creeperhost.creeperlauncher.CreeperLauncher;
 import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.DownloadableFile;
 import net.creeperhost.creeperlauncher.os.OS;
-import net.creeperhost.creeperlauncher.util.FileUtils;
+import net.creeperhost.creeperlauncher.os.Platform;
 import net.creeperhost.creeperlauncher.util.window.IMonitor;
 import net.creeperhost.creeperlauncher.util.window.IWindow;
 import net.creeperhost.creeperlauncher.util.window.WindowUtils;
@@ -28,49 +28,18 @@ public class GameLauncher
     private static final Logger LOGGER = LogManager.getLogger();
 
     public static Process process;
-    public static Path prepareGame()
+
+    public static Process launchGame()
     {
-        try {
-            Path stored = Constants.BIN_LOCATION;
-            Path test = stored.resolve(Constants.MINECRAFT_LAUNCHER_NAME);
-            Path exec = Files.createTempDirectory("ftba");
-            if(!Files.exists(test))
-            {
-                //If we don't have it in our bin dir... Let's download it to where we need it, this is terrible but I don't care if it works and we can iterate its design later
-                McUtils.downloadVanillaLauncher(exec);
-                McUtils.prepareVanillaLauncher(exec.resolve(Constants.MINECRAFT_LAUNCHER_NAME));
-            } else {
-                FileUtils.copyDirectory(stored, exec);
-            }
-            return exec;
-        } catch(Exception err)
-        {
-            LOGGER.warn("Unable to copy Mojang launcher.", err);
-        }
-        return null;
-    }
-    public void launchGame()
-    {
-        launchGame(Constants.BIN_LOCATION);
-    }
-    public static Process launchGame(Path path)
-    {
-        Path exe = path.resolve(Constants.MINECRAFT_LAUNCHER_NAME);
-        OS os = OS.current();
-        switch (os) {
-            case MAC:
-                exe = path.resolve(Constants.MINECRAFT_MAC_LAUNCHER_EXECUTABLE_NAME);
-                break;
-            case LINUX:
-                exe = path.resolve(Constants.MINECRAFT_LINUX_LAUNCHER_EXECUTABLE_NAME);
-                break;
-        }
+        OS os = OS.CURRENT;
+        Platform platform = os.getPlatform();
+        Path exe = platform.getLauncherExecutable();
         try
         {
-            ProcessBuilder builder = new ProcessBuilder(exe.toAbsolutePath().toString(), "--workDir", path.toAbsolutePath().toString());
+            ProcessBuilder builder = new ProcessBuilder(exe.toAbsolutePath().toString(), "--workDir", Constants.BIN_LOCATION.toAbsolutePath().toString());
             if(os == OS.MAC)
             {
-                builder = new ProcessBuilder("/usr/bin/open", path.resolve("Minecraft.app").toAbsolutePath().toString(), "--args", "--workDir", path.toAbsolutePath().toString());
+                builder = new ProcessBuilder("/usr/bin/open", Constants.BIN_LOCATION.resolve("Minecraft.app").toAbsolutePath().toString(), "--args", "--workDir", Constants.BIN_LOCATION.toAbsolutePath().toString());
             }
 
             Map<String, String> environment = builder.environment();
@@ -137,26 +106,15 @@ public class GameLauncher
 
     public static void launchGameAndClose()
     {
-        launchGameAndClose(Constants.BIN_LOCATION);
-    }
-    public static void launchGameAndClose(Path path)
-    {
         CompletableFuture.runAsync(() ->
         {
-            Path exe = path.resolve(Constants.MINECRAFT_LAUNCHER_NAME);
-            OS os = OS.current();
-            switch (os) {
-                case MAC:
-                    exe = path.resolve(Constants.MINECRAFT_MAC_LAUNCHER_EXECUTABLE_NAME);
-                    break;
-                case LINUX:
-                    exe = path.resolve(Constants.MINECRAFT_LINUX_LAUNCHER_EXECUTABLE_NAME);
-                    break;
-            }
+            OS os = OS.CURRENT;
+            Platform platform = os.getPlatform();
+            Path exe = platform.getLauncherExecutable();
             try
             {
-                Process process = launchGame(path);
-                Path file = path.resolve(Constants.LAUNCHER_PROFILES_JSON_NAME);
+                Process process = launchGame();
+                Path file = Constants.BIN_LOCATION.resolve(Constants.LAUNCHER_PROFILES_JSON_NAME);
                 int tryCount = 0;
                 //TODO this wait loop doesnt check if the launcher is running at all still
                 while (Files.notExists(file))

@@ -38,16 +38,7 @@ public class Constants
     //Paths
     public static final Path BIN_LOCATION_OURS = WORKING_DIR.resolve("bin");
     public static final Path BIN_LOCATION = getDataDir().resolve("bin");
-    public static final String MINECRAFT_LAUNCHER_NAME = "launcher."+OSUtils.getExtension();
-    public static final Path MINECRAFT_LAUNCHER_LOCATION = BIN_LOCATION.resolve(MINECRAFT_LAUNCHER_NAME);
-    public static final String MINECRAFT_MAC_LAUNCHER_NAME = "Minecraft.app";
-    public static final Path MINECRAFT_MAC_LAUNCHER_APP = BIN_LOCATION.resolve(MINECRAFT_MAC_LAUNCHER_NAME);
-    public static final String MINECRAFT_MAC_LAUNCHER_EXECUTABLE_NAME = MINECRAFT_MAC_LAUNCHER_NAME + "/" + "Contents/MacOS/launcher";
-    public static final Path MINECRAFT_MAC_LAUNCHER_EXECUTABLE = BIN_LOCATION.resolve(MINECRAFT_MAC_LAUNCHER_EXECUTABLE_NAME);
 
-    public static final String MINECRAFT_MAC_LAUNCHER_VOLUME = "/Volumes/Minecraft";
-    public static final String MINECRAFT_LINUX_LAUNCHER_EXECUTABLE_NAME = "minecraft-launcher/minecraft-launcher";
-    public static final Path MINECRAFT_LINUX_LAUNCHER_EXECUTABLE = BIN_LOCATION.resolve(MINECRAFT_LINUX_LAUNCHER_EXECUTABLE_NAME);
     public static final Path VERSIONS_FOLDER_LOC = getDataDir().resolve(Paths.get("bin", "versions"));
     public static final Path INSTANCES_FOLDER_LOC = getDataDir().resolve("instances");
     public static final String LAUNCHER_PROFILES_JSON_NAME = "launcher_profiles.json";
@@ -91,7 +82,7 @@ public class Constants
     public static Path getDataDir()
     {
         Path ret = DATA_DIR;
-        switch (OS.current()) {
+        switch (OS.CURRENT) {
             case WIN:
                 ret = Paths.get(System.getenv("LOCALAPPDATA"), INNER_DATA_DIR);
                 break;

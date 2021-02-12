@@ -352,7 +352,7 @@ public class CreeperLauncher
             Settings.webSocketAPI = new WebSocketAPI(new InetSocketAddress(InetAddress.getLoopbackAddress(), defaultWebsocketPort || isDevMode ? Constants.WEBSOCKET_PORT : websocketPort));
             Settings.webSocketAPI.setConnectionLostTimeout(0);
             Settings.webSocketAPI.start();
-            if(OS.current() == OS.WIN) pingPong();
+            if(OS.CURRENT == OS.WIN) pingPong();
         } catch(Throwable t)
         {
             websocketDisconnect=true;
@@ -547,7 +547,7 @@ public class CreeperLauncher
         ArrayList<String> args = new ArrayList<>();
 
 
-        switch (OS.current())
+        switch (OS.CURRENT)
         {
             case MAC:
                 electron = Constants.BIN_LOCATION_OURS.resolve("ftbapp.app");

@@ -35,7 +35,7 @@ public class UploadLogsHandler implements IMessageHandler<UploadLogsData> {
         String uploadData = "UI Version: " + (uiVersion != null ? uiVersion : "Unknown") + "\n" +
             "App Version: " + Constants.APPVERSION + "\n" +
             "Platform: " + Constants.PLATFORM + "\n" +
-            "Operating System: " + OS.current() + "\n" +
+            "Operating System: " + OS.CURRENT + "\n" +
             "\n" +
             "\n" +
             padString(" debug.log ") + "\n" +

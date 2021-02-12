@@ -9,7 +9,6 @@ import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.DownloadableFile;
 import net.creeperhost.creeperlauncher.api.SimpleDownloadableFile;
 import net.creeperhost.creeperlauncher.minecraft.GameLauncher;
-import net.creeperhost.creeperlauncher.minecraft.McUtils;
 import net.creeperhost.creeperlauncher.minecraft.modloader.ModLoader;
 import net.creeperhost.creeperlauncher.minecraft.modloader.ModLoaderManager;
 import net.creeperhost.creeperlauncher.os.OS;
@@ -93,7 +92,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
             LOGGER.debug("Setting stage to VANILLA");
             currentStage = Stage.VANILLA;
             LOGGER.debug("About to download launcher");
-            McUtils.downloadVanillaLauncher();
+            OS.CURRENT.getPlatform().installLauncher();
             Path profileJson = Constants.LAUNCHER_PROFILES_JSON;
             LOGGER.debug("Launching game and close");
             if (Files.notExists(profileJson)) GameLauncher.downloadLauncherProfiles();
@@ -404,7 +403,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                                         }
                                     }
                                 }
-                                if (ruleTarget == OS.current())
+                                if (ruleTarget == OS.CURRENT)
                                 {
                                     Pattern versRegex = Pattern.compile(_ruleTarget.get("version").getAsString());
                                     Matcher versMatch = versRegex.matcher(OSUtils.getVersion());
