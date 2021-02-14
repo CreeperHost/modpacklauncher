@@ -216,6 +216,7 @@ ext {
                 "Implementation-Version":   version,
                 "Implementation-Vendor":    "Creeperhost LTD"
         ] as LinkedHashMap, "net/creeperhost/creeperlauncher/")
+        attributes 'Multi-Release': 'true'
     }
 }
 
