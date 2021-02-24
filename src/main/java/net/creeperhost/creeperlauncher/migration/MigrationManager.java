@@ -1,23 +1,27 @@
 package net.creeperhost.creeperlauncher.migration;
 
+import net.covers1624.quack.util.SneakyUtils;
 import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.migration.migrators.LegacyMigrator;
 import net.creeperhost.creeperlauncher.util.ElapsedTimer;
 import net.creeperhost.creeperlauncher.util.GsonUtils;
+import net.creeperhost.creeperlauncher.util.LogsUploader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import javax.swing.*;
+import javax.swing.event.HyperlinkEvent;
+import java.awt.*;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
+import java.util.List;
+import java.util.ResourceBundle;
 import java.util.Set;
 
 /**
- * TODO, user feedback needs to be added to this, as currently theres no way for a user to know anything is happening.
- *  Basic swing/javafx window should do.
- *
+ * TODO, some form of progress dialog.
  * Created by covers1624 on 13/1/21.
  */
 public class MigrationManager {
@@ -44,7 +48,7 @@ public class MigrationManager {
             try {
                 formatJson = GsonUtils.loadJson(formatJsonPath, FormatJson.class);
             } catch (IOException e) {
-                throw new RuntimeException("Failed to read FormatJson.");//TODO dont throw this.
+                LOGGER.fatal("Failed to read FormatJson. Assuming FormatJson does not exist.", e);
             }
         }
     }
@@ -54,38 +58,72 @@ public class MigrationManager {
     }
 
     public void doMigrations() {
-        if (getDataFormat() == CURRENT_DATA_FORMAT) return;
-
         int from = getDataFormat();
-        LOGGER.info("Starting migration from {} to {}", from, CURRENT_DATA_FORMAT);
-        ElapsedTimer startTimer = new ElapsedTimer();
-        MigrationContext ctx = MigrationContext.buildContext(migrators, from);
-        LOGGER.info("Built MigrationContext in {}", startTimer.elapsedStr());
+        if (from == CURRENT_DATA_FORMAT) return;
+        ResourceBundle bundle = ResourceBundle.getBundle("MigrationMessages");
 
-        for (MigrationContext.MigratorState state : ctx.getMigrators()) {
-            Migrator.Properties properties = state.props;
-            String migratorName = state.migratorClass.getName();
-            LOGGER.info("Executing migrator: {}", migratorName);
-            ElapsedTimer migratorTimer = new ElapsedTimer();
-            try {
-                state.migrator.operate(ctx);
-            } catch (Throwable e) {
-                LOGGER.fatal("Fatal exception occurred whilst performing migration from {} to {} with {}.", properties.from(), properties.to(), migratorName, e);
-                Path logPath = Constants.BIN_LOCATION.resolve("logs/debug.log");
-                //TODO, this needs to be improved.
-                // Either automatically upload the logs and provide a web link, or somehow make the file link clickable.
-                JOptionPane.showMessageDialog(null,
-                        "<html>Fatal exception occurred whilst performing data migration. Please provide your debug.log to support. The FTBApp will now exit.<br/>" +
-                                "  Logs: " + logPath.toAbsolutePath() + "</html>",
-                        "Error migrating data.",
-                        JOptionPane.ERROR_MESSAGE
-                );
+        if (from > CURRENT_DATA_FORMAT) {
+            LOGGER.warn("Loaded newer data format from disk: {}, current: {}", from, CURRENT_DATA_FORMAT);
+            int ret = JOptionPane.showConfirmDialog(null, bundle.getString("migration.newer_format"), "FTBApp", JOptionPane.YES_NO_OPTION, JOptionPane.PLAIN_MESSAGE);
+            if (ret == JOptionPane.NO_OPTION) {
+                LOGGER.info("Exiting at user request.");
                 System.exit(2);
             }
-            state.executed = true;
-            LOGGER.info("Finished in {}", migratorTimer.elapsedStr());
+            LOGGER.warn("Ignoring warning at user request, forcibly reverting saved data format.");
+            markAndSaveLatest();
+            return;
         }
-        LOGGER.info("Finished migration in {}", startTimer.elapsedStr());
+
+        try {
+            LOGGER.info("Starting migration from {} to {}", from, CURRENT_DATA_FORMAT);
+            ElapsedTimer startTimer = new ElapsedTimer();
+            MigrationContext ctx = MigrationContext.buildContext(migrators, from);
+            LOGGER.info("Built MigrationContext in {}", startTimer.elapsedStr());
+
+            List<MigrationContext.MigratorState> migrators = ctx.getMigrators();
+
+            if (migrators.isEmpty()) {
+                LOGGER.info("No migrators will be run for this upgrade. Skipping..");
+                markAndSaveLatest();
+                return;
+            }
+
+            LOGGER.debug("Built migration list:");
+            for (MigrationContext.MigratorState state : migrators) {
+                Migrator.Properties properties = state.props;
+                String name = state.migratorClass.getName();
+                LOGGER.debug("{} to {} with {}", properties.from(), properties.to(), name);
+            }
+
+            int ret = JOptionPane.showConfirmDialog(null, bundle.getString("migration.required"), "FTBApp", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+            if (ret == JOptionPane.CANCEL_OPTION) {
+                LOGGER.info("Exiting at user request.");
+                return;
+            }
+
+            for (MigrationContext.MigratorState state : migrators) {
+                Migrator.Properties properties = state.props;
+                String migratorName = state.migratorClass.getName();
+                LOGGER.info("Executing migrator: {}", migratorName);
+                ElapsedTimer migratorTimer = new ElapsedTimer();
+                try {
+                    state.migrator.operate(ctx);
+                } catch (Throwable e) {
+                    LOGGER.fatal("Fatal exception occurred whilst performing migration from {} to {} with {}.", properties.from(), properties.to(), migratorName, e);
+                    captureMigrationError(bundle);
+                }
+                state.executed = true;
+                LOGGER.info("Finished in {}", migratorTimer.elapsedStr());
+            }
+            LOGGER.info("Finished migration in {}", startTimer.elapsedStr());
+            markAndSaveLatest();
+        } catch (Throwable e) {
+            LOGGER.fatal("Fatal exception occurred whilst performing migration.", e);
+            captureMigrationError(bundle);
+        }
+    }
+
+    private void markAndSaveLatest() {
         formatJson = new FormatJson(CURRENT_DATA_FORMAT);
         saveJson();
     }
@@ -94,8 +132,40 @@ public class MigrationManager {
         try {
             GsonUtils.saveJson(formatJsonPath, formatJson);
         } catch (IOException e) {
-            throw new RuntimeException("Failed to write FormatJson.");//TODO, don't throw this.
+            LOGGER.fatal("Failed to save FormatJson.", e);
         }
+    }
+
+    private void captureMigrationError(ResourceBundle bundle) {
+        String uploadCode = LogsUploader.uploadPaste(LogsUploader.getDebugLog());
+        String logsHtml = uploadCode == null ? "Logs upload failed." : "<a href=\"https://pste.ch/" + uploadCode + "\">https://pste.ch/" + uploadCode + "</a>";
+        JOptionPane.showMessageDialog(null, makeClickablePane(bundle.getString("migration.error") +
+                        "  Logs: " + logsHtml),
+                "FTBApp",
+                JOptionPane.ERROR_MESSAGE
+        );
+        System.exit(2);
+    }
+
+    private static JEditorPane makeClickablePane(String content) {
+
+        JLabel label = new JLabel();
+        Font font = label.getFont();
+
+        // create some css from the label's font
+        StringBuilder style = new StringBuilder("font-family:" + font.getFamily() + ";");
+        style.append("font-weight:" + (font.isBold() ? "bold" : "normal") + ";");
+        style.append("font-size:" + font.getSize() + "pt;");
+
+        JEditorPane pane = new JEditorPane("text/html", "<html><body style=\"" + style + "\">" + content + "</body></html>");
+        pane.addHyperlinkListener(e -> SneakyUtils.sneaky(() -> {
+            if (e.getEventType().equals(HyperlinkEvent.EventType.ACTIVATED)) {
+                Desktop.getDesktop().browse(e.getURL().toURI());
+            }
+        }));
+        pane.setEditable(false);
+        pane.setBackground(label.getBackground());
+        return pane;
     }
 
     private static class FormatJson {
