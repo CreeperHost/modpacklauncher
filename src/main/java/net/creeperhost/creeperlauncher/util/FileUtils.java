@@ -162,42 +162,6 @@ public class FileUtils
         return 0L;
     }
 
-    public static String getHash(Path file, String hashType)
-    {
-        try {
-            return hashToString(createChecksum(file, hashType));
-        } catch (Exception e) {
-            return "error - " + e.getMessage();
-        }
-    }
-
-    private static byte[] createChecksum(Path file, String hashType) throws Exception {
-        try (InputStream is = Files.newInputStream(file)) {
-
-            byte[] buffer = new byte[4096];
-            MessageDigest complete = MessageDigest.getInstance(hashType);
-            int numRead;
-
-            do {
-                numRead = is.read(buffer);
-                if (numRead > 0) {
-                    complete.update(buffer, 0, numRead);
-                }
-            }
-            while (numRead != -1);
-            return complete.digest();
-        }
-    }
-
-    private static String hashToString(byte[] b) {
-        StringBuilder result = new StringBuilder();
-
-        for (byte value : b) {
-            result.append(Integer.toString((value & 0xff) + 0x100, 16).substring(1));
-        }
-        return result.toString();
-    }
-
     //I hate this but its the only way I can get it to work right now
     public static boolean removeMeta(Path file)
     {

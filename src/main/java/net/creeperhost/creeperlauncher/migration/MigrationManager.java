@@ -3,6 +3,7 @@ package net.creeperhost.creeperlauncher.migration;
 import net.covers1624.quack.util.SneakyUtils;
 import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.migration.migrators.LegacyMigrator;
+import net.creeperhost.creeperlauncher.migration.migrators.V1To2;
 import net.creeperhost.creeperlauncher.util.ElapsedTimer;
 import net.creeperhost.creeperlauncher.util.GsonUtils;
 import net.creeperhost.creeperlauncher.util.LogsUploader;
@@ -31,12 +32,13 @@ public class MigrationManager {
     /**
      * Specifies the highest data format version the FTBApp is capable of reading.
      */
-    private static final int CURRENT_DATA_FORMAT = 1;
+    private static final int CURRENT_DATA_FORMAT = 2;
 
     private static final Set<Class<? extends Migrator>> migrators = new HashSet<>();
 
     static {
         migrators.add(LegacyMigrator.class);
+        migrators.add(V1To2.class);
     }
 
     private final Path formatJsonPath;

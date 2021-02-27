@@ -1,5 +1,6 @@
 package net.creeperhost.creeperlauncher.minecraft;
 
+import com.google.common.hash.HashCode;
 import com.google.gson.*;
 import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.Settings;
@@ -20,10 +21,7 @@ import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class McUtils {
 
@@ -60,14 +58,14 @@ public class McUtils {
         JsonElement jElement = new JsonParser().parse(resp);
         if (jElement.isJsonObject()) {
             JsonObject jsonObject = jElement.getAsJsonObject().getAsJsonObject("downloads").getAsJsonObject("client");
-            String sha1 = jsonObject.get("sha1").getAsString();
+            HashCode sha1 = HashCode.fromString(jsonObject.get("sha1").getAsString());
             long size = jsonObject.get("size").getAsLong();
             String URL = jsonObject.get("url").getAsString();
 
-            List<String> sha1List = new ArrayList<>();
+            List<HashCode> sha1List = new ArrayList<>();
             sha1List.add(sha1);
 
-            return new DownloadableFile(version, downloadLoc, URL, sha1List, size, false, false, 0, version, "", String.valueOf(System.currentTimeMillis() / 1000L));
+            return new DownloadableFile(version, downloadLoc, URL, sha1List, size, 0, version, "", String.valueOf(System.currentTimeMillis() / 1000L));
         }
         return null;
     }
@@ -335,7 +333,7 @@ public class McUtils {
         }
         if (Files.notExists(file)) {
             LOGGER.info("Starting download of the vanilla launcher");
-            DownloadableFile remoteFile = new DownloadableFile("official", destinationFile, downloadurl, new ArrayList<>(), 0, false, false, 0, "Vanilla", "vanilla", String.valueOf(System.currentTimeMillis() / 1000L));
+            DownloadableFile remoteFile = new DownloadableFile("official", destinationFile, downloadurl, Collections.emptyList(), 0, 0, "Vanilla", "vanilla", String.valueOf(System.currentTimeMillis() / 1000L));
             Path destinationDir = Constants.BIN_LOCATION;
             Path moveDestination = null;
             if(!Files.isWritable(destinationDir))

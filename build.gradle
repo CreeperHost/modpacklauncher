@@ -234,7 +234,7 @@ dependencies {
     compile 'org.apache.logging.log4j:log4j-slf4j-impl:2.11.1'
     compile 'org.apache.logging.log4j:log4j-jul:2.11.1'
     compile 'com.github.pircbotx:pircbotx:2.2'
-    compile 'net.covers1624:Quack:0.1.2.+'
+    compile 'net.covers1624:Quack:0.1.4.+'
     compile 'com.google.guava:guava:30.1-jre'
 
     implementation 'org.apache.ant:ant-commons-net:1.10.7'

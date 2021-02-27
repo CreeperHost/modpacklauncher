@@ -52,13 +52,6 @@ public class MiscUtils
     public static int getRandomNumber(int min, int max) {
         return (int) ((Math.random() * (max - min)) + min);
     }
-    public static String byteArrayToHex(byte[] a)
-    {
-        StringBuilder sb = new StringBuilder(a.length * 2);
-        for (byte b : a)
-            sb.append(String.format("%02x", b));
-        return sb.toString();
-    }
 
     public static long unixtime()
     {

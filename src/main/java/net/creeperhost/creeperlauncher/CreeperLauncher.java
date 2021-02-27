@@ -78,6 +78,8 @@ public class CreeperLauncher
 
         Settings.loadSettings();
 
+        localCache = new LocalCache(Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve(".localCache"));
+
         boolean migrateError = false;
 
         doUpdate(args);
@@ -142,7 +144,7 @@ public class CreeperLauncher
                             Settings.settings.put("instanceLocation", value);
                             Settings.saveSettings();
                             Instances.refreshInstances();
-                            localCache = new LocalCache();
+                            localCache = new LocalCache(Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve(".localCache"));
                             OpenModalData.openModal("Success", "Moved instance folder location successfully", List.of(
                                     new OpenModalData.ModalButton( "Yay!", "green", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
                             ));
@@ -185,8 +187,6 @@ public class CreeperLauncher
         });
 
         Instances.refreshInstances();
-
-        localCache = new LocalCache(); // moved to here so that it doesn't exist prior to migrating
 
         CompletableFuture.runAsync(() ->
         {
