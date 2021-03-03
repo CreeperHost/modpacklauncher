@@ -32,7 +32,7 @@ public class LegacyMigrator implements Migrator {
     @Override
     public void operate(MigrationContext ctx) throws MigrationException {
         try {
-            OS os = OS.current();
+            OS os = OS.CURRENT;
             if (os == OS.LINUX) return;
             LOGGER.info("Attempting Legacy Migration.");
 

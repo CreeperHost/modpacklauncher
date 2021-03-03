@@ -19,6 +19,7 @@ plugins {
     id "com.install4j.gradle" version "8.0.4"
     id "com.palantir.git-version" version "0.12.2"
     id "com.github.hierynomus.license" version "0.15.0" apply false
+    id "de.sebastianboegl.shadow.transformer.log4j" version "2.1.1"
 }
 
 apply plugin: com.hierynomus.gradle.license.LicenseReportingPlugin
@@ -216,6 +217,7 @@ ext {
                 "Implementation-Version":   version,
                 "Implementation-Vendor":    "Creeperhost LTD"
         ] as LinkedHashMap, "net/creeperhost/creeperlauncher/")
+        attributes 'Multi-Release': 'true'
     }
 }
 
@@ -364,6 +366,10 @@ task sourcesJar(type: Jar, dependsOn: classes) {
     classifier = "sources"
     from sourceSets.main.allSource
     manifest.from(MANIFEST)
+}
+
+shadowJar {
+    transform(com.github.jengelman.gradle.plugins.shadow.transformers.Log4j2PluginsCacheFileTransformer)
 }
 
 artifacts {

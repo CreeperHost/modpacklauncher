@@ -139,6 +139,7 @@ public class FileUtils
         return "application/octet-stream";
     }
 
+    @Deprecated//Use UnixPlatform#chmod755
     public static void setFilePermissions(Path file)
     {
         try

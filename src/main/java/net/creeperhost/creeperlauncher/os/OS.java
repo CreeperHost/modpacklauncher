@@ -1,27 +1,47 @@
 package net.creeperhost.creeperlauncher.os;
 
-public enum OS {
-    WIN,
-    MAC,
-    LINUX,
-    UNKNOWN;
+import net.creeperhost.creeperlauncher.os.platform.LinuxPlatform;
+import net.creeperhost.creeperlauncher.os.platform.MacosPlatform;
+import net.creeperhost.creeperlauncher.os.platform.UnknownPlatform;
+import net.creeperhost.creeperlauncher.os.platform.WindowsPlatform;
 
-    private static final OS current;
+import java.util.function.Supplier;
+
+public enum OS {
+    WIN(WindowsPlatform::new),
+    MAC(MacosPlatform::new),
+    LINUX(LinuxPlatform::new),
+    UNKNOWN(UnknownPlatform::new);
+
+    public static final OS CURRENT;
 
     static {
         String osName = System.getProperty("os.name").toLowerCase();
         if (osName.contains("win")) {
-            current = OS.WIN;
+            CURRENT = OS.WIN;
         } else if (osName.contains("mac")) {
-            current = OS.MAC;
+            CURRENT = OS.MAC;
         } else if (osName.contains("linux")) {
-            current = OS.LINUX;
+            CURRENT = OS.LINUX;
         } else {
-            current = OS.UNKNOWN;
+            CURRENT = OS.UNKNOWN;
         }
     }
 
-    public static OS current() {
-        return current;
+    private final Supplier<Platform> platformSupplier;
+    private Platform platformImpl;
+
+    OS(Supplier<Platform> platformSupplier) {
+        this.platformSupplier = platformSupplier;
+    }
+
+    public Platform getPlatform() {
+        if (this == UNKNOWN) {
+            throw new PlatformNotSupportedException();
+        }
+        if (platformImpl == null) {
+            platformImpl = platformSupplier.get();
+        }
+        return platformImpl;
     }
 }

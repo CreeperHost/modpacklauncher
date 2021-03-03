@@ -184,7 +184,7 @@ public class ForgeJarModLoader extends ForgeModLoader
                             LOGGER.info("jarmods folder has mods to merge, attempting to merge jars");
 							//Merge every file in the instmods folder that is not the mc jar or the merge target
 							for (Path instFile : jarFiles) {
-								if (instFile.equals(merged)) {
+								if (!instFile.equals(merged)) {
 									if (!instFile.getFileName().toString().contains("minecraft") && !instFile.getFileName().toString().contains("merged")) {
                                         LOGGER.info("Merging {} into the merged.jar", instFile.getFileName());
 										if (!FileUtils.mergeJars(instFile, merged)) {

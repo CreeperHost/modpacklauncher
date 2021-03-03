@@ -79,7 +79,6 @@ public class LocalInstance implements IPack
     transient private boolean preUninstallAsync;
     transient private AtomicBoolean inUse = new AtomicBoolean(false);
     transient private HashMap<String, instanceEvent> gameCloseEvents = new HashMap<>();
-    transient private Path tempLauncherPath = null;
 
     public LocalInstance(FTBPack pack, long versionId)
     {
@@ -397,7 +396,7 @@ public class LocalInstance implements IPack
 
         this.hasLoadingMod = checkForLaunchMod();
         //TODO: THIS IS FOR TESTING ONLY, PLEASE REMOVE ME IN FUTURE
-        if(OS.current() == OS.WIN && loadInApp)
+        if(OS.CURRENT == OS.WIN && loadInApp)
         {
             if (!this.hasLoadingMod) {
                 if (modLoader.startsWith("1.7.10")) {
@@ -451,7 +450,6 @@ public class LocalInstance implements IPack
         }
 
         Profile profile = (extraArgs.length() > 0) ? this.toProfile(extraArgs) : this.toProfile();
-        tempLauncherPath = Constants.BIN_LOCATION;
         if(jrePath != null) {
             if (jrePath.endsWith("javaw.exe") || jrePath.endsWith("java")) {
                 if (!Files.notExists(jrePath)) jrePath = null;
@@ -459,19 +457,15 @@ public class LocalInstance implements IPack
                 jrePath = null;
             }
         }
-        if(!McUtils.injectProfile(tempLauncherPath.resolve("launcher_profiles.json"), profile, jrePath))
+        if(!McUtils.injectProfile(Constants.BIN_LOCATION.resolve("launcher_profiles.json"), profile, jrePath))
         {
-            //Can't write to our normal directory, so we'll copy the launcher to a temporary directory and try there!
-            tempLauncherPath = GameLauncher.prepareGame();
-            if(!McUtils.injectProfile(tempLauncherPath.resolve("launcher_profiles.json"), profile, jrePath)) {
-                LOGGER.error("Unable to inject Mojang launcher profile...");
-                OpenModalData.openModal("Error", "Unable to create Mojang launcher profile. Please ensure you do not have any security software blocking access to the FTB App data directories.", List.of(
-                        new OpenModalData.ModalButton("Ok", "red", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
-                ));
-                return null;
-            }
+            LOGGER.error("Unable to inject Mojang launcher profile...");
+            OpenModalData.openModal("Error", "Unable to create Mojang launcher profile. Please ensure you do not have any security software blocking access to the FTB App data directories.", List.of(
+                    new OpenModalData.ModalButton("Ok", "red", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
+            ));
+            return null;
         }
-        LOGGER.warn("Starting launcher at {}", tempLauncherPath);
+        LOGGER.info("Starting launcher at {}", Constants.BIN_LOCATION);
 
         this.lastPlayed = lastPlay;
         try {
@@ -484,7 +478,7 @@ public class LocalInstance implements IPack
         LOGGER.debug("Starting Mojang launcher");
         AtomicReference<Process> launcher = new AtomicReference<>();
         CompletableFuture.runAsync(() -> {
-            launcher.set(GameLauncher.launchGame(tempLauncherPath));
+            launcher.set(GameLauncher.launchGame());
             CreeperLauncher.mojangProcesses.getAndUpdate((List<Process> _processes) -> {
                 if (_processes == null) _processes = new ArrayList<Process>();
                 if (launcher.get() != null) _processes.add(launcher.get());
@@ -498,19 +492,6 @@ public class LocalInstance implements IPack
                 } catch(Exception ignored) {} //Just a small sleep so we're not messing with routing and NIC's just as the Vanilla launcher opens.
                 LOGGER.info("MineTogether Connect is enabled... Connecting...");
                 CreeperLauncher.mtConnect.connect();
-                onGameClose("CleanTempLauncherLoc", () -> {
-                    if(!tempLauncherPath.equals(Constants.BIN_LOCATION))
-                    {
-                        try {
-                            LOGGER.warn("Cleaning up temporary launcher at {}", tempLauncherPath);
-                            FileUtils.deleteDirectory(tempLauncherPath);
-                            Files.deleteIfExists(tempLauncherPath);
-                            LOGGER.warn("Cleaned up temporary launcher at {}", tempLauncherPath);
-                        } catch (IOException e) {
-                            LOGGER.warn("Error cleaning up temporary launcher!", e);
-                        }
-                    }
-                });
                 onGameClose("MTC-Disconnect", () -> {
                     if (CreeperLauncher.mtConnect.isConnected()) {
                         LOGGER.info("MineTogether Connect is enabled... Disconnecting...");
@@ -682,7 +663,7 @@ public class LocalInstance implements IPack
     {
         Path javaExec = null;
         String javaBinary = "javaw.exe";
-        switch (OS.current())
+        switch (OS.CURRENT)
         {
             case LINUX:
             case MAC:
