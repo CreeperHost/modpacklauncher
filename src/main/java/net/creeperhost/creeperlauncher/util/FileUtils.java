@@ -163,42 +163,6 @@ public class FileUtils
         return 0L;
     }
 
-    public static String getHash(Path file, String hashType)
-    {
-        try {
-            return hashToString(createChecksum(file, hashType));
-        } catch (Exception e) {
-            return "error - " + e.getMessage();
-        }
-    }
-
-    private static byte[] createChecksum(Path file, String hashType) throws Exception {
-        try (InputStream is = Files.newInputStream(file)) {
-
-            byte[] buffer = new byte[4096];
-            MessageDigest complete = MessageDigest.getInstance(hashType);
-            int numRead;
-
-            do {
-                numRead = is.read(buffer);
-                if (numRead > 0) {
-                    complete.update(buffer, 0, numRead);
-                }
-            }
-            while (numRead != -1);
-            return complete.digest();
-        }
-    }
-
-    private static String hashToString(byte[] b) {
-        StringBuilder result = new StringBuilder();
-
-        for (byte value : b) {
-            result.append(Integer.toString((value & 0xff) + 0x100, 16).substring(1));
-        }
-        return result.toString();
-    }
-
     //I hate this but its the only way I can get it to work right now
     public static boolean removeMeta(Path file)
     {
@@ -277,6 +241,7 @@ public class FileUtils
         }
     }
 
+    @Deprecated// Use move(Path, Path, boolean)
     private static HashMap<Pair<Path, Path>, IOException> moveDirectory(Path in, Path out, boolean replaceExisting, boolean failFast) {
         HashMap<Pair<Path, Path>, IOException> errors = new HashMap<>();
         if (!in.getFileName().toString().equals(out.getFileName().toString()))
@@ -362,11 +327,13 @@ public class FileUtils
         return errors;
     }
 
+    @Deprecated// Use move(Path, Path, boolean)
     public static HashMap<Pair<Path, Path>, IOException> move(Path in, Path out)
     {
         return move(in, out, false, true);
     }
 
+    @Deprecated// Use move(Path, Path, boolean)
     public static HashMap<Pair<Path, Path>, IOException> move(Path in, Path out, boolean replaceExisting, boolean failFast)
     {
         if (Files.isDirectory(in))
@@ -389,5 +356,27 @@ public class FileUtils
             errors.put(new Pair<>(in, out), e);
         }
         return errors;
+    }
+
+    public static void move(Path from, Path to, boolean replaceExisting) throws IOException {
+        if (Files.isDirectory(from)) {
+            if (!Files.isDirectory(to)) throw new IllegalArgumentException("Requested to move directory into file.");
+            try (Stream<Path> children = Files.list(from)) {
+                children.filter(e -> e != from)
+                        .forEach(sneak(e -> {
+                            move(e, to.resolve(e.getFileName()), replaceExisting);
+                        }));
+
+            }
+        } else {
+            if (Files.exists(from)) {
+                Files.createDirectories(from.toAbsolutePath().getParent());
+                if(replaceExisting) {
+                    Files.move(from, to, StandardCopyOption.REPLACE_EXISTING);
+                } else {
+                    Files.move(from, to);
+                }
+            }
+        }
     }
 }

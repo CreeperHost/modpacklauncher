@@ -1,5 +1,6 @@
 package net.creeperhost.creeperlauncher.install.tasks;
 
+import com.google.common.hash.HashCode;
 import net.creeperhost.creeperlauncher.CreeperLauncher;
 import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.IntegrityCheckException;
@@ -12,16 +13,14 @@ import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.concurrent.*;
 
-public class DownloadTask implements IInstallTask
+public class DownloadTask implements IInstallTask<Void>
 {
     private static final Logger LOGGER = LogManager.getLogger();
 
     private final Path destination;
-    private boolean canChecksum = false;
-    private boolean checksumComplete;
-    private String sha1;
     static int nThreads = Integer.parseInt(Settings.settings.computeIfAbsent("threadLimit", Settings::getDefaultThreadLimit));
     public static final Executor threadPool = new ThreadPoolExecutor(nThreads, nThreads, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
     private int tries = 0;
@@ -51,7 +50,7 @@ public class DownloadTask implements IInstallTask
                 {
                     if (tries == 3)
                     {
-                        throw new IntegrityCheckException(err.getMessage(), -2, "", null, 0, 0, file.getUrl(), destination);
+                        throw new IntegrityCheckException(err.getMessage(), -2, null, Collections.emptyList(), 0, 0, file.getUrl(), destination);
                     }
                 } catch (IOException e)
                 {
@@ -61,29 +60,20 @@ public class DownloadTask implements IInstallTask
             }
             complete = false;
             tries = 0;
-            while (!complete && tries < 3)
-            {
-                if (tries == 0)
-                {
-                    for (String checksum : file.getExpectedSha1())
-                    {
-                        if (CreeperLauncher.localCache.exists(checksum))
-                        {
-                            if (checksum != null)
-                            {
-                                Path cachedFile = CreeperLauncher.localCache.get(checksum);
-                                if (Files.exists(destination)) break;
-                                try
-                                {
-                                    FileUtils.createDirectories(destination.toAbsolutePath().getParent());
-                                    Files.copy(cachedFile, destination);
-                                    FTBModPackInstallerTask.currentBytes.addAndGet(Files.size(cachedFile));
-                                    FTBModPackInstallerTask.batchedFiles.put(file.getId(), "downloaded");
-                                    complete = true;
-                                    break;
-                                } catch (IOException ignored)
-                                {
-                                }
+            while (!complete && tries < 3) {
+                if (tries == 0) {
+                    for (HashCode checksum : file.getExpectedSha1()) {
+                        Path cachePath = CreeperLauncher.localCache.get(checksum);
+                        if(cachePath != null) {
+                            try {
+                                FileUtils.createDirectories(destination.toAbsolutePath().getParent());
+                                Files.copy(cachePath, destination);
+                                FTBModPackInstallerTask.currentBytes.addAndGet(Files.size(cachePath));
+                                FTBModPackInstallerTask.batchedFiles.put(file.getId(), "downloaded");
+                                complete = true;
+                                break;
+                            } catch (IOException e) {
+                                LOGGER.warn("Failed to copy existing file from cache.", e);
                             }
                         }
                     }
@@ -115,7 +105,7 @@ public class DownloadTask implements IInstallTask
                                 thrown = (IntegrityCheckException)e;
                             } else
                             {
-                                thrown = new IntegrityCheckException(e, -1, "", null, 0, 0, file.getUrl(), destination);// TODO: make this better
+                                thrown = new IntegrityCheckException(e, -1, null, Collections.emptyList(), 0, 0, file.getUrl(), destination);// TODO: make this better
                                 LOGGER.debug("Unknown error whilst getting file: ", thrown);
                             }
                             if(Settings.settings.getOrDefault("unforgiving", "false").equals("true"))

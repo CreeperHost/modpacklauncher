@@ -1,5 +1,6 @@
 package net.creeperhost.creeperlauncher.install.tasks;
 
+import com.google.common.hash.HashCode;
 import com.google.gson.*;
 import com.google.gson.stream.JsonReader;
 import java.util.concurrent.ConcurrentHashMap;
@@ -281,15 +282,15 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                     String version = server.get("version").getAsString();
                     String path = server.get("path").getAsString();
                     String downloadUrl = server.get("url").getAsString().replaceAll(" ", "%20");
-                    List<String> sha1 = new ArrayList<>();
-                    sha1.add(server.get("sha1").getAsString());
+                    List<HashCode> sha1 = new ArrayList<>();
+                    sha1.add(HashCode.fromString(server.get("sha1").getAsString()));
                     long size = server.get("size").getAsInt();
                     boolean clientSideOnly = server.get("clientonly").getAsBoolean();
                     boolean optional = server.get("optional").getAsBoolean();
                     long fileId = server.get("id").getAsLong();
                     String fileType = server.get("type").getAsString();
                     String updated = server.get("updated").getAsString();
-                    downloadableFileList.add(new DownloadableFile(version, instance.getDir().resolve(path).resolve(fileName), downloadUrl, sha1, size, clientSideOnly, optional, fileId, fileName, fileType, updated));
+                    downloadableFileList.add(new DownloadableFile(version, instance.getDir().resolve(path).resolve(fileName), downloadUrl, sha1, size, fileId, fileName, fileType, updated));
                 }
             }
         }
@@ -323,15 +324,15 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                     String version = server.get("version").getAsString();
                     String path = server.get("path").getAsString();
                     String downloadUrl = server.get("url").getAsString().replaceAll(" ", "%20");
-                    List<String> sha1 = new ArrayList<>();
-                    sha1.add(server.get("sha1").getAsString());
+                    List<HashCode> sha1 = new ArrayList<>();
+                    sha1.add(HashCode.fromString(server.get("sha1").getAsString()));
                     long size = server.get("size").getAsInt();
                     boolean clientSideOnly = server.get("clientonly").getAsBoolean();
                     boolean optional = server.get("optional").getAsBoolean();
                     long fileId = server.get("id").getAsLong();
                     String fileType = server.get("type").getAsString();
                     String updated = server.get("updated").getAsString();
-                    downloadableFileList.add(new DownloadableFile(version, instance.getDir().resolve(path).resolve(fileName), downloadUrl, sha1, size, clientSideOnly, optional, fileId, fileName, fileType, updated));
+                    downloadableFileList.add(new DownloadableFile(version, instance.getDir().resolve(path).resolve(fileName), downloadUrl, sha1, size, fileId, fileName, fileType, updated));
                 }
             }
         }
@@ -427,12 +428,12 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                         String version = "unknown";
                         String downloadUrl = uri;
                         JsonArray checksums = server.getAsJsonArray("checksums");
-                        List<String> sha1 = new ArrayList<>();
+                        List<HashCode> sha1 = new ArrayList<>();
                         if (checksums != null)
                         {
                             for (JsonElement checksum : checksums)
                             {
-                                sha1.add(checksum.getAsString());
+                                sha1.add(HashCode.fromString(checksum.getAsString()));
                             }
                         }
                         long size = -1;
@@ -442,7 +443,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                         String fileName = localPath.getFileName().toString();
                         String fileType = "library";
                         String updated = String.valueOf(System.currentTimeMillis() / 1000L);
-                        downloadableFileList.add(new DownloadableFile(version, localPath, downloadUrl, sha1, size, clientSideOnly, optional, fileId, fileName, fileType, updated));
+                        downloadableFileList.add(new DownloadableFile(version, localPath, downloadUrl, sha1, size, fileId, fileName, fileType, updated));
                     }
                 }
             }

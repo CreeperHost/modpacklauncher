@@ -20,6 +20,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class ForgeJarModLoader extends ForgeModLoader
@@ -66,7 +67,7 @@ public class ForgeJarModLoader extends ForgeModLoader
             Path forgeFile = instMods.resolve(newname + ".jar");
 			if(Files.notExists(forgeFile))
 			{
-				DownloadableFile forge = new DownloadableFile(newname, forgeFile, url.toString(), new ArrayList<>(), 0, false, false, 0, newname, "modloader", String.valueOf(System.currentTimeMillis() / 1000L));
+				DownloadableFile forge = new DownloadableFile(newname, forgeFile, url.toString(), Collections.emptyList(), 0, 0, newname, "modloader", String.valueOf(System.currentTimeMillis() / 1000L));
 				DownloadTask task = new DownloadTask(forge, forgeFile);
 				task.execute();
 			}
@@ -88,7 +89,7 @@ public class ForgeJarModLoader extends ForgeModLoader
 
 				if(WebUtils.checkExist(new URL(jsonurl)))
 				{
-					DownloadableFile fjson = new DownloadableFile(forgeJson.getFileName().toString(), forgeJson, jsonurl, new ArrayList<>(), 0, false, false, 0, downloadName, "modloader", String.valueOf(System.currentTimeMillis() / 1000L));
+					DownloadableFile fjson = new DownloadableFile(forgeJson.getFileName().toString(), forgeJson, jsonurl, Collections.emptyList(), 0, 0, downloadName, "modloader", String.valueOf(System.currentTimeMillis() / 1000L));
 					DownloadTask ftask = new DownloadTask(fjson, forgeJson);
 					ftask.execute().join();
 				}
