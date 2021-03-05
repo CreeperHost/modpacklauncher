@@ -22,4 +22,4 @@ publish:
     - tags
   stage: publish
   script:
-    - gradlew publish
+    - ./gradlew publish
