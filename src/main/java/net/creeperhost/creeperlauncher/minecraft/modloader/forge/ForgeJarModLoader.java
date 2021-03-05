@@ -105,7 +105,8 @@ public class ForgeJarModLoader extends ForgeModLoader
 			}
 
 			instance.mcVersion = getMinecraftVersion();
-			instance.modLoader = getForgeVersion();
+			instance.modLoader = newname;//getForgeVersion();
+			instance.hasInstMods = true;
 
 			try
 			{
@@ -114,7 +115,6 @@ public class ForgeJarModLoader extends ForgeModLoader
 			{
                 LOGGER.error("Failed to save instance json", e);
 			}
-			instance.setPostInstall(() -> prePlay(instance), false);
 
 			return returnFile;
 		} catch (Exception ignored) { }
@@ -126,7 +126,7 @@ public class ForgeJarModLoader extends ForgeModLoader
 		try
 		{
 			LOGGER.info("Pre-Play started");
-			String newname = instance.getMcVersion() + "-forge" + instance.getMcVersion() + "-" + instance.getModLoader();
+			String newname = instance.getModLoader();
 
 			Path instanceDir = instance.getDir();
 			Path instMods = instanceDir.resolve("instmods");
@@ -200,9 +200,6 @@ public class ForgeJarModLoader extends ForgeModLoader
 						Files.copy(merged, forgeVersion, StandardCopyOption.REPLACE_EXISTING);
 					}
                     LOGGER.info("All files successfully merged");
-
-					instance.modLoader = newname;
-					instance.saveJson();
 				} catch (Exception e) {
 					e.printStackTrace();
 				}

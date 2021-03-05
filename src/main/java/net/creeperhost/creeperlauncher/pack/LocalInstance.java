@@ -4,6 +4,7 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.google.gson.*;
 import net.creeperhost.creeperlauncher.api.data.other.CloseModalData;
 import net.creeperhost.creeperlauncher.api.data.other.OpenModalData;
+import net.creeperhost.creeperlauncher.minecraft.modloader.forge.ForgeJarModLoader;
 import net.creeperhost.creeperlauncher.minetogether.cloudsaves.CloudSaveManager;
 import net.creeperhost.creeperlauncher.minetogether.cloudsaves.CloudSyncType;
 import net.creeperhost.creeperlauncher.install.tasks.DownloadTask;
@@ -79,6 +80,7 @@ public class LocalInstance implements IPack
     transient private boolean preUninstallAsync;
     transient private AtomicBoolean inUse = new AtomicBoolean(false);
     transient private HashMap<String, instanceEvent> gameCloseEvents = new HashMap<>();
+    public boolean hasInstMods = false;
 
     public LocalInstance(FTBPack pack, long versionId)
     {
@@ -180,6 +182,7 @@ public class LocalInstance implements IPack
             this.jrePath = jsonOutput.jrePath;
             this.dir = this.path;
             this.cloudSaves = jsonOutput.cloudSaves;
+            this.hasInstMods = jsonOutput.hasInstMods;
             CompletableFuture.runAsync(() -> this.hasLoadingMod = checkForLaunchMod());
         } catch(Exception e)
         {
@@ -361,6 +364,11 @@ public class LocalInstance implements IPack
                     }
                 }
             }
+        }
+
+        if(hasInstMods)
+        {
+            ForgeJarModLoader.prePlay(this);
         }
 
         if (this.prePlay != null)
