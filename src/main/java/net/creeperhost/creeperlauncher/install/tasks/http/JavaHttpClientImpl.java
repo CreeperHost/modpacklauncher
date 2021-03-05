@@ -1,5 +1,7 @@
 package net.creeperhost.creeperlauncher.install.tasks.http;
 
+import com.google.common.hash.HashFunction;
+import com.google.common.hash.Hasher;
 import net.creeperhost.creeperlauncher.util.WebUtils;
 
 import java.io.IOException;
@@ -11,7 +13,6 @@ import java.net.http.HttpResponse;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
-import java.security.MessageDigest;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
@@ -27,20 +28,21 @@ public class JavaHttpClientImpl implements IHttpClient
     }
 
     @Override
-    public DownloadedFile doDownload(String url, Path destination, IProgressUpdater progressWatcher, MessageDigest digest, long maxSpeed) throws IOException, ExecutionException, InterruptedException
+    public DownloadedFile doDownload(String url, Path destination, IProgressUpdater progressWatcher, HashFunction hashFunc, long maxSpeed) throws IOException, ExecutionException, InterruptedException
     {
-        final HttpClient client = HttpClient.newBuilder().executor(Runnable::run).build(); // always create
+        Hasher hasher = hashFunc.newHasher();
+        HttpClient client = HttpClient.newBuilder().executor(Runnable::run).build(); // always create
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .build();
 
         long fileSize = WebUtils.getFileSize(new URL(url));
 
-        PathBodyHandlerProgress pathBodyHandlerProgress = new PathBodyHandlerProgress(destination, progressWatcher, digest, fileSize);
+        PathBodyHandlerProgress pathBodyHandlerProgress = new PathBodyHandlerProgress(destination, progressWatcher, hasher, fileSize);
 
         Path send = client.sendAsync(request, pathBodyHandlerProgress).get().body(); // not really async - our client will run async things on same thread. bit of a hack, but async just froze.
 
-        return new DownloadedFile(send, pathBodyHandlerProgress.wrapper.downloadedBytes.get(), "");
+        return new DownloadedFile(send, pathBodyHandlerProgress.wrapper.downloadedBytes.get(), hasher.hash());
     }
 
     private void pushProgress(long totalRead, long delta, long contentLength, boolean done, IProgressUpdater progressWatcher)
@@ -52,13 +54,13 @@ public class JavaHttpClientImpl implements IHttpClient
     {
         private final HttpResponse.BodyHandler<Path> pathBodyHandler;
         private BodySubscriberWrapper wrapper;
-        private final MessageDigest messageDigest;
+        private final Hasher hasher;
         private final IProgressUpdater progressWatcher;
         private final long fileSize;
 
-        PathBodyHandlerProgress(Path destination, IProgressUpdater progressWatcher, MessageDigest messageDigest, long fileSize)
+        PathBodyHandlerProgress(Path destination, IProgressUpdater progressWatcher, Hasher hasher, long fileSize)
         {
-            this.messageDigest = messageDigest;
+            this.hasher = hasher;
             this.progressWatcher = progressWatcher;
             this.fileSize = fileSize;
             pathBodyHandler = HttpResponse.BodyHandlers.ofFile(destination);
@@ -67,7 +69,7 @@ public class JavaHttpClientImpl implements IHttpClient
         @Override
         public HttpResponse.BodySubscriber<Path> apply(HttpResponse.ResponseInfo responseInfo)
         {
-            return wrapper = new BodySubscriberWrapper(pathBodyHandler.apply(responseInfo), progressWatcher, messageDigest, fileSize);
+            return wrapper = new BodySubscriberWrapper(pathBodyHandler.apply(responseInfo), progressWatcher, hasher, fileSize);
         }
     }
 
@@ -76,16 +78,14 @@ public class JavaHttpClientImpl implements IHttpClient
 
         private final HttpResponse.BodySubscriber<Path> delegate;
         private final IProgressUpdater progressWatcher;
-        private final MessageDigest digest;
+        private final Hasher hasher;
         public AtomicInteger downloadedBytes = new AtomicInteger();
-        private boolean canChecksum;
         private long fileSize;
 
-        BodySubscriberWrapper(HttpResponse.BodySubscriber<Path> delegate, IProgressUpdater progressWatcher, MessageDigest digest, long fileSize)
+        BodySubscriberWrapper(HttpResponse.BodySubscriber<Path> delegate, IProgressUpdater progressWatcher, Hasher hasher, long fileSize)
         {
-            canChecksum = digest != null;
             this.fileSize = fileSize;
-            this.digest = digest;
+            this.hasher = hasher;
             this.delegate = delegate;
             this.progressWatcher = progressWatcher;
         }
@@ -106,13 +106,10 @@ public class JavaHttpClientImpl implements IHttpClient
         @Override
         public void onNext(List<ByteBuffer> item)
         {
-            if (canChecksum)
+            for (ByteBuffer bb : item)
             {
-                for (ByteBuffer bb : item)
-                {
-                    digest.update(bb);
-                    bb.rewind();
-                }
+                hasher.putBytes(bb);
+                bb.rewind();
             }
             int sum = item.stream().mapToInt(Buffer::remaining).sum();
             pushProgress(downloadedBytes.get(), sum, fileSize, false, progressWatcher);

@@ -17,10 +17,8 @@ import java.awt.event.KeyEvent;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public class GameLauncher
@@ -95,7 +93,7 @@ public class GameLauncher
             if(Files.notExists(file))
             {
                 //Some reason the vanilla launcher is not creating the launcher_profiles.json
-                DownloadableFile defaultConfig = new DownloadableFile("", file, "https://apps.modpacks.ch/FTB2/launcher_profiles.json", new ArrayList<>(), 0, true, false, 0, "config", "launcher_profiles.json", "");
+                DownloadableFile defaultConfig = new DownloadableFile("", file, "https://apps.modpacks.ch/FTB2/launcher_profiles.json", Collections.emptyList(), 0, 0, "config", "launcher_profiles.json", "");
                 defaultConfig.prepare();
                 defaultConfig.download(file, true, false);
             }
@@ -146,7 +144,7 @@ public class GameLauncher
                 if(Files.notExists(Constants.LAUNCHER_PROFILES_JSON))
                 {
                     //Some reason the vanilla launcher is not creating the launcher_profiles.json
-                    DownloadableFile defaultConfig = new DownloadableFile("", file, "https://apps.modpacks.ch/FTB2/launcher_profiles.json", new ArrayList<>(), 0, true, false, 0, "config", "launcher_profiles.json", "");
+                    DownloadableFile defaultConfig = new DownloadableFile("", file, "https://apps.modpacks.ch/FTB2/launcher_profiles.json", Collections.emptyList(), 0, 0, "config", "launcher_profiles.json", "");
                     defaultConfig.prepare();
                     defaultConfig.download(file, true, false);
                 }

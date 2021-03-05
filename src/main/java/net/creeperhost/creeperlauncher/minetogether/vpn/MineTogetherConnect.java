@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -140,7 +141,7 @@ public class MineTogetherConnect {
     }
     private static boolean download(Path path)
     {
-        DownloadableFile remoteFile = new DownloadableFile("latest", path, "https://apps.modpacks.ch/MineTogether/MineTogetherConnect.exe", new ArrayList<>(), 0, false, false, 0, "MineTogetherConnect", "MineTogetherConnect", String.valueOf(System.currentTimeMillis() / 1000L));
+        DownloadableFile remoteFile = new DownloadableFile("latest", path, "https://apps.modpacks.ch/MineTogether/MineTogetherConnect.exe", Collections.emptyList(), 0, 0, "MineTogetherConnect", "MineTogetherConnect", String.valueOf(System.currentTimeMillis() / 1000L));
         try {
             remoteFile.prepare();
             remoteFile.download(path, true, false);

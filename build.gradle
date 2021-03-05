@@ -236,7 +236,8 @@ dependencies {
     compile 'org.apache.logging.log4j:log4j-slf4j-impl:2.11.1'
     compile 'org.apache.logging.log4j:log4j-jul:2.11.1'
     compile 'com.github.pircbotx:pircbotx:2.2'
-    compile 'net.covers1624:Quack:0.1.2.+'
+    compile 'net.covers1624:Quack:0.1.4.+'
+    compile 'com.google.guava:guava:30.1-jre'
 
     implementation 'org.apache.ant:ant-commons-net:1.10.7'
 
@@ -309,7 +310,8 @@ def dependencySources = [
         "org.slf4j:slf4j-api": "https://github.com/qos-ch/slf4j",
         "com.google.code.gson:gson": "https://github.com/google/gson",
         "org.jetbrains.kotlin:kotlin-stdlib": "https://github.com/JetBrains/kotlin/tree/master/libraries/stdlib",
-        "org.apache.tika:tika-core": "https://github.com/apache/tika"
+        "org.apache.tika:tika-core": "https://github.com/apache/tika",
+        "net.covers1624:Quack": "https://github.com/covers1624/Quack"
 ]
 
 task writeVersion() {

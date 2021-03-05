@@ -11,6 +11,9 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.*;
 import com.amazonaws.services.s3.transfer.*;
+import com.google.common.hash.HashCode;
+import com.google.common.hash.Hashing;
+import net.covers1624.quack.util.HashUtils;
 import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.util.FileUtils;
 import org.apache.logging.log4j.LogManager;
@@ -110,9 +113,9 @@ public class CloudSaveManager {
 
         } catch (AmazonS3Exception ignored) {}
 
-        String fileHash = FileUtils.getHash(file, "SHA-256");
+        HashCode fileHash = HashUtils.hash(Hashing.sha256(), file);
         if (objectMetadata != null) {
-            if (fileHash.equals(objectMetadata.getUserMetaDataOf("ourhash"))) {
+            if (HashUtils.equals(fileHash, objectMetadata.getUserMetaDataOf("ourhash"))) {
                 LOGGER.debug("Not uploading {} as object exists on server", file);
                 return;
             }
@@ -132,7 +135,7 @@ public class CloudSaveManager {
 
         long fileSize = Files.size(file);
         ObjectMetadata meta = new ObjectMetadata();
-        meta.addUserMetadata("ourhash", fileHash);
+        meta.addUserMetadata("ourhash", fileHash.toString());
         meta.addUserMetadata("ourlastmodified", String.valueOf(FileUtils.getLastModified(file)));
         meta.setContentLength(fileSize);
         Upload upload = transferManager.upload(bucket, location.replace(" ", ""), bufferedStream, meta);
@@ -195,7 +198,7 @@ public class CloudSaveManager {
         try {
             S3ObjectSummary summary = existing.get(location);
             if (Files.exists(file) && summary != null) {
-                if(summary.getSize() <= 5242500 && FileUtils.getHash(file, "MD5").equals(summary.getETag())) {
+                if(summary.getSize() <= 5242500 && HashUtils.equals(HashUtils.hash(Hashing.md5(), file), summary.getETag())) {
                     LOGGER.debug("Not syncing {} as object exists on server", file);
                     return;
                 }
@@ -204,11 +207,11 @@ public class CloudSaveManager {
             //System.out.println("Getting metadata for " + location);
         } catch (AmazonS3Exception ignored) {}
 
-        String fileHash = FileUtils.getHash(file, "SHA-256");
+        HashCode fileHash = HashUtils.hash(Hashing.sha256(), file);
         if (objectMetadata != null) {
             LOGGER.debug("Client {} Server {}", fileHash, objectMetadata.getUserMetaDataOf("ourhash"));
 
-            if (fileHash.equals(objectMetadata.getUserMetaDataOf("ourhash"))) {
+            if (HashUtils.equals(fileHash, objectMetadata.getUserMetaDataOf("ourhash"))) {
                 LOGGER.debug("Not syncing {} as object exists on server", file);
                 return;
             } else
@@ -238,7 +241,7 @@ public class CloudSaveManager {
             if (Files.exists(file) && existingObjects.containsKey(location))
             {
                 S3ObjectSummary summary = existingObjects.get(location);
-                if (summary.getSize() <= 5242500 && FileUtils.getHash(file, "MD5").equals(summary.getETag())) {
+                if (summary.getSize() <= 5242500 && HashUtils.equals(HashUtils.hash(Hashing.md5(), file), summary.getETag())) {
                     LOGGER.debug("Not syncing {} as object exists on server", file);
                     return;
                 }
@@ -247,9 +250,9 @@ public class CloudSaveManager {
             //System.out.println("Getting metadata for " + location);
         } catch (AmazonS3Exception ignored) {}
 
-        String fileHash = FileUtils.getHash(file, "SHA-256");
+        HashCode fileHash = HashUtils.hash(Hashing.sha256(), file);
         if (objectMetadata != null) {
-            if (fileHash.equals(objectMetadata.getUserMetaDataOf("ourhash"))) {
+            if (HashUtils.equals(fileHash, objectMetadata.getUserMetaDataOf("ourhash"))) {
                 LOGGER.debug("Not uploading {} as object exists on server", file);
                 return;
             } else
@@ -298,7 +301,7 @@ public class CloudSaveManager {
         {
             if (eTag != null)
             {
-                if (eTag.equals(FileUtils.getHash(file, "MD5")));
+                if (HashUtils.equals(HashUtils.hash(Hashing.md5(), file), eTag))
                 {
                     LOGGER.debug("Not downloading {} as object exists on client", file);
                     return;
@@ -311,7 +314,7 @@ public class CloudSaveManager {
             } catch (AmazonS3Exception ignored) {}
 
             if (objectMetadata != null) {
-                if (FileUtils.getHash(file, "SHA-256").equals(objectMetadata.getUserMetaDataOf("ourhash"))) {
+                if (HashUtils.equals(HashUtils.hash(Hashing.md5(), file), objectMetadata.getUserMetaDataOf("ourhash"))) {
                     LOGGER.debug("Not downloading {} as object exists on client", file);
                     return;
                 }
