@@ -23,6 +23,7 @@ plugins {
 
 apply plugin: com.hierynomus.gradle.license.LicenseReportingPlugin
 apply plugin: "maven"
+apply plugin: "maven-publish"
 apply plugin: "java"
 apply plugin: "eclipse"
 
@@ -30,6 +31,17 @@ repositories {
     mavenCentral()
     gradlePluginPortal()
     maven { url 'https://jitpack.io' }
+    maven {
+        url "https://git.creeper.host/api/v4/projects/54/packages/maven"
+        name "GitLab"
+        credentials(HttpHeaderCredentials) {
+            name = 'Job-Token'
+            value = System.getenv("CI_JOB_TOKEN")
+        }
+        authentication {
+            header(HttpHeaderAuthentication)
+        }
+    }
 }
 
 import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
@@ -391,4 +403,24 @@ task copyElectron(dependsOn: ":web:npm_run_build", type: Copy) {
 
 wrapper {
     gradleVersion = "5.0"
+}
+
+publishing {
+    publications {
+        library(MavenPublication) {
+            from components.java
+        }
+    }
+    repositories {
+        maven {
+            url "https://gitlab.example.com/api/v4/projects/54/packages/maven"
+            credentials(HttpHeaderCredentials) {
+                name = 'Job-Token'
+                value = System.getenv("CI_JOB_TOKEN")
+            }
+            authentication {
+                header(HttpHeaderAuthentication)
+            }
+        }
+    }
 }
