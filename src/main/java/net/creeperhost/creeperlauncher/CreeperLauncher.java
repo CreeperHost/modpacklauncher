@@ -11,6 +11,7 @@ import net.creeperhost.creeperlauncher.api.data.other.OpenModalData;
 import net.creeperhost.creeperlauncher.api.data.other.PingLauncherData;
 import net.creeperhost.creeperlauncher.install.tasks.FTBModPackInstallerTask;
 import net.creeperhost.creeperlauncher.install.tasks.LocalCache;
+import net.creeperhost.creeperlauncher.migration.MigrationManager;
 import net.creeperhost.creeperlauncher.minetogether.vpn.MineTogetherConnect;
 import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.util.*;
@@ -72,101 +73,25 @@ public class CreeperLauncher
     @SuppressWarnings("ResultOfMethodCallIgnored")
     public static void main(String[] args)
     {
-        Path json = Constants.BIN_LOCATION.resolve("settings.json");
-        boolean migrate = false;
-        if (Files.notExists(json))
-        {
-            Path jsonOld = Constants.getDataDirOld().resolve("bin/settings.json");
+        MigrationManager migrationManager = new MigrationManager();
+        migrationManager.doMigrations();
 
-            if (Files.exists(jsonOld)) {
-//                json.getParentFile().mkdirs();
-                try {
-//                    Files.copy(jsonOld.toPath(), json.toPath());
-//                    Files.delete(jsonOld.toPath());
-                } catch (Exception e) {
-                    // shrug
-                }
-                migrate = true;
-            }
-        }
+        Settings.loadSettings();
 
-        if (migrate)
-        {
-            Settings.loadSettings(Constants.getDataDirOld().resolve("bin/settings.json"), false);
-        } else {
-            Settings.loadSettings();
-        }
-
-        verbose = Settings.settings.getOrDefault("verbose", "false").equals("true");
-
-        Path oldInstances = Constants.getDataDirOld().resolve("instances");
-
-        boolean migrateInstances = false;
-
-        if (Files.exists(oldInstances)) {
-            String oldInstanceLocation = Settings.settings.getOrDefault("instanceLocation", "");
-            if (oldInstanceLocation.equals(oldInstances.toAbsolutePath().toString())) {
-                migrateInstances = true;
-            }
-        }
-
-        FileUtils.deleteDirectory(Constants.WORKING_DIR.resolve(".localCache"));
-        FileUtils.deleteDirectory(Constants.OLD_CACHE_LOCATION);
+        localCache = new LocalCache(Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve(".localCache"));
 
         boolean migrateError = false;
 
-        if (migrate)
-        {
-            if (migrateInstances)
-            {
-                // try delete cache as faster move
-                FileUtils.deleteDirectory(Constants.getDataDirOld().resolve("instances/.localCache"));
-            }
-/*            FileUtils.move(Path.of(Constants.BIN_LOCATION_OURS, "launcher." + OSUtils.getExtension()), Path.of(Constants.MINECRAFT_LAUNCHER_LOCATION));
-            FileUtils.move(Path.of(Constants.BIN_LOCATION_OURS, "Minecraft.app"), Path.of(Constants.BIN_LOCATION, "Minecraft.app"));
-            FileUtils.move(Path.of(Constants.BIN_LOCATION_OURS, "minecraft-launcher"), Path.of(Constants.BIN_LOCATION, "minecraft-launcher"));
-            FileUtils.move(Path.of(Constants.BIN_LOCATION_OURS, "versions"), Path.of(Constants.VERSIONS_FOLDER_LOC));
-            FileUtils.move(Path.of(Constants.BIN_LOCATION_OURS, "launcher_profiles.json"), Path.of(Constants.LAUNCHER_PROFILES_JSON));
-            FileUtils.move(Path.of(Constants.BIN_LOCATION_OURS, "launcher_settings.json"), Path.of(Constants.LAUNCHER_PROFILES_JSON));
-            FileUtils.move(Path.of(Constants.BIN_LOCATION_OURS, "libraries"), Path.of(Constants.LIBRARY_LOCATION));*/
-//            CreeperLogger.INSTANCE.close(); // close so we can move the existing logs and everything
-            HashMap<Pair<Path, Path>, IOException> move = FileUtils.move(Constants.getDataDirOld(), Constants.getDataDir(), false, false);
-//            CreeperLogger.INSTANCE.reinitialise(); // try re-open logger
-            if (move.size() > 0)
-            {
-                migrateError = true;
-                StringBuilder errorString = new StringBuilder("Errors occurred whilst migrating to a new folder structure. It may still be fine, but please contact FTB support if you have issues!\n");
-                for(Map.Entry<Pair<Path, Path>, IOException> entry : move.entrySet()) {
-                    errorString.append(entry.getKey().getLeft()).append(" ").append(entry.getKey().getRight()).append(":").append(entry.getValue().getMessage()).append("\n");
-                }
-                LOGGER.warn(errorString.toString());
-            }
-            if (migrateInstances)
-            {
-                /*HashMap<Pair<Path, Path>, IOException> moveResult = FileUtils.move(Path.of(Constants.WORKING_DIR, "instanceLocation"), Path.of(Constants.INSTANCES_FOLDER_LOC));
-                if (!moveResult.isEmpty()) {
-                    CreeperLogger.INSTANCE.error("Error occurred whilst migrating instances to the new location. Errors follow.");
-                    moveResult.forEach((key, value) -> {
-                        CreeperLogger.INSTANCE.error("Moving " + key.getLeft() + " to " + key.getRight() + " failed:", value);
-                    });
-                    failedInitialMigration = true;
-                }*/
-                Settings.settings.remove("instanceLocation");
-                Settings.settings.put("instanceLocation", Constants.INSTANCES_FOLDER_LOC.toAbsolutePath().toString());
-            }
-            Settings.saveSettings();
-        }
-
         doUpdate(args);
 
-        try {
-            Files.newDirectoryStream(Paths.get("."), path -> (path.toString().endsWith(".jar") && !path.toString().contains(Constants.APPVERSION)))
-                    .forEach(path -> {
-                        try {
-                            Files.delete(path);
-                        } catch (IOException ignored) { }
-                    });
-        } catch (IOException ignored) {}
+        FileUtils.listDir(Constants.WORKING_DIR).stream()
+                .filter(e -> e.getFileName().toString().endsWith(".jar") && !e.getFileName().toString().contains(Constants.APPVERSION))
+                .forEach(e -> {
+                    try {
+                        Files.deleteIfExists(e);
+                    } catch (IOException ignored) {
+                    }
+                });
 
         SettingsChangeUtil.registerListener("instanceLocation", (key, value) -> {
             OpenModalData.openModal("Confirmation", "Are you sure you wish to move your instances to this location? <br tag='haha line break go brr'> All content in your current instance location will be moved, and if content exists with the same name in the destination it will be replaced.", List.of(
@@ -219,7 +144,7 @@ public class CreeperLauncher
                             Settings.settings.put("instanceLocation", value);
                             Settings.saveSettings();
                             Instances.refreshInstances();
-                            localCache = new LocalCache();
+                            localCache = new LocalCache(Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve(".localCache"));
                             OpenModalData.openModal("Success", "Moved instance folder location successfully", List.of(
                                     new OpenModalData.ModalButton( "Yay!", "green", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
                             ));
@@ -262,8 +187,6 @@ public class CreeperLauncher
         });
 
         Instances.refreshInstances();
-
-        localCache = new LocalCache(); // moved to here so that it doesn't exist prior to migrating
 
         CompletableFuture.runAsync(() ->
         {
@@ -372,6 +295,7 @@ public class CreeperLauncher
             );
         }
 
+        //TODO this is never set anymore, figure out the best way to handle this.
         if (migrateError)
         {
             OpenModalData.openModal("Warning", "An error occurred whilst migrating your FTB App to a new data structure. Things may still work, but if you have issues, please contact FTB support for assistance.", List.of(

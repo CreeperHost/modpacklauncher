@@ -5,6 +5,7 @@ import com.google.gson.*;
 import net.creeperhost.creeperlauncher.api.data.other.CloseModalData;
 import net.creeperhost.creeperlauncher.api.data.other.OpenModalData;
 import net.creeperhost.creeperlauncher.api.handlers.ModFile;
+import net.creeperhost.creeperlauncher.minecraft.modloader.forge.ForgeJarModLoader;
 import net.creeperhost.creeperlauncher.minetogether.cloudsaves.CloudSaveManager;
 import net.creeperhost.creeperlauncher.minetogether.cloudsaves.CloudSyncType;
 import net.creeperhost.creeperlauncher.install.tasks.DownloadTask;
@@ -82,6 +83,7 @@ public class LocalInstance implements IPack
     transient private boolean preUninstallAsync;
     transient private AtomicBoolean inUse = new AtomicBoolean(false);
     transient private HashMap<String, instanceEvent> gameCloseEvents = new HashMap<>();
+    public boolean hasInstMods = false;
 
     public LocalInstance(FTBPack pack, long versionId)
     {
@@ -180,10 +182,11 @@ public class LocalInstance implements IPack
             this.lastPlayed = jsonOutput.lastPlayed;
             this.jvmArgs = jsonOutput.jvmArgs;
             this.modLoader = jsonOutput.modLoader;
+            if(this.modLoader == null || this.modLoader.isEmpty()) this.modLoader = jsonOutput.getVersion();
             this.jrePath = jsonOutput.jrePath;
             this.dir = this.path;
             this.cloudSaves = jsonOutput.cloudSaves;
-            //CompletableFuture.runAsync(() -> this.hasLoadingMod = checkForLaunchMod());
+            this.hasInstMods = jsonOutput.hasInstMods;
         } catch(Exception e)
         {
             throw new RuntimeException("Instance is corrupted!", e);
@@ -364,6 +367,11 @@ public class LocalInstance implements IPack
                     }
                 }
             }
+        }
+
+        if(hasInstMods)
+        {
+            ForgeJarModLoader.prePlay(this);
         }
 
         if (this.prePlay != null)

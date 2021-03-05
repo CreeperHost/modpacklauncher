@@ -20,6 +20,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class ForgeJarModLoader extends ForgeModLoader
@@ -49,7 +50,7 @@ public class ForgeJarModLoader extends ForgeModLoader
 		FileUtils.createDirectories(file);
 
 		//Add the jvm args to fix loading older forge versions
-		instance.jvmArgs = instance.jvmArgs + " -Dfml.ignorePatchDiscrepancies=true -Dfml.ignoreInvalidMinecraftCertificates=true -Dminecraft.applet.TargetDirectory=" + instance.getDir().toAbsolutePath().toString().trim();
+		instance.jvmArgs = instance.jvmArgs + " -Dfml.ignorePatchDiscrepancies=true -Dfml.ignoreInvalidMinecraftCertificates=true -Dminecraft.applet.TargetDirectory=\"" + instance.getDir().toAbsolutePath().toString().trim() + "\"";
 		try
 		{
 			URI url = null;
@@ -66,7 +67,7 @@ public class ForgeJarModLoader extends ForgeModLoader
             Path forgeFile = instMods.resolve(newname + ".jar");
 			if(Files.notExists(forgeFile))
 			{
-				DownloadableFile forge = new DownloadableFile(newname, forgeFile, url.toString(), new ArrayList<>(), 0, false, false, 0, newname, "modloader", String.valueOf(System.currentTimeMillis() / 1000L));
+				DownloadableFile forge = new DownloadableFile(newname, forgeFile, url.toString(), Collections.emptyList(), 0, 0, newname, "modloader", String.valueOf(System.currentTimeMillis() / 1000L));
 				DownloadTask task = new DownloadTask(forge, forgeFile);
 				task.execute();
 			}
@@ -88,7 +89,7 @@ public class ForgeJarModLoader extends ForgeModLoader
 
 				if(WebUtils.checkExist(new URL(jsonurl)))
 				{
-					DownloadableFile fjson = new DownloadableFile(forgeJson.getFileName().toString(), forgeJson, jsonurl, new ArrayList<>(), 0, false, false, 0, downloadName, "modloader", String.valueOf(System.currentTimeMillis() / 1000L));
+					DownloadableFile fjson = new DownloadableFile(forgeJson.getFileName().toString(), forgeJson, jsonurl, Collections.emptyList(), 0, 0, downloadName, "modloader", String.valueOf(System.currentTimeMillis() / 1000L));
 					DownloadTask ftask = new DownloadTask(fjson, forgeJson);
 					ftask.execute().join();
 				}
@@ -105,7 +106,8 @@ public class ForgeJarModLoader extends ForgeModLoader
 			}
 
 			instance.mcVersion = getMinecraftVersion();
-			instance.modLoader = getForgeVersion();
+			instance.modLoader = newname;//getForgeVersion();
+			instance.hasInstMods = true;
 
 			try
 			{
@@ -114,7 +116,6 @@ public class ForgeJarModLoader extends ForgeModLoader
 			{
                 LOGGER.error("Failed to save instance json", e);
 			}
-			instance.setPostInstall(() -> prePlay(instance), false);
 
 			return returnFile;
 		} catch (Exception ignored) { }
@@ -126,7 +127,7 @@ public class ForgeJarModLoader extends ForgeModLoader
 		try
 		{
 			LOGGER.info("Pre-Play started");
-			String newname = instance.getMcVersion() + "-forge" + instance.getMcVersion() + "-" + instance.getModLoader();
+			String newname = instance.getModLoader();
 
 			Path instanceDir = instance.getDir();
 			Path instMods = instanceDir.resolve("instmods");
@@ -200,9 +201,6 @@ public class ForgeJarModLoader extends ForgeModLoader
 						Files.copy(merged, forgeVersion, StandardCopyOption.REPLACE_EXISTING);
 					}
                     LOGGER.info("All files successfully merged");
-
-					instance.modLoader = newname;
-					instance.saveJson();
 				} catch (Exception e) {
 					e.printStackTrace();
 				}

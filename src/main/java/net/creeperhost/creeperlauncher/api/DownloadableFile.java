@@ -1,5 +1,7 @@
 package net.creeperhost.creeperlauncher.api;
 
+import com.google.common.hash.HashCode;
+import com.google.common.hash.Hashing;
 import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.IntegrityCheckException;
 import net.creeperhost.creeperlauncher.install.tasks.FTBModPackInstallerTask;
@@ -19,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -26,58 +29,37 @@ public class DownloadableFile
 {
     private static final Logger LOGGER = LogManager.getLogger();
 
-    String version;
-    Path path;
-    String downloadUrl;
-    URL url;
-    List<String> expectedChecksums;
-    long size;
-    boolean clientSide;
-    boolean optional;
-    long id;
-    String name;
-    String type;
-    String updated;
-    boolean hasPrepared;
-    MessageDigest digest;
-    String sha1;
-    Path destination;
+    private final String version;
+    private final Path path;
+    private final String downloadUrl;
+    private final List<HashCode> expectedChecksums;
+    private long size;
+    private final long id;
+    private final String name;
+    private final String type;
+    private final String updated;
+    private boolean hasPrepared;
+    private HashCode sha1;
+    private Path destination;
     private final IHttpClient client = new OkHttpClientImpl();
 
-    public DownloadableFile(String version, Path path, String url, List<String> acceptedChecksums, long size, boolean clientSide, boolean optional, long id, String name, String type, String updated)
-    {
+    public DownloadableFile(String version, Path path, String url, List<HashCode> acceptedChecksums, long size, long id, String name, String type, String updated) {
         this.version = version;
         this.path = path;
         this.downloadUrl = url;
-        this.expectedChecksums = acceptedChecksums;
+        this.expectedChecksums = new ArrayList<>(acceptedChecksums);
         this.size = size;
-        this.clientSide = clientSide;
-        this.optional = optional;
         this.id = id;
         this.name = name;
         this.type = type;
         this.updated = updated;
-        try
-        {
-            this.digest = MessageDigest.getInstance("SHA-1");
-        } catch (NoSuchAlgorithmException e)
-        {
-            e.printStackTrace();
-        }
     }
 
-    public void prepare() throws IOException
-    {
-        try
-        {
-            this.url = new URL(this.downloadUrl.replace(" ", "%20"));
-        } catch (Exception ignored)
-        {
-        }
+    public void prepare() throws IOException {
         boolean remoteExists = false;
         long remoteSize = 0;
-        if (this.downloadUrl.length() > 10)
-        {
+        if (this.downloadUrl.length() > 10) {
+            URL url = new URL(downloadUrl.replace(" ", "%20"));
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("HEAD");
             connection.setConnectTimeout(15000);
@@ -173,10 +155,12 @@ public class DownloadableFile
         } catch (Exception ignored) {
         }
 
-        DownloadedFile send = client.doDownload(this.downloadUrl, destination, (downloaded, delta, total, done) ->
-        {
-            FTBModPackInstallerTask.currentBytes.addAndGet(delta);
-        }, digest, speedLimit * 1000L); // not really async - our client will run async things on same thread. bit of a hack, but async just froze.
+        DownloadedFile send = client.doDownload(
+                downloadUrl,
+                destination,
+                (downloaded, delta, total, done) -> FTBModPackInstallerTask.currentBytes.addAndGet(delta),
+                Hashing.sha1(),
+                speedLimit * 1000L); // not really async - our client will run async things on same thread. bit of a hack, but async just froze.
         Path body = send.getDestination();
         sha1 = send.getChecksum();
 
@@ -191,7 +175,6 @@ public class DownloadableFile
     public void validate(boolean FailOnChecksum, boolean FailOnFileSize) throws IntegrityCheckException, FileNotFoundException
     {
         if (Files.notExists(destination)) throw new FileNotFoundException("File not saved.");
-        AtomicBoolean passChecksum = new AtomicBoolean(false);
 
         long dstSize = 0;
         try {
@@ -199,21 +182,11 @@ public class DownloadableFile
         } catch (IOException ignored) {
             LOGGER.warn("Failed to get size of file: {}", destination);
         }
-        if ((sha1 != null && sha1.length() > 0) && (expectedChecksums != null && expectedChecksums.size() > 0))
-        {
-
-            expectedChecksums.forEach((s) ->
-            {
-                if (s.equalsIgnoreCase(sha1)) passChecksum.set(true);
-
-            });
-            if (!passChecksum.get())
-            {
-                if (FailOnChecksum)
-                {
+        if (!expectedChecksums.isEmpty() && sha1 != null) {
+            if (!expectedChecksums.contains(sha1)) {
+                if (FailOnChecksum) {
                     throw new IntegrityCheckException("SHA1 checksum does not match.", -1, sha1, expectedChecksums, dstSize, size, downloadUrl, path);
-                } else
-                {
+                } else {
                     LOGGER.warn("{}'s SHA1 checksum failed.", getName());
                 }
             }
@@ -246,12 +219,12 @@ public class DownloadableFile
         return downloadUrl;
     }
 
-    public String getSha1()
+    public HashCode getSha1()
     {
         return sha1;
     }
 
-    public List<String> getExpectedSha1()
+    public List<HashCode> getExpectedSha1()
     {
         return expectedChecksums;
     }
