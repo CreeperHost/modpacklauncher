@@ -179,6 +179,7 @@ public class LocalInstance implements IPack
             this.lastPlayed = jsonOutput.lastPlayed;
             this.jvmArgs = jsonOutput.jvmArgs;
             this.modLoader = jsonOutput.modLoader;
+            if(this.modLoader == null || this.modLoader.isEmpty()) this.modLoader = jsonOutput.getVersion();
             this.jrePath = jsonOutput.jrePath;
             this.dir = this.path;
             this.cloudSaves = jsonOutput.cloudSaves;

@@ -50,7 +50,7 @@ public class ForgeJarModLoader extends ForgeModLoader
 		FileUtils.createDirectories(file);
 
 		//Add the jvm args to fix loading older forge versions
-		instance.jvmArgs = instance.jvmArgs + " -Dfml.ignorePatchDiscrepancies=true -Dfml.ignoreInvalidMinecraftCertificates=true -Dminecraft.applet.TargetDirectory=" + instance.getDir().toAbsolutePath().toString().trim();
+		instance.jvmArgs = instance.jvmArgs + " -Dfml.ignorePatchDiscrepancies=true -Dfml.ignoreInvalidMinecraftCertificates=true -Dminecraft.applet.TargetDirectory=\"" + instance.getDir().toAbsolutePath().toString().trim() + "\"";
 		try
 		{
 			URI url = null;

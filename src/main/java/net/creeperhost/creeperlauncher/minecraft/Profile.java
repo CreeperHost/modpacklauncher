@@ -34,6 +34,7 @@ public class Profile
         this.name = name;
         this.mcVersion = mcVersion;
         this.lastVersionId = lastVersionId;
+        if((lastVersionId == null || lastVersionId.isEmpty()) && (mcVersion == null || mcVersion.isEmpty())) this.lastVersionId = mcVersion;
         this.lastUsed = lastUsed;
         this.type = type;
         this.gameDir = gameDir;

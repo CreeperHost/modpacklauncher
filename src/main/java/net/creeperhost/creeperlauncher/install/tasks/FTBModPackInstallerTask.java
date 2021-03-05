@@ -104,7 +104,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
             currentStage = Stage.FORGE;
             Path forgeJson = installModLoaders();
             currentStage = Stage.DOWNLOADS;
-            downloadFiles(instanceDir, forgeJson);
+            if(forgeJson != null) downloadFiles(instanceDir, forgeJson);
             currentStage = Stage.POSTINSTALL;
         }, CreeperLauncher.taskExeggutor);
     }
@@ -576,11 +576,15 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
     public Path installModLoaders()
     {
         List<ModLoader> modLoaders = ModLoaderManager.getModLoaders(getTargets());
-        if (modLoaders.size() != 1) {
+        if (modLoaders.size() > 1)
+        {
             throw new RuntimeException("Only one mod loader is currently supported!");
-        } else {
+        }
+        else if(modLoaders.size() == 1)
+        {
             ModLoader modLoader = modLoaders.get(0);
             return modLoader.install(instance);
         }
+        return null;
     }
 }
