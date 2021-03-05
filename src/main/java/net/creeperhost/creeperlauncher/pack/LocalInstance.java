@@ -4,12 +4,14 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.google.gson.*;
 import net.creeperhost.creeperlauncher.api.data.other.CloseModalData;
 import net.creeperhost.creeperlauncher.api.data.other.OpenModalData;
+import net.creeperhost.creeperlauncher.api.handlers.ModFile;
 import net.creeperhost.creeperlauncher.minetogether.cloudsaves.CloudSaveManager;
 import net.creeperhost.creeperlauncher.minetogether.cloudsaves.CloudSyncType;
 import net.creeperhost.creeperlauncher.install.tasks.DownloadTask;
 import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.util.*;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import oshi.SystemInfo;
@@ -34,6 +36,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -180,7 +183,7 @@ public class LocalInstance implements IPack
             this.jrePath = jsonOutput.jrePath;
             this.dir = this.path;
             this.cloudSaves = jsonOutput.cloudSaves;
-            CompletableFuture.runAsync(() -> this.hasLoadingMod = checkForLaunchMod());
+            //CompletableFuture.runAsync(() -> this.hasLoadingMod = checkForLaunchMod());
         } catch(Exception e)
         {
             throw new RuntimeException("Instance is corrupted!", e);
@@ -194,7 +197,7 @@ public class LocalInstance implements IPack
         this.uuid = uuid;
         this.isImport = true;
         this.path = Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve(uuid.toString());
-        this.hasLoadingMod = checkForLaunchMod();
+        //this.hasLoadingMod = checkForLaunchMod();
     }
 
     private static final String[] candidates = new String[] {
@@ -973,5 +976,18 @@ public class LocalInstance implements IPack
                 }
             } catch (Exception e) { e.printStackTrace(); }
         }
+    }
+
+    public List<ModFile> getMods() {
+        try {
+            return Files.walk(path.resolve("mods")).filter(Files::isRegularFile).filter(file -> file.toString().endsWith(".jar") || file.toString().endsWith(".zip")).map(path -> {
+                File file = path.toFile();
+                return new ModFile(file.getName(), "", file.length(), "");
+            }).collect(Collectors.toList());
+        } catch (IOException error) {
+            LOGGER.log(Level.DEBUG, "Error occurred whilst listing mods on disk", error);
+        }
+
+        return new ArrayList<>();
     }
 }

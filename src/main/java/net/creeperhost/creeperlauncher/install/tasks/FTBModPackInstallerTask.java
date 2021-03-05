@@ -250,7 +250,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                     boolean clientSideOnly = server.get("clientonly").getAsBoolean();
                     boolean optional = server.get("optional").getAsBoolean();
                     long fileId = server.get("id").getAsLong();
-                    downloadableFileList.add(new SimpleDownloadableFile(fileVersion, Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve(name).resolve(path).resolve(fileName), size, clientSideOnly, optional, fileId, fileName, fileType));
+                    downloadableFileList.add(new SimpleDownloadableFile(fileVersion, Path.of(path).resolve(fileName), size, clientSideOnly, optional, fileId, fileName, fileType));
                 }
             }
         }
