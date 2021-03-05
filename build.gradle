@@ -297,8 +297,9 @@ task submodulesUpdate() {
     }
 }
 
-build.dependsOn(":web:npm_run_build")
+task buildWithElectron(dependsOn: "build") {}
 
+buildWithElectron.dependsOn(":web:npm_run_build")
 
 task buildAll(dependsOn: "build") {}
 buildAll.dependsOn(":web:npm_run_buildall")
