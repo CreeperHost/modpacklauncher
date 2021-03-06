@@ -19,11 +19,12 @@ import java.net.URL;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.MessageDigest;
+import java.nio.file.StandardCopyOption;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Stream;
 
 public class DownloadableFile
 {
@@ -200,6 +201,23 @@ public class DownloadableFile
             {
                 LOGGER.warn("{} size incorrect.", getName());
             }
+        }
+    }
+
+    public void finalize()
+    {
+        switch (type)
+        {
+            case "cf-extract":
+                FileUtils.extractZip2ElectricBoogaloo(this.destination, this.path);
+                Path movePath = Path.of(this.destination.getParent().toString(),"overrides");
+                List<Path> files = FileUtils.listDir(movePath);
+                for(Path file : files) {
+                    try {
+                        Files.move(file, Path.of(this.destination.getParent().toString(), file.toString().replace(movePath.toString(), "")), StandardCopyOption.REPLACE_EXISTING);
+                    } catch (IOException e) { e.printStackTrace(); }
+                }
+//                FileUtils.move(Path.of(this.path, "overrides"));
         }
     }
 

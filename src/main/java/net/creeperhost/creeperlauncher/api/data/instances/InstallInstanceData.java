@@ -10,6 +10,7 @@ public class InstallInstanceData extends BaseData
     public long id;
     public long version;
     public boolean _private = false;
+    public byte packType = 0;
 
     public static class Reply extends BaseData
     {

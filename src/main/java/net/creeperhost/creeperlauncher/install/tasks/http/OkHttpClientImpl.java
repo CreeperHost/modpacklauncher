@@ -3,14 +3,12 @@ package net.creeperhost.creeperlauncher.install.tasks.http;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hasher;
 import net.covers1624.quack.util.SneakyUtils;
-import net.creeperhost.creeperlauncher.util.MiscUtils;
 import okhttp3.*;
 import okio.*;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.security.MessageDigest;
 
 public class OkHttpClientImpl implements IHttpClient
 {

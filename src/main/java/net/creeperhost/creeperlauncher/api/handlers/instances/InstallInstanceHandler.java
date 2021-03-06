@@ -40,7 +40,7 @@ public class InstallInstanceHandler implements IMessageHandler<InstallInstanceDa
             return;
         }
         Settings.webSocketAPI.sendMessage(new InstallInstanceData.Reply(data, "init", "Install started.", ""));
-        FTBPack pack = FTBModPackInstallerTask.getPackFromAPI(data.id, data.version, data._private);
+        FTBPack pack = FTBModPackInstallerTask.getPackFromAPI(data.id, data.version, data._private, data.packType);
         List<SimpleDownloadableFile> files = pack.getFiles();
         Settings.webSocketAPI.sendMessage(new InstallInstanceData.Reply(data, "files", GsonUtils.GSON.toJson(files), ""));
         LocalInstance instance;

@@ -44,20 +44,6 @@ public class ForgeUniversalModLoader extends ForgeModLoader
         Path file = Constants.VERSIONS_FOLDER_LOC.resolve(newname);
         FileUtils.createDirectories(file);
 
-		//TODO clean this up but it should work for testing
-		if(getMinecraftVersion().equalsIgnoreCase("1.5.2"))
-		{
-			instance.jvmArgs = instance.jvmArgs + " -Dfml.ignorePatchDiscrepancies=true -Dfml.ignoreInvalidMinecraftCertificates=true".trim();
-			Path vanillaFolder = Constants.VERSIONS_FOLDER_LOC.resolve(getMinecraftVersion());
-			if(Files.notExists(vanillaFolder))
-			{
-				FileUtils.createDirectories(vanillaFolder);
-				DownloadableFile mc = McUtils.getMinecraftDownload(getMinecraftVersion(), vanillaFolder);
-				DownloadTask mcTask = new DownloadTask(mc, vanillaFolder.resolve(getMinecraftVersion() + ".jar"));
-				mcTask.execute().join();
-			}
-		}
-
 		try
 		{
 			URI url = ForgeUtils.findForgeDownloadURL(getMinecraftVersion(), getForgeVersion());

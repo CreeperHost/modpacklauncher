@@ -62,18 +62,23 @@ public class DownloadTask implements IInstallTask<Void>
             tries = 0;
             while (!complete && tries < 3) {
                 if (tries == 0) {
-                    for (HashCode checksum : file.getExpectedSha1()) {
-                        Path cachePath = CreeperLauncher.localCache.get(checksum);
-                        if(cachePath != null) {
-                            try {
-                                FileUtils.createDirectories(destination.toAbsolutePath().getParent());
-                                Files.copy(cachePath, destination);
-                                FTBModPackInstallerTask.currentBytes.addAndGet(Files.size(cachePath));
-                                FTBModPackInstallerTask.batchedFiles.put(file.getId(), "downloaded");
-                                complete = true;
-                                break;
-                            } catch (IOException e) {
-                                LOGGER.warn("Failed to copy existing file from cache.", e);
+                    if(file.getExpectedSha1() != null && file.getExpectedSha1().size() > 0) {
+                        for (HashCode checksum : file.getExpectedSha1()) {
+                            if(checksum == null) continue;
+                            if(CreeperLauncher.localCache != null && CreeperLauncher.localCache.get(checksum) != null) {
+                                Path cachePath = CreeperLauncher.localCache.get(checksum);
+                                if (cachePath != null) {
+                                    try {
+                                        FileUtils.createDirectories(destination.toAbsolutePath().getParent());
+                                        Files.copy(cachePath, destination);
+                                        FTBModPackInstallerTask.currentBytes.addAndGet(Files.size(cachePath));
+                                        FTBModPackInstallerTask.batchedFiles.put(file.getId(), "downloaded");
+                                        complete = true;
+                                        break;
+                                    } catch (IOException e) {
+                                        LOGGER.warn("Failed to copy existing file from cache.", e);
+                                    }
+                                }
                             }
                         }
                     }
@@ -85,6 +90,7 @@ public class DownloadTask implements IInstallTask<Void>
                         ++tries;
                         file.download(destination, false, false);
                         file.validate(true, true);
+                        file.finalize();
                         try
                         {
                             CreeperLauncher.localCache.put(file.getLocalFile(), file.getSha1());

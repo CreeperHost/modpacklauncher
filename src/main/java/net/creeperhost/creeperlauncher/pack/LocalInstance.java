@@ -84,6 +84,7 @@ public class LocalInstance implements IPack
     transient private AtomicBoolean inUse = new AtomicBoolean(false);
     transient private HashMap<String, instanceEvent> gameCloseEvents = new HashMap<>();
     public boolean hasInstMods = false;
+    public byte packType;
 
     public LocalInstance(FTBPack pack, long versionId)
     {
@@ -103,6 +104,76 @@ public class LocalInstance implements IPack
         this.url = pack.getUrl();
         this.artUrl = pack.getArtURL();
         this.id = pack.getId();
+        if (Settings.settings.containsKey("jvmargs"))
+        {
+            this.jvmArgs = Settings.settings.get("jvmargs");
+        }
+        this.recMemory = pack.getRecMemory();
+        this.minMemory = pack.getMinMemory();
+        this.memory = this.recMemory;
+        SystemInfo si = new SystemInfo();
+        HardwareAbstractionLayer hal = si.getHardware();
+        long totalMemory = hal.getMemory().getTotal() / 1024 / 1024;
+        if(this.recMemory > (totalMemory-2048))
+        {
+            this.memory = this.minMemory;
+        }
+        this.lastPlayed = CreeperLauncher.unixtimestamp();
+        FileUtils.createDirectories(path);
+        Path artFile = path.resolve("art.png");
+        if (Files.notExists(artFile))
+        {
+            try
+            {
+                if (ForgeUtils.isUrlValid(this.getArtURL()))
+                {
+                    DownloadUtils.downloadFile(artFile, this.getArtURL());
+                } else
+                {
+                    LOGGER.error("The url '{}' is not valid.", getArtURL());
+                }
+            } catch (Exception err)
+            {
+                LOGGER.error("Unable to download and save artwork.", err);
+            }
+        }
+        try
+        {
+            Base64.Encoder en = Base64.getEncoder();
+            tmpArt = "data:image/png;base64," + en.encodeToString(Files.readAllBytes(artFile));
+        } catch (Exception err)
+        {
+            LOGGER.error("Unable to encode artwork for embedding.", err);
+        }
+        this.art = tmpArt;
+        try
+        {
+            this.saveJson();
+        } catch (Exception err)
+        {
+            LOGGER.error("Unable to write instance configuration.", err);
+        }
+    }
+
+    public LocalInstance(FTBPack pack, long versionId, byte packType)
+    {
+        //We're making an instance!
+        String tmpArt = "";
+        UUID uuid = UUID.randomUUID();
+        this.uuid = uuid;
+        this.versionId = versionId;
+        this.path = Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve(this.uuid.toString());
+        this.cloudSaves = Boolean.getBoolean(Settings.settings.getOrDefault("cloudSaves", "false"));
+        this.name = pack.getName();
+        this.version = pack.getVersion();
+        this.dir = this.path;
+        this.authors = pack.getAuthors();
+        this.description = pack.getDescription();
+        this.mcVersion = pack.getMcVersion();
+        this.url = pack.getUrl();
+        this.artUrl = pack.getArtURL();
+        this.id = pack.getId();
+        this.packType = packType;
         if (Settings.settings.containsKey("jvmargs"))
         {
             this.jvmArgs = Settings.settings.get("jvmargs");
@@ -182,11 +253,12 @@ public class LocalInstance implements IPack
             this.lastPlayed = jsonOutput.lastPlayed;
             this.jvmArgs = jsonOutput.jvmArgs;
             this.modLoader = jsonOutput.modLoader;
-            if((this.modLoader == null || this.modLoader.isEmpty() && (this.mcVersion == null || this.mcVersion.isEmpty()))) this.modLoader = jsonOutput.getVersion();
+            if((this.modLoader == null || this.modLoader.isEmpty()) && (this.mcVersion == null || this.mcVersion.isEmpty())) this.modLoader = jsonOutput.getVersion();
             this.jrePath = jsonOutput.jrePath;
             this.dir = this.path;
             this.cloudSaves = jsonOutput.cloudSaves;
             this.hasInstMods = jsonOutput.hasInstMods;
+            this.packType = jsonOutput.packType;
         } catch(Exception e)
         {
             throw new RuntimeException("Instance is corrupted!", e);
@@ -256,7 +328,7 @@ public class LocalInstance implements IPack
         if (!this.isImport)
         {
             CreeperLauncher.isInstalling.set(true);
-            Analytics.sendInstallRequest(this.getId(), this.getVersionId());
+            Analytics.sendInstallRequest(this.getId(), this.getVersionId(), this.packType);
             LOGGER.debug("Running installer async task");
             installer.execute().thenRunAsync(() ->
             {
@@ -397,7 +469,7 @@ public class LocalInstance implements IPack
         McUtils.verifyJson(Constants.LAUNCHER_PROFILES_JSON);
         this.lastPlayed = CreeperLauncher.unixtimestamp();
         LOGGER.debug("Sending play request to API");
-        Analytics.sendPlayRequest(this.getId(), this.getVersionId());
+        Analytics.sendPlayRequest(this.getId(), this.getVersionId(), this.packType);
         LOGGER.debug("Clearing existing Mojang launcher profiles");
         McUtils.clearProfiles(Constants.LAUNCHER_PROFILES_JSON);
         long lastPlay = this.lastPlayed;
