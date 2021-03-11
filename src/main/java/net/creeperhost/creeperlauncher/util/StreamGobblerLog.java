@@ -8,19 +8,17 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 public class StreamGobblerLog {
-    public static CompletableFuture<Boolean> redirectToLogger(final InputStream inputStream, final Consumer<String> logLineConsumer) {
-        return CompletableFuture.supplyAsync(() -> {
+    public static CompletableFuture<Void> redirectToLogger(final InputStream inputStream, final Consumer<String> logLineConsumer) {
+        return CompletableFuture.runAsync(() -> {
             try (
                     InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
                     BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
             ) {
-                String line = null;
+                String line;
                 while((line = bufferedReader.readLine()) != null) {
                     logLineConsumer.accept(line);
                 }
-                return true;
-            } catch (IOException e) {
-                return false;
+            } catch (IOException ignored) {
             }
         });
     }

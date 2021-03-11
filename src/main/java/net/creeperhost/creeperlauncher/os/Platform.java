@@ -8,13 +8,15 @@ import net.creeperhost.creeperlauncher.api.data.other.CloseModalData;
 import net.creeperhost.creeperlauncher.api.data.other.OpenModalData;
 import net.creeperhost.creeperlauncher.os.platform.window.IWindowHelper;
 import net.creeperhost.creeperlauncher.util.ElapsedTimer;
+import net.creeperhost.creeperlauncher.util.StreamGobblerLog;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
@@ -29,6 +31,7 @@ public interface Platform {
 
     //INTERNAL
     Logger _LOGGER = LogManager.getLogger();
+    AtomicInteger _COUNTER = new AtomicInteger();
 
     //region Window stuff
 
@@ -134,6 +137,17 @@ public interface Platform {
         try {
             ProcessBuilder builder = buildLauncherProcess();
             Process process = builder.start();
+            Logger logger = LogManager.getLogger("Minecraft Launcher " + _COUNTER.getAndIncrement());
+            CompletableFuture<Void> stdoutFuture = StreamGobblerLog.redirectToLogger(process.getInputStream(), logger::info);
+            CompletableFuture<Void> stderrFuture = StreamGobblerLog.redirectToLogger(process.getErrorStream(), logger::error);
+            process.onExit().thenRunAsync(() -> {
+                if (!stdoutFuture.isDone()) {
+                    stdoutFuture.cancel(true);
+                }
+                if (!stderrFuture.isDone()) {
+                    stderrFuture.cancel(true);
+                }
+            });
             process.onExit().thenRunAsync(() -> CreeperLauncher.mojangProcesses.getAndUpdate(_processes -> {
                 if (_processes == null) return null;
 
