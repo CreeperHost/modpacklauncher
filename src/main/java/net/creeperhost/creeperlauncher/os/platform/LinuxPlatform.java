@@ -1,6 +1,7 @@
 package net.creeperhost.creeperlauncher.os.platform;
 
 import net.creeperhost.creeperlauncher.Constants;
+import net.creeperhost.creeperlauncher.os.platform.window.IWindowHelper;
 import net.creeperhost.creeperlauncher.util.FileUtils;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 
@@ -17,6 +18,10 @@ public class LinuxPlatform extends UnixPlatform {
 
     private static final String LAUNCHER_URL = "https://launcher.mojang.com/download/Minecraft.tar.gz";
     private static final String LAUNCHER_EXECUTABLE = "minecraft-launcher/minecraft-launcher";
+
+    public LinuxPlatform() {
+        super(IWindowHelper.NullWindowHelper.INSTANCE);
+    }
 
     @Override
     public String getLauncherURL() {

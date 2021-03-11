@@ -10,6 +10,7 @@ import net.creeperhost.creeperlauncher.minetogether.cloudsaves.CloudSaveManager;
 import net.creeperhost.creeperlauncher.minetogether.cloudsaves.CloudSyncType;
 import net.creeperhost.creeperlauncher.install.tasks.DownloadTask;
 import net.creeperhost.creeperlauncher.os.OS;
+import net.creeperhost.creeperlauncher.os.Platform;
 import net.creeperhost.creeperlauncher.util.*;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.Level;
@@ -74,16 +75,18 @@ public class LocalInstance implements IPack
     private long lastPlayed;
     private boolean isImport = false;
     public boolean cloudSaves = false;
-    transient private HashMap<String, instanceEvent> postInstall = new HashMap<>();
-    transient private Runnable prePlay;
-    transient private int loadingModPort;
-    transient private boolean prePlayAsync;
-    transient public boolean hasLoadingMod;
-    transient private Runnable preUninstall;
-    transient private boolean preUninstallAsync;
-    transient private AtomicBoolean inUse = new AtomicBoolean(false);
-    transient private HashMap<String, instanceEvent> gameCloseEvents = new HashMap<>();
     public boolean hasInstMods = false;
+
+    private transient CompletableFuture launcherWait;
+    private transient HashMap<String, instanceEvent> postInstall = new HashMap<>();
+    private transient Runnable prePlay;
+    private transient int loadingModPort;
+    private transient boolean prePlayAsync;
+    public transient boolean hasLoadingMod;
+    private transient Runnable preUninstall;
+    private transient boolean preUninstallAsync;
+    private transient AtomicBoolean inUse = new AtomicBoolean(false);
+    private transient HashMap<String, instanceEvent> gameCloseEvents = new HashMap<>();
 
     public LocalInstance(FTBPack pack, long versionId)
     {
@@ -354,16 +357,19 @@ public class LocalInstance implements IPack
     }
     public Process play(String extraArgs, boolean loadInApp)
     {
-        List<Process> processes = CreeperLauncher.mojangProcesses.get();
-        if(processes != null) {
-            for (Process mojang : processes) {
-                if (mojang.isAlive()) {
-                    LOGGER.error("Mojang launcher, started by us is still running with PID {}", mojang.pid());
-                    try {
-                        mojang.destroyForcibly().waitFor();
-                        //No need to clean up here as onExit() is fired.
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
+        Platform platform = OS.CURRENT.getPlatform();
+        {
+            List<Process> processes = CreeperLauncher.mojangProcesses.get();
+            if (processes != null && !processes.isEmpty()) {
+                for (Process mojang : processes) {
+                    if (mojang.isAlive()) {
+                        LOGGER.error("Mojang launcher, started by us is still running with PID {}", mojang.pid());
+                        try {
+                            mojang.destroyForcibly().waitFor();
+                            //No need to clean up here as onExit() is fired.
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
             }
@@ -487,16 +493,27 @@ public class LocalInstance implements IPack
         }
 
         LOGGER.debug("Starting Mojang launcher");
-        AtomicReference<Process> launcher = new AtomicReference<>();
-        CompletableFuture.runAsync(() -> {
-            launcher.set(GameLauncher.launchGame());
-            CreeperLauncher.mojangProcesses.getAndUpdate((List<Process> _processes) -> {
-                if (_processes == null) _processes = new ArrayList<Process>();
-                if (launcher.get() != null) _processes.add(launcher.get());
-                return _processes;
-            });
-        }).join();
-        if(CreeperLauncher.mtConnect != null) {
+        Process launcher = platform.tryStartLauncher();
+
+        if (launcher == null) {
+            //Already logged, no point continuing.
+            return null;
+        }
+
+        CreeperLauncher.mojangProcesses.getAndUpdate(_processes -> {
+            //Copy as we must not modify the input as this can potentially be re-run. \o/ atomics!
+            List<Process> processes = _processes == null ? new ArrayList<>() : new ArrayList<>(_processes);
+
+            processes.add(launcher);
+
+            return processes;
+        });
+
+        if (Settings.settings.getOrDefault("automateMojang", "true").equalsIgnoreCase("true")){
+            GameLauncher.tryAutomation(launcher);
+        }
+
+        if (CreeperLauncher.mtConnect != null) {
             if (CreeperLauncher.mtConnect.isEnabled()) {
                 try {
                     Thread.sleep(20000);
@@ -516,13 +533,14 @@ public class LocalInstance implements IPack
             LOGGER.error("Unable to initialize MineTogether Connect!");
         }
         if (launcherWait != null && (!launcherWait.isDone())) launcherWait.cancel(true);
+
         launcherWait = CompletableFuture.runAsync(() -> {
-           inUseCheck(launcher.get());
+           inUseCheck(launcher);
         });
 
-        return launcher.get();
+        return launcher;
     }
-    private transient CompletableFuture launcherWait;
+
     public void setPostInstall(Runnable lambda, boolean async)
     {
         this.postInstall.put("postInstall", new instanceEvent(lambda, !async));
@@ -704,7 +722,7 @@ public class LocalInstance implements IPack
     private transient CompletableFuture inUseThread;
     private void inUseCheck(Process vanillaLauncher)
     {
-        if(inUseThread != null && !inUseThread.isDone()) return;
+        if (inUseThread != null && !inUseThread.isDone()) return;
         inUseThread = CompletableFuture.runAsync(() -> {
             boolean fireEvents = false;
             while(true)

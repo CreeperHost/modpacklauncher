@@ -1,7 +1,7 @@
 package net.creeperhost.creeperlauncher.os.platform;
 
 import net.creeperhost.creeperlauncher.Constants;
-import net.creeperhost.creeperlauncher.os.Platform;
+import net.creeperhost.creeperlauncher.os.platform.window.win.WindowsWindowHelper;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -13,10 +13,14 @@ import java.nio.file.StandardCopyOption;
  * <p>
  * Created by covers1624 on 9/2/21.
  */
-public class WindowsPlatform implements Platform {
+public class WindowsPlatform extends BasePlatform {
 
     private static final String LAUNCHER_URL = "https://launcher.mojang.com/download/Minecraft.exe";
     private static final String LAUNCHER_EXECUTABLE = "launcher.exe";
+
+    public WindowsPlatform() {
+        super(new WindowsWindowHelper());
+    }
 
     @Override
     public String getLauncherURL() {
