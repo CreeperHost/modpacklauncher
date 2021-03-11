@@ -29,12 +29,12 @@ public class ShareInstanceHandler implements IMessageHandler<ShareInstanceData>
                 {
                     InstanceData instanceData = new InstanceData(instance);
                     String code = instanceData.share();
-                    Settings.webSocketAPI.sendMessage(new ShareInstanceData.Reply(data, "success", "", data.uuid, code));
 
-                    String URL = Constants.SHARE_API + code;//"https://api.modpacks.ch" + Constants.KEY + "/modpack/share/" + code;
+                    String URL = "https://api.modpacks.ch/" + Constants.KEY + "/modpack/share/" + code;
                     String json = GsonUtils.GSON.toJson(instanceData);
                     WebUtils.putWebResponse(URL, json, true, false);
 
+                    Settings.webSocketAPI.sendMessage(new ShareInstanceData.Reply(data, "success", "", data.uuid, code));
                 } catch (IOException e) { e.printStackTrace(); }
             });
         } catch (Exception err)

@@ -81,34 +81,34 @@ public class InstanceData
     {
         CreeperLauncher.initSettingsAndCache();
         Instances.refreshInstances();
-        FTBPack pack = FTBModPackInstallerTask.getPackFromAPI(397126L, 3010893L, false, (byte) 1);
-        LocalInstance localInstance = new LocalInstance(pack, 3010893, (byte) 1);
-        FTBModPackInstallerTask install = localInstance.install();
-        install.currentTask.join();
-        System.out.println(localInstance.getDir());
-//        LocalInstance localInstance = Instances.getInstance(UUID.fromString("8a48210e-c378-4458-82ca-a5a8f783f871"));
-//        InstanceData instanceData = null;
-//        try
-//        {
-//            instanceData = new InstanceData(localInstance);
-//        } catch (IOException e) { e.printStackTrace(); }
-//        List<FileData> outPut = instanceData.upload(instanceData.getFileDataList());
-//
-//        if(!outPut.isEmpty())
-//        {
-//            for (FileData fileData : outPut)
-//            {
-//                System.out.println("Name: " + fileData.getName() + " URL: " + fileData.getURL());
-//            }
-//        }
-//        instanceData.files = outPut;
-//
-//        String URL = "https://api.modpacks.ch" + Constants.KEY + "/modpack/share/" + instanceData.code;
-//        String json = GsonUtils.GSON.toJson(instanceData);
-//        String resp = WebUtils.putWebResponse(URL, json, true, false);
-//
-//        System.out.println(URL);
-//        System.out.println(resp);
+//        FTBPack pack = FTBModPackInstallerTask.getPackFromAPI(397126L, 3010893L, false, (byte) 1);
+//        LocalInstance localInstance = new LocalInstance(pack, 3010893, (byte) 1);
+//        FTBModPackInstallerTask install = localInstance.install();
+//        install.currentTask.join();
+//        System.out.println(localInstance.getDir());
+        LocalInstance localInstance = Instances.getInstance(UUID.fromString("8841ce90-66d4-4939-a576-25f75153c702"));
+        InstanceData instanceData = null;
+        try
+        {
+            instanceData = new InstanceData(localInstance);
+        } catch (IOException e) { e.printStackTrace(); }
+        List<FileData> outPut = instanceData.upload(instanceData.getFileDataList());
+
+        if(!outPut.isEmpty())
+        {
+            for (FileData fileData : outPut)
+            {
+                System.out.println("Name: " + fileData.getName() + " URL: " + fileData.getURL());
+            }
+        }
+        instanceData.files = outPut;
+
+        String URL = "https://api.modpacks.ch/" + Constants.KEY + "/modpack/share/" + instanceData.code;
+        String json = GsonUtils.GSON.toJson(instanceData);
+        String resp = WebUtils.putWebResponse(URL, json, true, false);
+
+        System.out.println(URL);
+        System.out.println(resp);
 
     }
 
