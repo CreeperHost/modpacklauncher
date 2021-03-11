@@ -67,17 +67,25 @@ public class Constants
     public static String S3_HOST = "";
 
 
-    public static String getCreeperhostModpackSearch2(boolean _private)
+    public static String getCreeperhostModpackSearch2(boolean _private, byte packType)
     {
+        String typeSlug = "modpack";
+
+        switch (packType)
+        {
+            case 1:
+                typeSlug = "curseforge";
+                break;
+        }
         if(Constants.KEY.isEmpty() || !_private)
         {
-            return Constants.CREEPERHOST_MODPACK_SEARCH2;
+            return Constants.CREEPERHOST_MODPACK + "/public/" + typeSlug + "/";
         }
         if(Constants.KEY.isEmpty() && _private)
         {
             LOGGER.error("Tried to access a private pack without having configured the secret and key.");
         }
-        return Constants.CREEPERHOST_MODPACK + "/" + Constants.KEY + "/modpack/";
+        return Constants.CREEPERHOST_MODPACK + "/" + Constants.KEY + "/" + typeSlug + "/";
     }
     public static Path getDataDir()
     {

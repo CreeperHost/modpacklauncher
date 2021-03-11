@@ -1,10 +1,11 @@
 package net.creeperhost.creeperlauncher.api;
 
+import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.google.gson.reflect.TypeToken;
+import com.google.common.reflect.TypeToken;
 import net.creeperhost.creeperlauncher.CreeperLauncher;
 import net.creeperhost.creeperlauncher.api.data.*;
 import net.creeperhost.creeperlauncher.api.data.friends.AddFriendData;
@@ -95,11 +96,13 @@ public class WebSocketMessengerHandler
         registerDataMap("ping", PingLauncherData.class);
         registerDataMap("messageClient", MessageClientData.class);
         registerHandler(MessageClientData.class, new MessageClientHandler());
+        registerDataMap("shareInstance", ShareInstanceData.class);
+        registerHandler(ShareInstanceData.class, new ShareInstanceHandler());
     }
 
     public static void registerHandler(Class<? extends BaseData> clazz, IMessageHandler<? extends BaseData> handler)
     {
-        TypeToken<? extends BaseData> typeToken = TypeToken.get(clazz);
+        TypeToken<? extends BaseData> typeToken = TypeToken.of(clazz);
         handlers.put(typeToken, handler);
     }
 
@@ -119,7 +122,7 @@ public class WebSocketMessengerHandler
             {
                 String type = jsonObject.get("type").getAsString();
                 Class<? extends BaseData> dataType = dataMap.get(type);
-                TypeToken typeToken = TypeToken.get(dataType);
+                TypeToken typeToken = TypeToken.of(dataType);
                 IMessageHandler<? extends BaseData> iMessageHandler = handlers.get(typeToken);
                 if (iMessageHandler != null)
                 {

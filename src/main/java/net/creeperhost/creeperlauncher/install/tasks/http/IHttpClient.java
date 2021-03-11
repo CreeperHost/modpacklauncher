@@ -3,7 +3,6 @@ package net.creeperhost.creeperlauncher.install.tasks.http;
 import com.google.common.hash.HashFunction;
 
 import java.nio.file.Path;
-import java.security.MessageDigest;
 
 public interface IHttpClient
 {
