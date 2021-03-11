@@ -48,6 +48,7 @@ public class InstallInstanceHandler implements IMessageHandler<InstallInstanceDa
         {
             try {
                 instance = new LocalInstance(Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve(data.uuid));
+                instance.packType = data.packType;
                 install = instance.update(data.version);
             } catch (Exception ignored) {
                 lastError.set("Instance not found, aborting update.");
@@ -57,7 +58,7 @@ public class InstallInstanceHandler implements IMessageHandler<InstallInstanceDa
                 return;
             }
         } else {
-            instance = new LocalInstance(pack, data.version);
+            instance = new LocalInstance(pack, data.version, data.packType);
             Instances.addInstance(instance.getUuid(), instance);
             data.uuid = instance.getUuid().toString();
             LOGGER.debug("Running install task");

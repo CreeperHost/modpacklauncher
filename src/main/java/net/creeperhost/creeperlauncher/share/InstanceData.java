@@ -1,5 +1,6 @@
 package net.creeperhost.creeperlauncher.share;
 
+import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.CreeperLauncher;
 import net.creeperhost.creeperlauncher.Instances;
 import net.creeperhost.creeperlauncher.Settings;
@@ -9,6 +10,7 @@ import net.creeperhost.creeperlauncher.pack.FTBPack;
 import net.creeperhost.creeperlauncher.pack.LocalInstance;
 import net.creeperhost.creeperlauncher.util.FileUtils;
 import net.creeperhost.creeperlauncher.util.GsonUtils;
+import net.creeperhost.creeperlauncher.util.WebUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpVersion;
@@ -79,12 +81,12 @@ public class InstanceData
     {
         CreeperLauncher.initSettingsAndCache();
         Instances.refreshInstances();
-        FTBPack pack = FTBModPackInstallerTask.getPackFromAPI(285109L, 2935316L, false, (byte) 1);
-        LocalInstance localInstance = new LocalInstance(pack, 2935316, (byte) 1);
+        FTBPack pack = FTBModPackInstallerTask.getPackFromAPI(397126L, 3010893L, false, (byte) 1);
+        LocalInstance localInstance = new LocalInstance(pack, 3010893, (byte) 1);
         FTBModPackInstallerTask install = localInstance.install();
         install.currentTask.join();
         System.out.println(localInstance.getDir());
-//        LocalInstance localInstance = Instances.getInstance(UUID.fromString("111cf1f5-d202-4ee7-acb4-48d21979ad5e"));
+//        LocalInstance localInstance = Instances.getInstance(UUID.fromString("8a48210e-c378-4458-82ca-a5a8f783f871"));
 //        InstanceData instanceData = null;
 //        try
 //        {
@@ -100,10 +102,14 @@ public class InstanceData
 //            }
 //        }
 //        instanceData.files = outPut;
-//        try (BufferedWriter writer = Files.newBufferedWriter(localInstance.getDir().resolve("shared_instance.json")))
-//        {
-//            GsonUtils.GSON.toJson(instanceData, writer);
-//        } catch (IOException e) { e.printStackTrace(); }
+//
+//        String URL = "https://api.modpacks.ch" + Constants.KEY + "/modpack/share/" + instanceData.code;
+//        String json = GsonUtils.GSON.toJson(instanceData);
+//        String resp = WebUtils.putWebResponse(URL, json, true, false);
+//
+//        System.out.println(URL);
+//        System.out.println(resp);
+
     }
 
     private List<FileData> upload(List<FileData> files)
