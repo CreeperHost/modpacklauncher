@@ -211,6 +211,7 @@ public class DownloadableFile
             case "cf-extract":
                 try {
                     FileUtils.extractFromZip(this.destination, this.path.getParent(), "overrides", true);
+                    Files.delete(this.destination);
                 } catch (Exception e) {
                     throw new Exception("Unable to extract overrides due to error", e);
                 }
