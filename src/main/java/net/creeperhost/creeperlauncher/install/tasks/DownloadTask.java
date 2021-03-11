@@ -90,7 +90,7 @@ public class DownloadTask implements IInstallTask<Void>
                         ++tries;
                         file.download(destination, false, false);
                         file.validate(true, true);
-                        file.finalize();
+                        file.finito();
                         try
                         {
                             CreeperLauncher.localCache.put(file.getLocalFile(), file.getSha1());

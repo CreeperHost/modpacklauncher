@@ -219,7 +219,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
         {
             JsonObject object = jElement2.getAsJsonObject();
             version = object.getAsJsonPrimitive("name").getAsString();
-            if(object.get("specs").isJsonObject())
+            if(object.has("specs") && object.get("specs").isJsonObject())
             {
                 minMemory = object.getAsJsonObject("specs").getAsJsonPrimitive("minimum").getAsInt();
                 recMemory = object.getAsJsonObject("specs").getAsJsonPrimitive("recommended").getAsInt();

@@ -55,7 +55,9 @@ public class CreeperLauncher
     public static boolean isDevMode = false;
     public static AtomicBoolean isInstalling = new AtomicBoolean(false);
     public static AtomicReference<FTBModPackInstallerTask> currentInstall = new AtomicReference<>();
-    public static LocalCache localCache = null;
+
+    public static LocalCache localCache;
+
     public static boolean defaultWebsocketPort = false;
     public static int websocketPort = WebSocketAPI.generateRandomPort();
     public static final String websocketSecret = WebSocketAPI.generateSecret();
@@ -70,15 +72,19 @@ public class CreeperLauncher
 
     public CreeperLauncher() {}
 
+    public static void initSettingsAndCache() {
+        Settings.loadSettings();
+        localCache = new LocalCache(Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve(".localCache"));
+    }
+
     @SuppressWarnings("ResultOfMethodCallIgnored")
     public static void main(String[] args)
     {
+        initSettingsAndCache();
+
         MigrationManager migrationManager = new MigrationManager();
         migrationManager.doMigrations();
 
-        Settings.loadSettings();
-
-        localCache = new LocalCache(Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve(".localCache"));
 
         boolean migrateError = false;
 

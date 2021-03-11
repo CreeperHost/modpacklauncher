@@ -32,6 +32,7 @@ import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -76,11 +77,12 @@ public class InstanceData
 
     public static void main(String[] args)
     {
-        Settings.loadSettings();
+        CreeperLauncher.initSettingsAndCache();
         Instances.refreshInstances();
         FTBPack pack = FTBModPackInstallerTask.getPackFromAPI(285109L, 2935316L, false, (byte) 1);
         LocalInstance localInstance = new LocalInstance(pack, 2935316, (byte) 1);
-        localInstance.install().execute().join();
+        FTBModPackInstallerTask install = localInstance.install();
+        install.currentTask.join();
         System.out.println(localInstance.getDir());
 //        LocalInstance localInstance = Instances.getInstance(UUID.fromString("111cf1f5-d202-4ee7-acb4-48d21979ad5e"));
 //        InstanceData instanceData = null;

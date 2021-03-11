@@ -204,19 +204,25 @@ public class DownloadableFile
         }
     }
 
-    public void finalize()
+    public void finito() throws Exception
     {
         switch (type)
         {
             case "cf-extract":
-                FileUtils.extractZip2ElectricBoogaloo(this.destination, this.path);
+                try {
+                    FileUtils.extractFromZip(this.destination, this.path.getParent(), "overrides", true);
+                } catch (Exception e) {
+                    throw new Exception("Unable to extract overrides due to error", e);
+                }
+
+                /*FileUtils.extractZip2ElectricBoogaloo(this.destination, this.path.getParent());
                 Path movePath = Path.of(this.destination.getParent().toString(),"overrides");
                 List<Path> files = FileUtils.listDir(movePath);
                 for(Path file : files) {
                     try {
                         Files.move(file, Path.of(this.destination.getParent().toString(), file.toString().replace(movePath.toString(), "")), StandardCopyOption.REPLACE_EXISTING);
                     } catch (IOException e) { e.printStackTrace(); }
-                }
+                }*/
 //                FileUtils.move(Path.of(this.path, "overrides"));
         }
     }

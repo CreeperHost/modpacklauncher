@@ -25,6 +25,7 @@ import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static net.covers1624.quack.util.SneakyUtils.*;
 
 public class FileUtils
@@ -42,7 +43,7 @@ public class FileUtils
                 if (entry.isDirectory()) continue;
 
                 FileUtils.createDirectories(outputFile.getParent());
-                Files.copy(tarStream, outputFile, StandardCopyOption.REPLACE_EXISTING);
+                Files.copy(tarStream, outputFile, REPLACE_EXISTING);
                 untaredFiles.add(outputFile);
             }
         }
@@ -54,7 +55,53 @@ public class FileUtils
         try (java.nio.file.FileSystem fileSystem = FileSystems.newFileSystem(zip, null))
         {
             Path fileToExtract = fileSystem.getPath(fileName);
-            Files.copy(fileToExtract, dest, StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(fileToExtract, dest, REPLACE_EXISTING);
+        }
+    }
+
+    public static void extractFromZip(Path zip, Path dest, String fileName, boolean relative) throws IOException
+    {
+        try (java.nio.file.FileSystem fileSystem = FileSystems.newFileSystem(zip, null))
+        {
+            Path src = fileSystem.getPath(fileName);
+            try (Stream<Path> stream = Files.walk(src)) {
+                stream.forEach(source -> {
+                    Path localPath = pathTransform(dest.getFileSystem(), source);
+                    if (relative) {
+                        if (localPath.getNameCount() == 1) {
+                            return; // Eh, probably directory
+                        } else {
+                            localPath = localPath.subpath(1, localPath.getNameCount());
+                        }
+
+                        if(Files.isDirectory(source)) {
+                            //noinspection ResultOfMethodCallIgnored
+                            dest.resolve(localPath).toFile().mkdirs();
+                            return;
+                        }
+
+                        //TODO: If we end up having to remove multiple, work this out, for now works to hardcode to -1
+                    }
+
+                    copy(source, dest.resolve(localPath));
+                });
+            }
+        }
+    }
+
+    private static Path pathTransform(final FileSystem fs, final Path path)
+    {
+        Path ret = fs.getPath(path.isAbsolute() ? fs.getSeparator() : "");
+        for (final Path component: path)
+            ret = ret.resolve(component.getFileName().toString());
+        return ret;
+    }
+
+    private static void copy(Path source, Path dest) {
+        try {
+            Files.copy(source, dest, REPLACE_EXISTING);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -64,7 +111,7 @@ public class FileUtils
         Files.walk(sourceDir).forEach(sourcePath -> {
             try {
                 Path targetPath = destinationDir.resolve(sourceDir.relativize(sourcePath));
-                Files.copy(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
+                Files.copy(sourcePath, targetPath, REPLACE_EXISTING);
             } catch (IOException ex) {
                 LOGGER.error("File copy I/O error: ", ex);
                 error.set(true);
@@ -90,7 +137,7 @@ public class FileUtils
 
                     createDirectories(dest.getParent());
                     LOGGER.debug("Writing to {}", dest);
-                    Files.copy(zipFile.getInputStream(entry), dest, StandardCopyOption.REPLACE_EXISTING);
+                    Files.copy(zipFile.getInputStream(entry), dest, REPLACE_EXISTING);
                 } catch (IOException e) {
                     LOGGER.debug("Failed extracting file {}", entry.getName(), e);
                     errors.put(entry.getName(), e);
@@ -207,7 +254,7 @@ public class FileUtils
                         Path dst = dstRoot.resolve(srcRoot.relativize(file));
                         try {
                             Files.createDirectories(dst.getParent());
-                            Files.copy(file, dst, StandardCopyOption.REPLACE_EXISTING);
+                            Files.copy(file, dst, REPLACE_EXISTING);
                         } catch (Exception e) {
                             flag.set(false);
                             e.printStackTrace();
@@ -349,7 +396,7 @@ public class FileUtils
                 out = out.resolve(in.getFileName().toString());
             }
             if (replaceExisting) {
-                Files.move(in, out, StandardCopyOption.REPLACE_EXISTING);
+                Files.move(in, out, REPLACE_EXISTING);
             } else {
                 Files.move(in, out);
             }
@@ -373,7 +420,7 @@ public class FileUtils
             if (Files.exists(from)) {
                 Files.createDirectories(from.toAbsolutePath().getParent());
                 if(replaceExisting) {
-                    Files.move(from, to, StandardCopyOption.REPLACE_EXISTING);
+                    Files.move(from, to, REPLACE_EXISTING);
                 } else {
                     Files.move(from, to);
                 }
@@ -429,7 +476,7 @@ public class FileUtils
         else
         {
             try {
-                Files.move(Paths.get(sourceFile.getPath()), Paths.get(destFile.getPath()), StandardCopyOption.REPLACE_EXISTING);
+                Files.move(Paths.get(sourceFile.getPath()), Paths.get(destFile.getPath()), REPLACE_EXISTING);
                 return true;
             } catch (IOException e) {
                 return false;
