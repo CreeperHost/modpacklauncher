@@ -196,7 +196,7 @@ sourceSets {
     main {
         resources {
             sourceSets.main.resources
-            output.dir("./web/dist/",  builtBy: ":web:npm_run_build")
+            //output.dir("./web/dist/",  builtBy: ":web:npm_run_build") // Comment out as this is what is causing the electron stuff to build regardless
         }
     }
 }
@@ -431,13 +431,13 @@ wrapper {
 
 publishing {
     publications {
-        library(MavenPublication) {
-            from components.java
+        shadow(MavenPublication) { publication ->
+            project.shadow.component(publication)
         }
     }
     repositories {
         maven {
-            url "https://gitlab.example.com/api/v4/projects/54/packages/maven"
+            url "https://git.creeper.host/api/v4/projects/54/packages/maven"
             credentials(HttpHeaderCredentials) {
                 name = 'Job-Token'
                 value = System.getenv("CI_JOB_TOKEN")
