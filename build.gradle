@@ -11,6 +11,9 @@ buildscript {
 
 
 plugins {
+    id 'java'
+    id 'maven-publish'
+    id 'eclipse'
     id "com.github.johnrengelman.shadow" version "5.0.0"
     id "org.beryx.runtime" version "1.7.0"
     id "de.undercouch.download" version "4.0.0"
@@ -23,14 +26,11 @@ plugins {
 }
 
 apply plugin: com.hierynomus.gradle.license.LicenseReportingPlugin
-apply plugin: "maven"
-apply plugin: "maven-publish"
-apply plugin: "java"
-apply plugin: "eclipse"
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(11)
 
 repositories {
     mavenLocal()
-    jcenter()
     mavenCentral()
     gradlePluginPortal()
     maven { url 'https://jitpack.io' }
@@ -60,8 +60,6 @@ ext.details = versionDetails()
 ext.tempBranch = (ext.details.branchName == null ? System.env.CI_COMMIT_BRANCH : ext.details.branchName)
 ext.branch = ext.tempBranch == "master" ? "develop" : ext.tempBranch
 version = getDate() + "-" + details.gitHash + (ext.details.branchName == "release" ? "" : "-" + ext.branch)
-
-targetCompatibility = sourceCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = "11"
 
 install4j {
     license = "$System.env.IJLICENSE"
@@ -235,21 +233,21 @@ ext {
 
 dependencies {
     compileOnly files("lib/i4jruntime.jar")
-    compile 'org.apache.tika:tika-core:1.22'
-    compile 'com.google.code.gson:gson:2.8.5'
-    compile 'org.java-websocket:Java-WebSocket:1.4.0'
-    compile 'com.github.oshi:oshi-core:4.1.1'
-    compile 'com.squareup.okhttp3:okhttp:4.2.2'
-    compile 'org.apache.commons:commons-compress:1.2'
-    compile 'net.java.dev.jna:jna:5.5.0'
-    compile 'net.java.dev.jna:jna-platform:5.5.0'
-    compile 'com.amazonaws:aws-java-sdk-s3:1.11.839'
-    compile 'org.apache.logging.log4j:log4j-core:2.11.1'
-    compile 'org.apache.logging.log4j:log4j-slf4j-impl:2.11.1'
-    compile 'org.apache.logging.log4j:log4j-jul:2.11.1'
-    compile 'com.github.pircbotx:pircbotx:2.2'
-    compile 'net.covers1624:Quack:0.1.4.+'
-    compile 'com.google.guava:guava:30.1-jre'
+    implementation 'org.apache.tika:tika-core:1.22'
+    implementation 'com.google.code.gson:gson:2.8.5'
+    implementation 'org.java-websocket:Java-WebSocket:1.4.0'
+    implementation 'com.github.oshi:oshi-core:4.1.1'
+    implementation 'com.squareup.okhttp3:okhttp:4.2.2'
+    implementation 'org.apache.commons:commons-compress:1.2'
+    implementation 'net.java.dev.jna:jna:5.5.0'
+    implementation 'net.java.dev.jna:jna-platform:5.5.0'
+    implementation 'com.amazonaws:aws-java-sdk-s3:1.11.839'
+    implementation 'org.apache.logging.log4j:log4j-core:2.11.1'
+    implementation 'org.apache.logging.log4j:log4j-slf4j-impl:2.11.1'
+    implementation 'org.apache.logging.log4j:log4j-jul:2.11.1'
+    implementation 'com.github.pircbotx:pircbotx:2.2'
+    implementation 'net.covers1624:Quack:0.1.4.+'
+    implementation 'com.google.guava:guava:30.1-jre'
 
     implementation 'org.apache.ant:ant-commons-net:1.10.7'
 
@@ -420,7 +418,7 @@ task copyElectron(dependsOn: ":web:npm_run_build", type: Copy) {
 }
 
 wrapper {
-    gradleVersion = "5.0"
+    gradleVersion = "6.8.3"
 }
 
 publishing {
