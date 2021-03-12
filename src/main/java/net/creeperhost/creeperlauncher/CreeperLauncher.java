@@ -104,6 +104,15 @@ public class CreeperLauncher
                         OpenModalData.openModal("Please wait", "Your instances are now moving", List.of());
                         Path currentInstanceLoc = Path.of(Settings.settings.getOrDefault(key, Constants.INSTANCES_FOLDER_LOC.toAbsolutePath().toString()));
                         List<Path> subFiles = FileUtils.listDir(currentInstanceLoc);
+
+                        if(value == null || value.isEmpty())
+                        {
+                            OpenModalData.openModal("Failed", "Instance Location can not be blank", List.of(
+                                    new OpenModalData.ModalButton( "OK", "green", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
+                            ));
+                            return;
+                        }
+
                         Path newInstanceDir = Path.of(value);
                         boolean failed = false;
                         HashMap<Pair<Path, Path>, IOException> lastError = new HashMap<>();
