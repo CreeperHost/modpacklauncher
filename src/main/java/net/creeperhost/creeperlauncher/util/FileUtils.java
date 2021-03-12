@@ -270,13 +270,14 @@ public class FileUtils
         return flag.get();
     }
 
-    public static void createDirectories(Path dir)
+    public static Path createDirectories(Path dir)
     {
         try {
-            Files.createDirectories(dir);
+            return Files.createDirectories(dir);
         } catch (IOException e) {
             LOGGER.error("Failed to create directories.", e);
         }
+        return null;
     }
 
     public static List<Path> listDir(Path dir) {

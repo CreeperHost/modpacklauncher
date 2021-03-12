@@ -36,7 +36,10 @@ public class LocalCache implements AutoCloseable {
 
     public LocalCache(Path cacheLocation) {
         this.cacheLocation = cacheLocation;
-        FileUtils.createDirectories(cacheLocation);
+        if(FileUtils.createDirectories(cacheLocation) == null || !Files.exists(cacheLocation))
+        {
+            LOGGER.error("Unable to create instance directory");
+        }
 
         cacheIndexFile = cacheLocation.resolve("index.json");
 

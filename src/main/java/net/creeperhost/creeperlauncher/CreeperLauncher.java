@@ -80,6 +80,7 @@ public class CreeperLauncher
     @SuppressWarnings("ResultOfMethodCallIgnored")
     public static void main(String[] args)
     {
+        //TODO Many questions much wow, Should this not be done later like after settings have loaded and we have an instance location??
         MigrationManager migrationManager = new MigrationManager();
         migrationManager.doMigrations();
 

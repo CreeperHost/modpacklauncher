@@ -149,6 +149,7 @@ public class MigrationManager {
         System.exit(2);
     }
 
+    //TODO NO BAD COVERS!!! We have a UI, USE IT!!
     private static JEditorPane makeClickablePane(String content) {
 
         JLabel label = new JLabel();
