@@ -93,7 +93,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
             LOGGER.debug("Setting stage to VANILLA");
             currentStage = Stage.VANILLA;
             LOGGER.debug("About to download launcher");
-//            OS.CURRENT.getPlatform().installLauncher();
+            OS.CURRENT.getPlatform().installLauncher();
             Path profileJson = Constants.LAUNCHER_PROFILES_JSON;
             LOGGER.debug("Launching game and close");
             if (Files.notExists(profileJson)) GameLauncher.downloadLauncherProfiles();
