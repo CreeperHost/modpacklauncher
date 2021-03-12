@@ -18,6 +18,13 @@ public abstract class UnixPlatform extends BasePlatform {
         super(windowHelper);
     }
 
+    @Override
+    protected void prepareLauncherEnvironment(ProcessBuilder builder) {
+        super.prepareLauncherEnvironment(builder);
+        //Thanks jikuja :D
+        builder.environment().put("LC_ALL", "en_US.UTF-8");
+    }
+
     public static void chmod755(Path path) throws IOException {
         Files.setPosixFilePermissions(path, PosixFilePermissions.fromString("rwxr-xr-x"));
     }

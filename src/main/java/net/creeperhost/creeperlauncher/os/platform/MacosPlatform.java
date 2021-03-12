@@ -55,13 +55,6 @@ public class MacosPlatform extends UnixPlatform {
         }
     }
 
-    @Override
-    protected void prepareLauncherEnvironment(ProcessBuilder builder) {
-        super.prepareLauncherEnvironment(builder);
-        //Thanks jikuja :D
-        builder.environment().put("LC_ALL", "en_US.UTF-8");
-    }
-
     @Override //Macos is speshal, this is validated with unit test.
     protected List<String> prepareLauncherProcessArgs() {
         List<String> args = super.prepareLauncherProcessArgs();
