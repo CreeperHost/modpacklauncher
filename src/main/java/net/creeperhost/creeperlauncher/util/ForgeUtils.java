@@ -20,12 +20,13 @@ public class ForgeUtils
 {
     private static final Logger LOGGER = LogManager.getLogger();
 
+    @SuppressWarnings("all")
     public static URI findForgeDownloadURL(String minecraftVersion, String forgeVersion) throws URISyntaxException, MalformedURLException
     {
         String repo = "https://apps.modpacks.ch/versions/net/minecraftforge/forge/";
+        String failedMsg = "FAILED, Using alternative mirror {}";
 
-        URI url = new URI(repo + minecraftVersion + "-" + forgeVersion + "/" +
-                "forge-" + minecraftVersion + "-" + forgeVersion + "-universal.jar");
+        URI url = new URI(repo + minecraftVersion + "-" + forgeVersion + "/" + "forge-" + minecraftVersion + "-" + forgeVersion + "-universal.jar");
 
         //Temp code to get around there being -universal.jars on our repo that are not real
         if(minecraftVersion.equalsIgnoreCase("1.2.5"))
@@ -34,35 +35,32 @@ public class ForgeUtils
             return new URI(repo + minecraftVersion + "-" + forgeVersion + "/" +
                     "forge-" + minecraftVersion + "-" + forgeVersion + "-client.jar");
         }
+        if (!WebUtils.checkExist(url.toURL()))
+        {
+            LOGGER.info(failedMsg, url);
+            url = new URI(repo + minecraftVersion + "-" + forgeVersion + "-" + minecraftVersion + "/" +
+                    "forge-" + minecraftVersion + "-" + forgeVersion + "-" + minecraftVersion + "-universal.jar");
+        }
+        if (!WebUtils.checkExist(url.toURL()))
+        {
+            LOGGER.info(failedMsg, url);
+            url = new URI(repo + minecraftVersion + "-" + forgeVersion + "/" +
+                    "forge-" + minecraftVersion + "-" + forgeVersion + "-universal.zip");
+        }
+        if (!WebUtils.checkExist(url.toURL()))
+        {
+            LOGGER.info(failedMsg, url);
+            url = new URI(repo + minecraftVersion + "-" + forgeVersion + "/" +
+                    "forge-" + minecraftVersion + "-" + forgeVersion + "-client.jar");
+        }
 
         if (!WebUtils.checkExist(url.toURL()))
         {
-            LOGGER.info("File does not exist on repo for {}", url);
-            url = new URI(repo + minecraftVersion + "-" + forgeVersion + "-" + minecraftVersion + "/" +
-                    "forge-" + minecraftVersion + "-" + forgeVersion + "-" + minecraftVersion + "-universal.jar");
-
-            if (!WebUtils.checkExist(url.toURL()))
-            {
-                LOGGER.info("File does not exist on repo for {}", url);
-                url = new URI(repo + minecraftVersion + "-" + forgeVersion + "/" +
-                        "forge-" + minecraftVersion + "-" + forgeVersion + "-universal.zip");
-            }
-            if (!WebUtils.checkExist(url.toURL()))
-            {
-                LOGGER.info("File does not exist on repo for {}", url);
-                url = new URI(repo + minecraftVersion + "-" + forgeVersion + "/" +
-                        "forge-" + minecraftVersion + "-" + forgeVersion + "-client.jar");
-            }
-
-            if (!WebUtils.checkExist(url.toURL()))
-            {
-                LOGGER.info("File does not exist on repo for {}", url);
-                url = new URI(repo + minecraftVersion + "-" + forgeVersion + "/" +
-                        "forge-" + minecraftVersion + "-" + forgeVersion + "-universal.jar");
-            }
+            LOGGER.info(failedMsg, url);
+            url = new URI(repo + minecraftVersion + "-" + forgeVersion + "/" +
+                    "forge-" + minecraftVersion + "-" + forgeVersion + "-universal.jar");
         }
-
-        LOGGER.info("Downloading forge from: {}", url);
+        LOGGER.info("SUCCESS, Downloading forge from: {}", url);
         return url;
     }
 
