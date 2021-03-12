@@ -80,13 +80,11 @@ public class CreeperLauncher
     @SuppressWarnings("ResultOfMethodCallIgnored")
     public static void main(String[] args)
     {
-        initSettingsAndCache();
-
         MigrationManager migrationManager = new MigrationManager();
         migrationManager.doMigrations();
 
-
-        boolean migrateError = false;
+        //Must be loaded after Migrations have occurred as Migrations could modify the cache or settings.
+        initSettingsAndCache();
 
         doUpdate(args);
 
@@ -301,15 +299,6 @@ public class CreeperLauncher
             );
         }
 
-        //TODO this is never set anymore, figure out the best way to handle this.
-        if (migrateError)
-        {
-            OpenModalData.openModal("Warning", "An error occurred whilst migrating your FTB App to a new data structure. Things may still work, but if you have issues, please contact FTB support for assistance.", List.of(
-                    new OpenModalData.ModalButton("Continue", "", () -> {
-                        Settings.webSocketAPI.sendMessage(new CloseModalData());
-                    }))
-            );
-        }
         MiscUtils.updateJavaVersions();
 
         //Hang indefinitely until this lock is interrupted.
