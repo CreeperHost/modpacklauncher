@@ -1,7 +1,9 @@
 package net.creeperhost.creeperlauncher.util;
 
+import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
 public class ImageUtils {
@@ -11,5 +13,10 @@ public class ImageUtils {
         graphics2D.drawImage(originalImage, 0, 0, targetWidth, targetHeight, null);
         graphics2D.dispose();
         return resizedImage;
+    }
+    public static BufferedImage resizeImage(byte[] originalImage, int targetWidth, int targetHeight) throws IOException {
+        ByteArrayInputStream bais = new ByteArrayInputStream(originalImage);
+        BufferedImage bi = ImageIO.read(bais);
+        return resizeImage(bi, targetWidth, targetHeight);
     }
 }
