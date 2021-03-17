@@ -35,6 +35,7 @@ public class Constants
     public static final String FORGE_XML = "https://files.minecraftforge.net/maven/net/minecraftforge/forge/maven-metadata.xml";
     public static final String FORGE_MAVEN = "https://files.minecraftforge.net/maven/net/minecraftforge/forge/";
     public static final String FORGE_RECOMMENDED = "https://files.minecraftforge.net/maven/net/minecraftforge/forge/promotions_slim.json";
+    public static final String FORGE_CH = "https://forge.modpacks.ch/maven/net/minecraftforge/forge/";
 
     //Paths
     public static final Path BIN_LOCATION_OURS = WORKING_DIR.resolve("bin");

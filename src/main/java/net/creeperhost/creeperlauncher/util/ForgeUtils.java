@@ -23,7 +23,7 @@ public class ForgeUtils
     @SuppressWarnings("all")
     public static URI findForgeDownloadURL(String minecraftVersion, String forgeVersion) throws URISyntaxException, MalformedURLException
     {
-        String repo = "https://apps.modpacks.ch/versions/net/minecraftforge/forge/";
+        String repo = Constants.FORGE_CH;
         String failedMsg = "FAILED, Using alternative mirror {}";
 
         URI url = new URI(repo + minecraftVersion + "-" + forgeVersion + "/" + "forge-" + minecraftVersion + "-" + forgeVersion + "-universal.jar");
@@ -33,7 +33,7 @@ public class ForgeUtils
         {
             LOGGER.info("Legacy version detected, Using older forge urls {}", url);
             return new URI(repo + minecraftVersion + "-" + forgeVersion + "/" +
-                    "forge-" + minecraftVersion + "-" + forgeVersion + "-client.jar");
+                    "forge-" + minecraftVersion + "-" + forgeVersion + "-client.zip");
         }
         if (!WebUtils.checkExist(url.toURL()))
         {

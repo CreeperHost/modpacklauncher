@@ -32,8 +32,8 @@ public class ForgeInstallerModLoader extends ForgeModLoader
 	@Override
 	public Path install(LocalInstance instance)
 	{
-		String forgeUrl = "https://apps.modpacks.ch/versions/net/minecraftforge/forge/" + getMinecraftVersion() + "-" + getForgeVersion() + "/forge-" + getMinecraftVersion() + "-" + getForgeVersion() + "-installer.jar";
-		String forgeUrlJson = "https://apps.modpacks.ch/versions/net/minecraftforge/forge/" + getMinecraftVersion() + "-" + getForgeVersion() + "/forge-" + getMinecraftVersion() + "-" + getForgeVersion() + "-installer.json";
+		String forgeUrl = Constants.FORGE_CH + getMinecraftVersion() + "-" + getForgeVersion() + "/forge-" + getMinecraftVersion() + "-" + getForgeVersion() + "-installer.jar";
+		String forgeUrlJson = Constants.FORGE_CH + getMinecraftVersion() + "-" + getForgeVersion() + "/forge-" + getMinecraftVersion() + "-" + getForgeVersion() + "-installer.json";
 
         LOGGER.info("Attempting to download {}.", forgeUrl);
 		Path installerFile = instance.getDir().resolve("installer.jar");
