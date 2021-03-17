@@ -26,7 +26,9 @@ import net.creeperhost.creeperlauncher.minecraft.GameLauncher;
 import net.creeperhost.creeperlauncher.minecraft.McUtils;
 import net.creeperhost.creeperlauncher.minecraft.Profile;
 
+import javax.imageio.ImageIO;
 import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.BindException;
 import java.net.MalformedURLException;
@@ -213,7 +215,17 @@ public class LocalInstance implements IPack
         try
         {
             Base64.Encoder en = Base64.getEncoder();
-            tmpArt = "data:image/png;base64," + en.encodeToString(Files.readAllBytes(artFile));
+            //Resize the image, 1024x1024 is gonna cause issues with OOM's on poorer systems and just isn't used.
+            BufferedImage manipulatedArt = ImageUtils.resizeImage(Files.readAllBytes(artFile), 256, 256);
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(manipulatedArt, "png", baos);
+            tmpArt = "data:image/png;base64," + en.encodeToString(baos.toByteArray());
+            //Replace "art.png" with "folder.jpg", smaller and will show as a preview folder art like album art on windows. Should make identifying instances a bit easier and reduce file size.
+            Path folderArt = path.resolve("folder.jpg");
+            baos.reset();
+            ImageIO.write(manipulatedArt, "jpg", baos);
+            Files.write(folderArt, baos.toByteArray());
+            Files.delete(artFile);
         } catch (Exception err)
         {
             LOGGER.error("Unable to encode artwork for embedding.", err);
