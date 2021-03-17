@@ -1,13 +1,13 @@
 package net.creeperhost.creeperlauncher.api.handlers;
 
 public class ModFile {
-    private String name;
-    private String version;
-    private long size;
-    private String sha1;
+    private final String name;
+    private final String version;
+    private final long size;
+    private final String sha1;
     private boolean expected;
     private boolean exists;
-    private transient int hashCode;
+    private final transient int hashCode;
     public ModFile(String name, String version, long size, String sha1) {
         this.name = name;
         this.version = version;
@@ -38,5 +38,17 @@ public class ModFile {
     @Override
     public boolean equals(Object o) {
         return o != null && o.getClass() == this.getClass() && o.hashCode() == this.hashCode();
+    }
+
+    public String getSha1() {
+        return sha1;
+    }
+
+    public long getSize() {
+        return size;
+    }
+
+    public String getVersion() {
+        return version;
     }
 }

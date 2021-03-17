@@ -9,8 +9,10 @@ import net.creeperhost.creeperlauncher.install.tasks.FTBModPackInstallerTask;
 import net.creeperhost.creeperlauncher.pack.FTBPack;
 import net.creeperhost.creeperlauncher.pack.LocalInstance;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class InstanceModsHandler implements IMessageHandler<InstanceModsData> {
     @Override
@@ -20,14 +22,24 @@ public class InstanceModsHandler implements IMessageHandler<InstanceModsData> {
         if (pack != null) {
             List<ModFile> instanceMods = instance.getMods();
             List<ModFile> packMods = pack.getMods();
+            List<ModFile> finalMergedMods = new ArrayList<>();
             packMods.forEach(mod -> {
-                if (instanceMods.contains(mod)) {
-                    mod.setExists(true);
-                    instanceMods.remove(mod);
+                int indexOf = instanceMods.indexOf(mod);
+                if (indexOf != -1) {
+                    ModFile instanceMod = instanceMods.get(indexOf);
+                    finalMergedMods.add(new ModFile(mod.getName(), mod.getVersion(), instanceMod.getSize(), mod.getSha1()).setExists(true).setExpected(true));
+                } else {
+                    finalMergedMods.add(mod);
                 }
             });
-            packMods.addAll(instanceMods);
-            Settings.webSocketAPI.sendMessage(new InstanceModsData.Reply(data, packMods));
+
+            instanceMods.forEach(mod -> {
+                if (!finalMergedMods.contains(mod)) {
+                    finalMergedMods.add(mod);
+                }
+            });
+            List<ModFile> collect = finalMergedMods.stream().sorted((e1, e2) -> e1.getName().compareToIgnoreCase(e2.getName())).collect(Collectors.toList());
+            Settings.webSocketAPI.sendMessage(new InstanceModsData.Reply(data, collect));
         }
     }
 }

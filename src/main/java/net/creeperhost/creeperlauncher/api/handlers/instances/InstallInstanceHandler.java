@@ -40,15 +40,15 @@ public class InstallInstanceHandler implements IMessageHandler<InstallInstanceDa
             return;
         }
         Settings.webSocketAPI.sendMessage(new InstallInstanceData.Reply(data, "init", "Install started.", ""));
-        FTBPack pack = FTBModPackInstallerTask.getPackFromAPI(data.id, data.version, data._private, data.packType);
-        List<SimpleDownloadableFile> files = pack.getFiles();
-        Settings.webSocketAPI.sendMessage(new InstallInstanceData.Reply(data, "files", GsonUtils.GSON.toJson(files), ""));
         LocalInstance instance;
         if(data.uuid != null && data.uuid.length() > 0)
         {
             try {
                 instance = new LocalInstance(Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve(data.uuid));
-                instance.packType = data.packType;
+                data.packType = instance.packType;
+                FTBPack pack = FTBModPackInstallerTask.getPackFromAPI(data.id, data.version, data._private, data.packType);
+                List<SimpleDownloadableFile> files = pack.getFiles();
+                Settings.webSocketAPI.sendMessage(new InstallInstanceData.Reply(data, "files", GsonUtils.GSON.toJson(files), ""));
                 install = instance.update(data.version);
             } catch (Exception ignored) {
                 lastError.set("Instance not found, aborting update.");
@@ -58,6 +58,9 @@ public class InstallInstanceHandler implements IMessageHandler<InstallInstanceDa
                 return;
             }
         } else {
+            FTBPack pack = FTBModPackInstallerTask.getPackFromAPI(data.id, data.version, data._private, data.packType);
+            List<SimpleDownloadableFile> files = pack.getFiles();
+            Settings.webSocketAPI.sendMessage(new InstallInstanceData.Reply(data, "files", GsonUtils.GSON.toJson(files), ""));
             instance = new LocalInstance(pack, data.version, data.packType);
             Instances.addInstance(instance.getUuid(), instance);
             data.uuid = instance.getUuid().toString();
