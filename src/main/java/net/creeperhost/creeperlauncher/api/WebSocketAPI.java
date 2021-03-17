@@ -64,6 +64,7 @@ public class WebSocketAPI extends WebSocketServer
         LOGGER.info("Front end connected: {}", conn.getRemoteSocketAddress());
         connections++;
         notConnectedQueue.forEach(conn::send);
+        notConnectedQueue = null;
     }
 
     @Override

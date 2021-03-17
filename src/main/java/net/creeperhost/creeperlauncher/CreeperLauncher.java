@@ -12,6 +12,7 @@ import net.creeperhost.creeperlauncher.api.data.other.PingLauncherData;
 import net.creeperhost.creeperlauncher.install.tasks.FTBModPackInstallerTask;
 import net.creeperhost.creeperlauncher.install.tasks.LocalCache;
 import net.creeperhost.creeperlauncher.migration.MigrationManager;
+import net.creeperhost.creeperlauncher.migration.migrators.DialogUtil;
 import net.creeperhost.creeperlauncher.minetogether.vpn.MineTogetherConnect;
 import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.util.*;
@@ -80,6 +81,100 @@ public class CreeperLauncher
     @SuppressWarnings("ResultOfMethodCallIgnored")
     public static void main(String[] args)
     {
+        try {
+            Settings.webSocketAPI = new WebSocketAPI(new InetSocketAddress(InetAddress.getLoopbackAddress(), defaultWebsocketPort || isDevMode ? Constants.WEBSOCKET_PORT : websocketPort));
+            Settings.webSocketAPI.setConnectionLostTimeout(0);
+            Settings.webSocketAPI.start();
+            if(OS.CURRENT == OS.WIN) pingPong();
+        } catch(Throwable t)
+        {
+            websocketDisconnect=true;
+            LOGGER.error("Unable to open websocket port or websocket has disconnected...", t);
+        }
+
+
+
+
+        /*
+        Borrowed from ModpackServerDownloader project
+         */
+        HashMap<String, String> Args = new HashMap<>();
+        String argName = null;
+        for(String arg : args)
+        {
+            if(arg.length() > 2) {
+                if (arg.startsWith("--")) {
+                    argName = arg.substring(2);
+                    Args.put(argName, "");
+                }
+                if (argName != null) {
+                    if (argName.length() > 2) {
+                        if (!argName.equals(arg.substring(2))) {
+                            if (Args.containsKey(argName)) {
+                                Args.remove(argName);
+                            }
+                            Args.put(argName, arg);
+                            argName = null;
+                        }
+                    }
+                }
+            }
+        }
+        /*
+        End
+         */
+
+        isDevMode = Args.containsKey("dev");
+
+        boolean isOverwolf = Args.containsKey("overwolf");
+
+        boolean startProcess = !isDevMode;
+        if(isOverwolf)
+        {
+            LOGGER.info("Overwolf integration mode");
+        }
+        if(Args.containsKey("pid") && !isDevMode)
+        {
+            try {
+                long pid = Long.parseLong(Args.get("pid"));
+                Optional<ProcessHandle> electronProc = ProcessHandle.of(pid);
+                if (electronProc.isPresent())
+                {
+                    startProcess = false;
+                    defaultWebsocketPort = true;
+                    ProcessHandle handle = electronProc.get();
+                    handle.onExit().thenRun(() ->
+                    {
+                        while (isSyncing.get()) {
+                            try {
+                                Thread.sleep(1000);
+                            } catch (InterruptedException e) { e.printStackTrace(); }
+                        }
+                        CreeperLauncher.exit();
+                    });
+                    if(!isOverwolf) Runtime.getRuntime().addShutdownHook(new Thread(handle::destroy));
+                }
+            } catch (Exception exception) {
+                LOGGER.error("Error connecting to process", exception);
+            }
+        } else {
+            if(isDevMode)
+            {
+                LOGGER.info("Development mode");
+            } else {
+                LOGGER.info("No PID args");
+            }
+        }
+
+        if(isDevMode || isOverwolf){
+            startProcess = false;
+            defaultWebsocketPort = true;
+        }
+
+        if (startProcess) {
+            startElectron();
+        }
+
         //TODO Many questions much wow, Should this not be done later like after settings have loaded and we have an instance location??
         MigrationManager migrationManager = new MigrationManager();
         migrationManager.doMigrations();
@@ -207,98 +302,6 @@ public class CreeperLauncher
             localCache.clean();
         });
 
-
-
-        /*
-        Borrowed from ModpackServerDownloader project
-         */
-        HashMap<String, String> Args = new HashMap<>();
-        String argName = null;
-        for(String arg : args)
-        {
-            if(arg.length() > 2) {
-                if (arg.startsWith("--")) {
-                    argName = arg.substring(2);
-                    Args.put(argName, "");
-                }
-                if (argName != null) {
-                    if (argName.length() > 2) {
-                        if (!argName.equals(arg.substring(2))) {
-                            if (Args.containsKey(argName)) {
-                                Args.remove(argName);
-                            }
-                            Args.put(argName, arg);
-                            argName = null;
-                        }
-                    }
-                }
-            }
-        }
-        /*
-        End
-         */
-
-        isDevMode = Args.containsKey("dev");
-
-        boolean isOverwolf = Args.containsKey("overwolf");
-
-        boolean startProcess = !isDevMode;
-        if(isOverwolf)
-        {
-            LOGGER.info("Overwolf integration mode");
-        }
-        if(Args.containsKey("pid") && !isDevMode)
-        {
-            try {
-                long pid = Long.parseLong(Args.get("pid"));
-                Optional<ProcessHandle> electronProc = ProcessHandle.of(pid);
-                if (electronProc.isPresent())
-                {
-                    startProcess = false;
-                    defaultWebsocketPort = true;
-                    ProcessHandle handle = electronProc.get();
-                    handle.onExit().thenRun(() ->
-                    {
-                        while (isSyncing.get()) {
-                            try {
-                                Thread.sleep(1000);
-                            } catch (InterruptedException e) { e.printStackTrace(); }
-                        }
-                        CreeperLauncher.exit();
-                    });
-                    if(!isOverwolf) Runtime.getRuntime().addShutdownHook(new Thread(handle::destroy));
-                }
-            } catch (Exception exception) {
-                LOGGER.error("Error connecting to process", exception);
-            }
-        } else {
-            if(isDevMode)
-            {
-                LOGGER.info("Development mode");
-            } else {
-                LOGGER.info("No PID args");
-            }
-        }
-
-        if(isDevMode || isOverwolf){
-            startProcess = false;
-            defaultWebsocketPort = true;
-        }
-
-        try {
-            Settings.webSocketAPI = new WebSocketAPI(new InetSocketAddress(InetAddress.getLoopbackAddress(), defaultWebsocketPort || isDevMode ? Constants.WEBSOCKET_PORT : websocketPort));
-            Settings.webSocketAPI.setConnectionLostTimeout(0);
-            Settings.webSocketAPI.start();
-            if(OS.CURRENT == OS.WIN) pingPong();
-        } catch(Throwable t)
-        {
-            websocketDisconnect=true;
-            LOGGER.error("Unable to open websocket port or websocket has disconnected...", t);
-        }
-
-        if (startProcess) {
-            startElectron();
-        }
         if(!Files.isWritable(Constants.getDataDir()))
         {
             OpenModalData.openModal("Critical Error", "The FTBApp is unable to write to your selected data directory, this can be caused by file permission errors, anti-virus or any number of other configuration issues.<br />If you continue, the app will not work as intended and you may be unable to install or run any modpacks.", List.of(
