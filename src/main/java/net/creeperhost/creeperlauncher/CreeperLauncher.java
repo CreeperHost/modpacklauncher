@@ -5,10 +5,8 @@ import com.install4j.api.launcher.ApplicationLauncher;
 import com.install4j.api.update.UpdateChecker;
 import net.covers1624.quack.logging.log4j2.Log4jUtils;
 import net.creeperhost.creeperlauncher.api.WebSocketAPI;
-import net.creeperhost.creeperlauncher.api.data.other.ClientLaunchData;
-import net.creeperhost.creeperlauncher.api.data.other.CloseModalData;
-import net.creeperhost.creeperlauncher.api.data.other.OpenModalData;
-import net.creeperhost.creeperlauncher.api.data.other.PingLauncherData;
+import net.creeperhost.creeperlauncher.api.data.instances.InstalledInstancesData;
+import net.creeperhost.creeperlauncher.api.data.other.*;
 import net.creeperhost.creeperlauncher.install.tasks.FTBModPackInstallerTask;
 import net.creeperhost.creeperlauncher.install.tasks.LocalCache;
 import net.creeperhost.creeperlauncher.migration.MigrationManager;
@@ -173,7 +171,6 @@ public class CreeperLauncher
             startElectron();
         }
 
-        //TODO Many questions much wow, Should this not be done later like after settings have loaded and we have an instance location??
         MigrationManager migrationManager = new MigrationManager();
         migrationManager.doMigrations();
 
@@ -181,6 +178,8 @@ public class CreeperLauncher
         initSettingsAndCache();
 
         doUpdate(args);
+
+        Instances.refreshInstances();
 
         FileUtils.listDir(Constants.WORKING_DIR).stream()
                 .filter(e -> e.getFileName().toString().endsWith(".jar") && !e.getFileName().toString().contains(Constants.APPVERSION))
@@ -292,8 +291,6 @@ public class CreeperLauncher
             verbose = value.equals("true");
             return true;
         });
-
-        Instances.refreshInstances();
 
         CompletableFuture.runAsync(() ->
         {
