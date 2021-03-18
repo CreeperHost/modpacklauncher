@@ -1,7 +1,7 @@
 package net.creeperhost.creeperlauncher.migration;
 
-import net.covers1624.quack.util.SneakyUtils;
 import net.creeperhost.creeperlauncher.Constants;
+import net.creeperhost.creeperlauncher.migration.migrators.DialogUtil;
 import net.creeperhost.creeperlauncher.migration.migrators.LegacyMigrator;
 import net.creeperhost.creeperlauncher.migration.migrators.V1To2;
 import net.creeperhost.creeperlauncher.util.ElapsedTimer;
@@ -10,9 +10,6 @@ import net.creeperhost.creeperlauncher.util.LogsUploader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import javax.swing.*;
-import javax.swing.event.HyperlinkEvent;
-import java.awt.*;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -66,10 +63,11 @@ public class MigrationManager {
 
         if (from > CURRENT_DATA_FORMAT) {
             LOGGER.warn("Loaded newer data format from disk: {}, current: {}", from, CURRENT_DATA_FORMAT);
-            int ret = JOptionPane.showConfirmDialog(null, bundle.getString("migration.newer_format"), "FTBApp", JOptionPane.YES_NO_OPTION, JOptionPane.PLAIN_MESSAGE);
-            if (ret == JOptionPane.NO_OPTION) {
+            boolean ret = DialogUtil.confirmDialog("Confirmation", bundle.getString("migration.newer_format"));
+            if (!ret) {
                 LOGGER.info("Exiting at user request.");
                 System.exit(2);
+                return;
             }
             LOGGER.warn("Ignoring warning at user request, forcibly reverting saved data format.");
             markAndSaveLatest();
@@ -97,9 +95,10 @@ public class MigrationManager {
                 LOGGER.debug("{} to {} with {}", properties.from(), properties.to(), name);
             }
 
-            int ret = JOptionPane.showConfirmDialog(null, bundle.getString("migration.required"), "FTBApp", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-            if (ret == JOptionPane.CANCEL_OPTION) {
+            boolean ret = DialogUtil.confirmDialog("Migration required", bundle.getString("migration.required"));
+            if (!ret) {
                 LOGGER.info("Exiting at user request.");
+                System.exit(2);
                 return;
             }
 
@@ -141,34 +140,9 @@ public class MigrationManager {
     private void captureMigrationError(ResourceBundle bundle) {
         String uploadCode = LogsUploader.uploadPaste(LogsUploader.getDebugLog());
         String logsHtml = uploadCode == null ? "Logs upload failed." : "<a href=\"https://pste.ch/" + uploadCode + "\">https://pste.ch/" + uploadCode + "</a>";
-        JOptionPane.showMessageDialog(null, makeClickablePane(bundle.getString("migration.error") +
-                        "  Logs: " + logsHtml),
-                "FTBApp",
-                JOptionPane.ERROR_MESSAGE
-        );
+        DialogUtil.okDialog("Migration Error", bundle.getString("migration.error") +
+                        "  Logs: " + logsHtml);
         System.exit(2);
-    }
-
-    //TODO NO BAD COVERS!!! We have a UI, USE IT!!
-    private static JEditorPane makeClickablePane(String content) {
-
-        JLabel label = new JLabel();
-        Font font = label.getFont();
-
-        // create some css from the label's font
-        StringBuilder style = new StringBuilder("font-family:" + font.getFamily() + ";");
-        style.append("font-weight:" + (font.isBold() ? "bold" : "normal") + ";");
-        style.append("font-size:" + font.getSize() + "pt;");
-
-        JEditorPane pane = new JEditorPane("text/html", "<html><body style=\"" + style + "\">" + content + "</body></html>");
-        pane.addHyperlinkListener(e -> SneakyUtils.sneaky(() -> {
-            if (e.getEventType().equals(HyperlinkEvent.EventType.ACTIVATED)) {
-                Desktop.getDesktop().browse(e.getURL().toURI());
-            }
-        }));
-        pane.setEditable(false);
-        pane.setBackground(label.getBackground());
-        return pane;
     }
 
     private static class FormatJson {
