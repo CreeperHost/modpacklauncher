@@ -1,6 +1,9 @@
 package net.creeperhost.creeperlauncher.migration;
 
 import net.creeperhost.creeperlauncher.Constants;
+import net.creeperhost.creeperlauncher.Settings;
+import net.creeperhost.creeperlauncher.api.data.other.CloseModalData;
+import net.creeperhost.creeperlauncher.api.data.other.YeetLauncherData;
 import net.creeperhost.creeperlauncher.migration.migrators.DialogUtil;
 import net.creeperhost.creeperlauncher.migration.migrators.LegacyMigrator;
 import net.creeperhost.creeperlauncher.migration.migrators.V1To2;
@@ -66,6 +69,7 @@ public class MigrationManager {
             boolean ret = DialogUtil.confirmDialog("Confirmation", bundle.getString("migration.newer_format"));
             if (!ret) {
                 LOGGER.info("Exiting at user request.");
+                Settings.webSocketAPI.sendMessage(new YeetLauncherData());
                 System.exit(2);
                 return;
             }
@@ -98,6 +102,7 @@ public class MigrationManager {
             boolean ret = DialogUtil.confirmDialog("Migration required", bundle.getString("migration.required"));
             if (!ret) {
                 LOGGER.info("Exiting at user request.");
+                Settings.webSocketAPI.sendMessage(new YeetLauncherData());
                 System.exit(2);
                 return;
             }
@@ -142,6 +147,7 @@ public class MigrationManager {
         String logsHtml = uploadCode == null ? "Logs upload failed." : "<a href=\"https://pste.ch/" + uploadCode + "\">https://pste.ch/" + uploadCode + "</a>";
         DialogUtil.okDialog("Migration Error", bundle.getString("migration.error") +
                         "  Logs: " + logsHtml);
+        Settings.webSocketAPI.sendMessage(new YeetLauncherData());
         System.exit(2);
     }
 

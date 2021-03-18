@@ -81,20 +81,6 @@ public class CreeperLauncher
     @SuppressWarnings("ResultOfMethodCallIgnored")
     public static void main(String[] args)
     {
-        try {
-            Settings.webSocketAPI = new WebSocketAPI(new InetSocketAddress(InetAddress.getLoopbackAddress(), defaultWebsocketPort || isDevMode ? Constants.WEBSOCKET_PORT : websocketPort));
-            Settings.webSocketAPI.setConnectionLostTimeout(0);
-            Settings.webSocketAPI.start();
-            if(OS.CURRENT == OS.WIN) pingPong();
-        } catch(Throwable t)
-        {
-            websocketDisconnect=true;
-            LOGGER.error("Unable to open websocket port or websocket has disconnected...", t);
-        }
-
-
-
-
         /*
         Borrowed from ModpackServerDownloader project
          */
@@ -123,12 +109,17 @@ public class CreeperLauncher
         /*
         End
          */
-
-        isDevMode = Args.containsKey("dev");
-
         boolean isOverwolf = Args.containsKey("overwolf");
 
         boolean startProcess = !isDevMode;
+
+        if(isDevMode || isOverwolf){
+            startProcess = false;
+            defaultWebsocketPort = true;
+        }
+
+        isDevMode = Args.containsKey("dev");
+
         if(isOverwolf)
         {
             LOGGER.info("Overwolf integration mode");
@@ -166,10 +157,19 @@ public class CreeperLauncher
             }
         }
 
-        if(isDevMode || isOverwolf){
-            startProcess = false;
-            defaultWebsocketPort = true;
+
+        try {
+            Settings.webSocketAPI = new WebSocketAPI(new InetSocketAddress(InetAddress.getLoopbackAddress(), defaultWebsocketPort || isDevMode ? Constants.WEBSOCKET_PORT : websocketPort));
+            Settings.webSocketAPI.setConnectionLostTimeout(0);
+            Settings.webSocketAPI.start();
+            if(OS.CURRENT == OS.WIN) pingPong();
+        } catch(Throwable t)
+        {
+            websocketDisconnect=true;
+            LOGGER.error("Unable to open websocket port or websocket has disconnected...", t);
         }
+
+
 
         if (startProcess) {
             startElectron();
