@@ -23,6 +23,8 @@ public class WebSocketAPI extends WebSocketServer
 {
     private static final Logger LOGGER = LogManager.getLogger();
 
+    private boolean fullyConnected = false;
+
     public WebSocketAPI(InetSocketAddress address)
     {
         super(address);
@@ -30,7 +32,7 @@ public class WebSocketAPI extends WebSocketServer
 
     int connections = 0;
 
-    private ConcurrentLinkedQueue<String> notConnectedQueue = new ConcurrentLinkedQueue<>();
+    private static final ConcurrentLinkedQueue<String> notConnectedQueue = new ConcurrentLinkedQueue<>();
 
     public static Random random = new Random();
 
@@ -62,9 +64,10 @@ public class WebSocketAPI extends WebSocketServer
         }
 
         LOGGER.info("Front end connected: {}", conn.getRemoteSocketAddress());
+        fullyConnected = true;
         connections++;
         notConnectedQueue.forEach(conn::send);
-        notConnectedQueue = null;
+        notConnectedQueue.clear();
     }
 
     @Override
@@ -102,7 +105,7 @@ public class WebSocketAPI extends WebSocketServer
                 Settings.webSocketAPI.start();
                 try {
                     stop();
-                } catch (Exception ignoredTwo) {}
+                } catch (Exception ignored1) {}
             }
         }
     }
@@ -117,7 +120,7 @@ public class WebSocketAPI extends WebSocketServer
     public void sendMessage(BaseData data)
     {
         String s = GsonUtils.GSON.toJson(data);
-        if (getConnections().isEmpty())
+        if (getConnections().isEmpty() || !fullyConnected)
         {
             notConnectedQueue.add(s);
         } else {

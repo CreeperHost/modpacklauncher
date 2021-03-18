@@ -169,8 +169,6 @@ public class CreeperLauncher
             LOGGER.error("Unable to open websocket port or websocket has disconnected...", t);
         }
 
-
-
         if (startProcess) {
             startElectron();
         }
