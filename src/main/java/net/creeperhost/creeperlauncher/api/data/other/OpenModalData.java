@@ -10,20 +10,26 @@ public class OpenModalData extends BaseData
 {
     private final String title;
     private final String message;
+    private final boolean dismissable;
     public final List<ModalButton> buttons;
     public static OpenModalData currentlyOpenModal = null;
     public String id;
 
-    public OpenModalData(String title, String message, List<ModalButton> buttons) {
+    public OpenModalData(String title, String message, List<ModalButton> buttons, boolean dismissable) {
         this.type = "openModal";
         this.title = title;
         this.message = message;
         this.buttons = buttons;
         this.id = UUID.randomUUID().toString();
+        this.dismissable = dismissable;
     }
 
     public static void openModal(String title, String message, List<ModalButton> modalButtons) {
-        currentlyOpenModal = new OpenModalData(title, message, modalButtons);
+        openModal(title, message, modalButtons,true);
+    }
+
+    public static void openModal(String title, String message, List<ModalButton> modalButtons, boolean dismissable) {
+        currentlyOpenModal = new OpenModalData(title, message, modalButtons, dismissable);
         Settings.webSocketAPI.sendMessage(currentlyOpenModal);
     }
 

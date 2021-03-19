@@ -26,7 +26,7 @@ public class DialogUtil {
                     result.notify();
                 }
             })
-        ));
+        ), false);
 
         try {
             synchronized (result) {
@@ -48,7 +48,7 @@ public class DialogUtil {
                         lock.notify();
                     }
                 })
-        ));
+        ), false);
 
         try {
             synchronized (lock) {
