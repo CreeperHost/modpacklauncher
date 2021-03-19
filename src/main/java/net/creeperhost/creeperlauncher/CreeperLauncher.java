@@ -76,7 +76,6 @@ public class CreeperLauncher
         localCache = new LocalCache(Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve(".localCache"));
     }
 
-    @SuppressWarnings("ResultOfMethodCallIgnored")
     public static void main(String[] args)
     {
         // Do this as soon as possible. Settings and instance location SHOULD be right by this point
@@ -142,7 +141,7 @@ public class CreeperLauncher
                     {
                         while (isSyncing.get()) {
                             try {
-                                Thread.sleep(1000);
+                                Thread.sleep(1000); // TODO: Replace with a a wait/notify
                             } catch (InterruptedException e) { e.printStackTrace(); }
                         }
                         CreeperLauncher.exit();
@@ -197,6 +196,33 @@ public class CreeperLauncher
                     }
                 });
 
+        registerSettingsListeners(args);
+
+        CompletableFuture.runAsync(localCache::clean);
+
+        if(!Files.isWritable(Constants.getDataDir()))
+        {
+            OpenModalData.openModal("Critical Error", "The FTBApp is unable to write to your selected data directory, this can be caused by file permission errors, anti-virus or any number of other configuration issues.<br />If you continue, the app will not work as intended and you may be unable to install or run any modpacks.", List.of(
+                    new OpenModalData.ModalButton( "Exit", "green", CreeperLauncher::exit),
+                    new OpenModalData.ModalButton("Continue", "", () -> {
+                        Settings.webSocketAPI.sendMessage(new CloseModalData());
+                    }))
+            );
+        }
+
+        MiscUtils.updateJavaVersions();
+
+        //Hang indefinitely until this lock is interrupted.
+        try {
+            synchronized (DIE_LOCK) {
+                DIE_LOCK.wait();
+            }
+        } catch (InterruptedException ignored) {
+        }
+    }
+
+    private static void registerSettingsListeners(String[] args)
+    {
         SettingsChangeUtil.registerListener("instanceLocation", (key, value) -> {
             OpenModalData.openModal("Confirmation", "Are you sure you wish to move your instances to this location? <br tag='haha line break go brr'> All content in your current instance location will be moved, and if content exists with the same name in the destination it will be replaced.", List.of(
                     new OpenModalData.ModalButton( "Yes", "green", () -> {
@@ -221,6 +247,7 @@ public class CreeperLauncher
                                 String fileName = file.getFileName().toString();
                                 if(fileName.length() == 36) {
                                     try {
+                                        //noinspection ResultOfMethodCallIgnored
                                         UUID.fromString(fileName);
                                     } catch (Throwable ignored) {
                                         continue;
@@ -274,12 +301,12 @@ public class CreeperLauncher
             if (Constants.BRANCH.equals("release") || Constants.BRANCH.equals("preview"))
             {
                 OpenModalData.openModal("Update", "Do you wish to change to this branch now?", List.of(
-                    new OpenModalData.ModalButton( "Yes", "green", () -> {
-                        doUpdate(args);
-                    }),
-                    new OpenModalData.ModalButton( "No", "red", () -> {
-                        Settings.webSocketAPI.sendMessage(new CloseModalData());
-                    })
+                        new OpenModalData.ModalButton( "Yes", "green", () -> {
+                            doUpdate(args);
+                        }),
+                        new OpenModalData.ModalButton( "No", "red", () -> {
+                            Settings.webSocketAPI.sendMessage(new CloseModalData());
+                        })
                 ));
                 return true;
             } else {
@@ -287,7 +314,7 @@ public class CreeperLauncher
                 {
                     warnedDevelop = true;
                     OpenModalData.openModal("Update", "Unable to switch from branch " + Constants.BRANCH + " via this toggle.", List.of(
-                        new OpenModalData.ModalButton("Ok", "red", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
+                            new OpenModalData.ModalButton("Ok", "red", () -> Settings.webSocketAPI.sendMessage(new CloseModalData()))
                     ));
                 }
                 return false;
@@ -298,31 +325,6 @@ public class CreeperLauncher
             verbose = value.equals("true");
             return true;
         });
-
-        CompletableFuture.runAsync(() ->
-        {
-            localCache.clean();
-        });
-
-        if(!Files.isWritable(Constants.getDataDir()))
-        {
-            OpenModalData.openModal("Critical Error", "The FTBApp is unable to write to your selected data directory, this can be caused by file permission errors, anti-virus or any number of other configuration issues.<br />If you continue, the app will not work as intended and you may be unable to install or run any modpacks.", List.of(
-                    new OpenModalData.ModalButton( "Exit", "green", CreeperLauncher::exit),
-                    new OpenModalData.ModalButton("Continue", "", () -> {
-                        Settings.webSocketAPI.sendMessage(new CloseModalData());
-                    }))
-            );
-        }
-
-        MiscUtils.updateJavaVersions();
-
-        //Hang indefinitely until this lock is interrupted.
-        try {
-            synchronized (DIE_LOCK) {
-                DIE_LOCK.wait();
-            }
-        } catch (InterruptedException ignored) {
-        }
     }
 
     @SuppressWarnings("ConstantConditions")
