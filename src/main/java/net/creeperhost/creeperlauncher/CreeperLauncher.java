@@ -79,8 +79,14 @@ public class CreeperLauncher
     @SuppressWarnings("ResultOfMethodCallIgnored")
     public static void main(String[] args)
     {
+        // Do this as soon as possible. Settings and instance location SHOULD be right by this point
+        // (with a slim chance of legacy migration), but better to have some settings than none
+        Settings.loadSettings();
+        Instances.refreshInstances();
+
+
         /*
-        Borrowed from ModpackServerDownloader project
+        Borrowed from ModpackServerDownloader project - parse args
          */
         HashMap<String, String> Args = new HashMap<>();
         String argName = null;
@@ -107,8 +113,8 @@ public class CreeperLauncher
         /*
         End
          */
-        boolean isOverwolf = Args.containsKey("overwolf");
 
+        boolean isOverwolf = Args.containsKey("overwolf");
         boolean startProcess = !isDevMode;
 
         if(isDevMode || isOverwolf){
@@ -174,12 +180,13 @@ public class CreeperLauncher
         MigrationManager migrationManager = new MigrationManager();
         migrationManager.doMigrations();
 
-        //Must be loaded after Migrations have occurred as Migrations could modify the cache or settings.
+        // Reload in case settings changed. Ideally we want the front end to wait until the back end says "Ok we ready
+        // bois" before the front end requests any information but that's a further issue, not for this release
         initSettingsAndCache();
+        Instances.refreshInstances();
 
         doUpdate(args);
 
-        Instances.refreshInstances();
 
         FileUtils.listDir(Constants.WORKING_DIR).stream()
                 .filter(e -> e.getFileName().toString().endsWith(".jar") && !e.getFileName().toString().contains(Constants.APPVERSION))
