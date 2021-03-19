@@ -50,10 +50,12 @@ public class InstallInstanceHandler implements IMessageHandler<InstallInstanceDa
                 List<SimpleDownloadableFile> files = pack.getFiles();
                 Settings.webSocketAPI.sendMessage(new InstallInstanceData.Reply(data, "files", GsonUtils.GSON.toJson(files), ""));
                 install = instance.update(data.version);
-            } catch (Exception ignored) {
+            } catch (Exception exception) {
+                exception.printStackTrace();
                 lastError.set("Instance not found, aborting update.");
                 hasError.set(true);
-                CreeperLauncher.currentInstall.get().cancel();
+                if(CreeperLauncher.currentInstall.get() != null)
+                    CreeperLauncher.currentInstall.get().cancel();
                 Settings.webSocketAPI.sendMessage(new InstallInstanceData.Reply(data, "error", lastError.get(), data.uuid));
                 return;
             }
