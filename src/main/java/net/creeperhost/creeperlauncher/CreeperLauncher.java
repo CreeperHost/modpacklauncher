@@ -356,31 +356,31 @@ public class CreeperLauncher
     }
     private static void pingPong()
     {
-     CompletableFuture.runAsync(() -> {
-       while(true)
-       {
-           try {
-               PingLauncherData ping = new PingLauncherData();
-               CreeperLauncher.missedPings++;
-               Settings.webSocketAPI.sendMessage(ping);
-           } catch(Exception ignored) {}
-           try {
-               Thread.sleep(3000);
-           } catch(Exception ignored) {}
-           //15 minutes without ping/pong or an explicit disconnect event happened...
-           if(missedPings > 300 || websocketDisconnect && missedPings > 3)
-           {
-               break;
-           }
-       }
-     }).thenRun(() -> {
-         if (!websocketDisconnect) {
-             LOGGER.error("Closed backend due to no response from frontend for {} seconds...", (missedPings * 3));
-         } else {
-             LOGGER.error("Closed backend due to websocket error! Also no messages from frontend for {} seconds.", (missedPings * 3));
-         }
-         CreeperLauncher.exit();
-     });
+        CompletableFuture.runAsync(() -> {
+            while(true)
+            {
+                try {
+                    PingLauncherData ping = new PingLauncherData();
+                    CreeperLauncher.missedPings++;
+                    Settings.webSocketAPI.sendMessage(ping);
+                } catch(Exception ignored) {}
+                try {
+                    Thread.sleep(3000);
+                } catch(Exception ignored) {}
+                //15 minutes without ping/pong or an explicit disconnect event happened...
+                if(missedPings > 300 || websocketDisconnect && missedPings > 3)
+                {
+                    break;
+                }
+            }
+        }).thenRun(() -> {
+            if (!websocketDisconnect) {
+                LOGGER.error("Closed backend due to no response from frontend for {} seconds...", (missedPings * 3));
+            } else {
+                LOGGER.error("Closed backend due to websocket error! Also no messages from frontend for {} seconds.", (missedPings * 3));
+            }
+            CreeperLauncher.exit();
+        });
     }
     public static void listenForClient(int port) throws IOException {
         LOGGER.info("Starting mod socket on port {}", port);
