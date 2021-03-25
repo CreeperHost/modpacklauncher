@@ -62,6 +62,7 @@ public class LegacyMigrator implements Migrator {
                     //Remove old cache and update to new instance location.
                     FileUtils.deleteDirectory(oldInstancesDir.resolve(".localCache"));
                     settings.put("instanceLocation", Constants.INSTANCES_FOLDER_LOC.toAbsolutePath().toString());
+                    if(Files.notExists(Constants.INSTANCES_FOLDER_LOC)) Files.createDirectories(Constants.INSTANCES_FOLDER_LOC);
                     GsonUtils.saveJson(newSettings, settings, settingsToken);
                 }
             }
