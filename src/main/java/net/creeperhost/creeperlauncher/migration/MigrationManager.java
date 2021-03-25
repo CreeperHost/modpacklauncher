@@ -7,6 +7,7 @@ import net.creeperhost.creeperlauncher.api.data.other.YeetLauncherData;
 import net.creeperhost.creeperlauncher.migration.migrators.DialogUtil;
 import net.creeperhost.creeperlauncher.migration.migrators.LegacyMigrator;
 import net.creeperhost.creeperlauncher.migration.migrators.V1To2;
+import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.util.ElapsedTimer;
 import net.creeperhost.creeperlauncher.util.GsonUtils;
 import net.creeperhost.creeperlauncher.util.LogsUploader;
@@ -56,12 +57,30 @@ public class MigrationManager {
     }
 
     public int getDataFormat() {
-        return formatJson != null ? formatJson.format : -1;
+        if (formatJson != null) {
+            return formatJson.format;
+        }
+
+        Path settings = Constants.BIN_LOCATION.resolve("settings.json");
+        if (Files.exists(settings)) return 1; // if no format json at this point, then we're at a 1
+
+        OS os = OS.CURRENT;
+        if (os != OS.LINUX) {
+            Path oldDataDir = Constants.getDataDirOld();
+
+            Path oldSettings = oldDataDir.resolve("bin/settings.json");
+            if (Files.exists(oldSettings)) return -1; // legacy migration needs doing, hopefully eventually kill it
+        }
+
+        return CURRENT_DATA_FORMAT; // If we get here, then there's no existing data, so we don't need a migration
     }
 
     public void doMigrations() {
         int from = getDataFormat();
-        if (from == CURRENT_DATA_FORMAT) return;
+        if (from == CURRENT_DATA_FORMAT) {
+            markAndSaveLatest();
+            return;
+        }
         ResourceBundle bundle = ResourceBundle.getBundle("MigrationMessages");
 
         if (from > CURRENT_DATA_FORMAT) {
