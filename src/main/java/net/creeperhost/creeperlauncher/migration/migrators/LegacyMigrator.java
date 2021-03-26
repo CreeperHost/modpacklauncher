@@ -49,7 +49,7 @@ public class LegacyMigrator implements Migrator {
             LOGGER.info("Old settings location exists. {}", oldSettings);
 
             LOGGER.info("Moving settings..");
-            if(Files.notExists(newDataDir)) Files.createDirectories(newDataDir);
+            Files.createDirectories(Constants.BIN_LOCATION);
             Files.move(oldSettings, newSettings);
 
             Map<String, String> settings = GsonUtils.loadJson(newSettings, settingsToken);
