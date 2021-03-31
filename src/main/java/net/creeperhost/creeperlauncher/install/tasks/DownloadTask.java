@@ -128,8 +128,9 @@ public class DownloadTask implements IInstallTask<Void>
     @Override
     public Double getProgress()
     {
-        if (FTBModPackInstallerTask.currentBytes.get() == 0 || FTBModPackInstallerTask.overallBytes.get() == 0)
-            return 0.00d;
-        return ((FTBModPackInstallerTask.currentBytes.get() / FTBModPackInstallerTask.overallBytes.get()) * 100d);
+        if (FTBModPackInstallerTask.currentBytes.get() == 0 || FTBModPackInstallerTask.overallBytes.get() == 0) return 0.00d;
+        double initPercent = FTBModPackInstallerTask.currentBytes.get() / (double) FTBModPackInstallerTask.overallBytes.get();
+        double returnVal = Math.round((initPercent * 100d) * 100d) / 100d;
+        return Math.min(returnVal, 100.00d);
     }
 }

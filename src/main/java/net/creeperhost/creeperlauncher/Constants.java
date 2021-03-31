@@ -30,6 +30,7 @@ public class Constants
     public static final String CREEPERHOST_MODPACK = CreeperLauncher.isDevMode ? "https://modpack-api.ch.tools" : "https://api.modpacks.ch";
     public static final String CREEPERHOST_MODPACK_SEARCH2 = CREEPERHOST_MODPACK + "/public/modpack/";
     public static final String SHARE_API = CREEPERHOST_MODPACK + Constants.KEY + "/modpack/share/";
+    public static final String MOD_API = CREEPERHOST_MODPACK + "/public/mod/";
 
     //Forge
     public static final String FORGE_XML = "https://files.minecraftforge.net/maven/net/minecraftforge/forge/maven-metadata.xml";

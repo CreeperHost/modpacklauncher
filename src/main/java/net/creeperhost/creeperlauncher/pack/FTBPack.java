@@ -115,7 +115,7 @@ public class FTBPack implements IPack
     public List<ModFile> getMods()
     {
         return files.stream()
-                .filter(file -> file.getPath().toString().substring(0, 6).contains("mods") && (file.getName().endsWith(".jar") || file.getName().endsWith(".zip")))
+                .filter(file -> file.getPath().toString().substring(0, 6).contains("mods") && (ModFile.isPotentialMod(file.getName())))
                 .map(file -> new ModFile(file.getName(), file.getVersion(), file.getSize(), file.getSha1()).setExists(true))
                 .sorted((e1, e2) -> e1.getName().compareToIgnoreCase(e2.getName()))
                 .collect(Collectors.toList());

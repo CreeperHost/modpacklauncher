@@ -1090,7 +1090,7 @@ public class LocalInstance implements IPack
 
     public List<ModFile> getMods() {
         try {
-            return Files.walk(path.resolve("mods")).filter(Files::isRegularFile).filter(file -> file.toString().endsWith(".jar") || file.toString().endsWith(".zip")).map(path -> {
+            return Files.walk(path.resolve("mods")).filter(Files::isRegularFile).filter(file -> ModFile.isPotentialMod(file.toString())).map(path -> {
                 File file = path.toFile();
                 return new ModFile(file.getName(), "", file.length(), "");
             }).collect(Collectors.toList());

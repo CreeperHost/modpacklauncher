@@ -98,6 +98,8 @@ public class WebSocketMessengerHandler
         registerHandler(MessageClientData.class, new MessageClientHandler());
         registerDataMap("shareInstance", ShareInstanceData.class);
         registerHandler(ShareInstanceData.class, new ShareInstanceHandler());
+        registerDataMap("instanceInstallMod", InstanceInstallModData.class);
+        registerHandler(InstanceInstallModData.class, new InstanceInstallModHandler());
     }
 
     public static void registerHandler(Class<? extends BaseData> clazz, IMessageHandler<? extends BaseData> handler)

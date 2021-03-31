@@ -119,8 +119,8 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
     {
         if (FTBModPackInstallerTask.currentBytes.get() == 0 || overallBytes.get() == 0) return 0.00d;
         double initPercent = FTBModPackInstallerTask.currentBytes.get() / (double) overallBytes.get();
-        Double returnVal = Math.round((initPercent * 100d) * 100d) / 100d;
-        return (returnVal > 100.00d) ? 100.00d : returnVal;
+        double returnVal = Math.round((initPercent * 100d) * 100d) / 100d;
+        return Math.min(returnVal, 100.00d);
     }
 
     public boolean downloadJsons(Path instanceDir, boolean _private, byte packType)
