@@ -5,6 +5,7 @@ import net.creeperhost.creeperlauncher.CreeperLauncher;
 import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.IntegrityCheckException;
 import net.creeperhost.creeperlauncher.api.DownloadableFile;
+import net.creeperhost.creeperlauncher.install.tasks.http.IProgressUpdater;
 import net.creeperhost.creeperlauncher.util.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -25,9 +26,16 @@ public class DownloadTask implements IInstallTask<Void>
     public static final Executor threadPool = new ThreadPoolExecutor(nThreads, nThreads, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
     private int tries = 0;
     private final DownloadableFile file;
+    private final IProgressUpdater watcher;
+    private static final IProgressUpdater OLD_PROGRESS_UPDATER = (downloaded, delta, total, done) -> FTBModPackInstallerTask.currentBytes.addAndGet(delta);
 
-    public DownloadTask(DownloadableFile file, Path destination)
+    public DownloadTask(DownloadableFile file, Path destination) {
+        this(file, destination, OLD_PROGRESS_UPDATER);
+    }
+
+    public DownloadTask(DownloadableFile file, Path destination, IProgressUpdater watcher)
     {
+        this.watcher = watcher;
         this.file = file;
         this.destination = destination;
     }
@@ -71,7 +79,7 @@ public class DownloadTask implements IInstallTask<Void>
                                     try {
                                         FileUtils.createDirectories(destination.toAbsolutePath().getParent());
                                         Files.copy(cachePath, destination);
-                                        FTBModPackInstallerTask.currentBytes.addAndGet(Files.size(cachePath));
+                                        watcher.update(0, Files.size(cachePath), 0, true);
                                         FTBModPackInstallerTask.batchedFiles.put(file.getId(), "downloaded");
                                         complete = true;
                                         break;
@@ -88,7 +96,7 @@ public class DownloadTask implements IInstallTask<Void>
                     try
                     {
                         ++tries;
-                        file.download(destination, false, false);
+                        file.download(destination, false, false, watcher);
                         file.validate(true, true);
                         file.finito();
                         try

@@ -22,7 +22,7 @@ public class InstanceInstallModData extends BaseData {
         final String message;
         final List<Mod.Version> dependencyList;
 
-        public Reply(InstanceInstallModData data, String status, String message, ArrayList<Mod.Version> dependencies)
+        public Reply(InstanceInstallModData data, String status, String message, List<Mod.Version> dependencies)
         {
             type = "instanceInstallModReply";
             requestId = data.requestId;
@@ -56,8 +56,8 @@ public class InstanceInstallModData extends BaseData {
         Instances.refreshInstances();
         LocalInstance localInstance = Instances.allInstances().get(0);
         InstanceInstallModData instanceInstallModData = new InstanceInstallModData();
-        instanceInstallModData.modId = 267172;
-        instanceInstallModData.versionId = 3077015;
+        instanceInstallModData.modId = 222880;
+        instanceInstallModData.versionId = 3099576;
         instanceInstallModData.uuid = localInstance.getUuid().toString();
         new InstanceInstallModHandler().handle(instanceInstallModData);
     }

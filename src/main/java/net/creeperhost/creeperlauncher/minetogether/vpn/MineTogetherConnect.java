@@ -144,7 +144,7 @@ public class MineTogetherConnect {
         DownloadableFile remoteFile = new DownloadableFile("latest", path, "https://apps.modpacks.ch/MineTogether/MineTogetherConnect.exe", Collections.emptyList(), 0, 0, "MineTogetherConnect", "MineTogetherConnect", String.valueOf(System.currentTimeMillis() / 1000L));
         try {
             remoteFile.prepare();
-            remoteFile.download(path, true, false);
+            remoteFile.download(path, true, false, null);
         } catch(Throwable e)
         {
             LOGGER.error("Unable to grab binaries...", e);

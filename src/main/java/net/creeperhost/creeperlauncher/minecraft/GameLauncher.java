@@ -28,7 +28,7 @@ public class GameLauncher
                 //Some reason the vanilla launcher is not creating the launcher_profiles.json
                 DownloadableFile defaultConfig = new DownloadableFile("", file, "https://apps.modpacks.ch/FTB2/launcher_profiles.json", Collections.emptyList(), 0, 0, "config", "launcher_profiles.json", "");
                 defaultConfig.prepare();
-                defaultConfig.download(file, true, false);
+                defaultConfig.download(file, true, false, null);
             }
         } catch (Throwable ignored) {
         }

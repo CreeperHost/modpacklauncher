@@ -7,6 +7,7 @@ import net.creeperhost.creeperlauncher.IntegrityCheckException;
 import net.creeperhost.creeperlauncher.install.tasks.FTBModPackInstallerTask;
 import net.creeperhost.creeperlauncher.install.tasks.http.DownloadedFile;
 import net.creeperhost.creeperlauncher.install.tasks.http.IHttpClient;
+import net.creeperhost.creeperlauncher.install.tasks.http.IProgressUpdater;
 import net.creeperhost.creeperlauncher.install.tasks.http.OkHttpClientImpl;
 import net.creeperhost.creeperlauncher.util.FileUtils;
 import org.apache.logging.log4j.LogManager;
@@ -123,7 +124,7 @@ public class DownloadableFile
         this.hasPrepared = true;
     }
 
-    public void download(Path destination, boolean OverwriteOnExist, boolean FailOnExist) throws Throwable
+    public void download(Path destination, boolean OverwriteOnExist, boolean FailOnExist, IProgressUpdater watcher) throws Throwable
     {
         if (!hasPrepared)
             throw new UnsupportedOperationException("Unable to download file that has not been prepared.");
@@ -155,7 +156,7 @@ public class DownloadableFile
         DownloadedFile send = client.doDownload(
                 downloadUrl,
                 destination,
-                (downloaded, delta, total, done) -> FTBModPackInstallerTask.currentBytes.addAndGet(delta),
+                watcher,
                 Hashing.sha1(),
                 speedLimit * 1000L); // not really async - our client will run async things on same thread. bit of a hack, but async just froze.
         Path body = send.getDestination();
