@@ -41,17 +41,20 @@ public class Profile
         this.ID = ID;
         if(ram == 0) ram = 1024;
         this.javaArgs = ("-Xmx" + ram + "M -Duser.language=en-GB " + args.trim()).trim();
-        String[] img = icon.split(",");
-        byte[] imageByte = img[1].getBytes();
-        ByteArrayInputStream bis = new ByteArrayInputStream(Base64.getDecoder().decode(imageByte));
-        try {
-            BufferedImage art = resizeImage(ImageIO.read(bis), 32, 32);
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            ImageIO.write(art, "png", bos);
-            this.icon = "data:image/png;base64,"+Base64.getEncoder().encodeToString(bos.toByteArray());
-        } catch (Throwable e) {
-            LOGGER.warn("Unable to resize pack art for Mojang launcher.", e);
-            this.icon = icon;
+
+        if(icon != null && !icon.isEmpty()) {
+            String[] img = icon.split(",");
+            byte[] imageByte = img[1].getBytes();
+            ByteArrayInputStream bis = new ByteArrayInputStream(Base64.getDecoder().decode(imageByte));
+            try {
+                BufferedImage art = resizeImage(ImageIO.read(bis), 32, 32);
+                ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                ImageIO.write(art, "png", bos);
+                this.icon = "data:image/png;base64," + Base64.getEncoder().encodeToString(bos.toByteArray());
+            } catch (Throwable e) {
+                LOGGER.warn("Unable to resize pack art for Mojang launcher.", e);
+                this.icon = icon;
+            }
         }
         this.resolution = new McResolution(width, height);
     }
