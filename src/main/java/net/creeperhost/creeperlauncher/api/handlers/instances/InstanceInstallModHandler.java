@@ -1,13 +1,16 @@
 package net.creeperhost.creeperlauncher.api.handlers.instances;
 
 import net.creeperhost.creeperlauncher.Instances;
+import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.DownloadableFile;
+import net.creeperhost.creeperlauncher.api.WebSocketAPI;
 import net.creeperhost.creeperlauncher.api.data.instances.InstanceInstallModData;
 import net.creeperhost.creeperlauncher.api.handlers.IMessageHandler;
 import net.creeperhost.creeperlauncher.install.tasks.DownloadTask;
 import net.creeperhost.creeperlauncher.mod.Mod;
 import net.creeperhost.creeperlauncher.pack.LocalInstance;
 
+import java.util.ArrayList;
 import java.util.UUID;
 
 public class InstanceInstallModHandler implements IMessageHandler<InstanceInstallModData> {
@@ -30,8 +33,7 @@ public class InstanceInstallModHandler implements IMessageHandler<InstanceInstal
             // TODO: dependency checks, single file for now
             DownloadableFile downloadableFile = version.getDownloadableFile(instance);
             DownloadTask downloadTask = new DownloadTask(downloadableFile, downloadableFile.getPath());
-            downloadTask.execute();
-            //new InstanceInstallModData.Reply()
+            downloadTask.execute().thenRunAsync(() -> Settings.webSocketAPI.sendMessage(new InstanceInstallModData.Reply(data, "success", "Downloaded successfully", new ArrayList<>())));
         }
     }
 }
