@@ -37,16 +37,14 @@ public class InstanceInstallModData extends BaseData {
         final long speed;
         final long currentBytes;
         final long overallBytes;
-        final FTBModPackInstallerTask.Stage currentStage;
 
-        public Progress(InstallInstanceData data, Double overallPercentage, long speed, long currentBytes, long overallBytes, FTBModPackInstallerTask.Stage currentStage) {
+        public Progress(InstanceInstallModData data, Double overallPercentage, long speed, long currentBytes, long overallBytes) {
             this.requestId = data.requestId;
             type = "instanceInstallModProgress";
             this.overallPercentage = overallPercentage;
             this.speed = speed;
             this.currentBytes = currentBytes;
             this.overallBytes = overallBytes;
-            this.currentStage = currentStage;
         }
 
     }

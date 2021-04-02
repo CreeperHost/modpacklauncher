@@ -118,11 +118,18 @@ public class InstanceInstallModHandler implements IMessageHandler<InstanceInstal
                 speed = lastSpeed;
             }
 
-            System.out.println(curBytes + " " + speed + " " + curBytes + " " + totalBytes);
-
+            Settings.webSocketAPI.sendMessage(
+                    new InstanceInstallModData.Progress(
+                            data,
+                            (double) ((curBytes / totalBytes) * 100),
+                            speed,
+                            curBytes,
+                            totalBytes
+                    )
+            );
         }, 0, 500, TimeUnit.MILLISECONDS);
 
-        CompletableFuture.allOf(downloadTasks.stream().map(DownloadTask::execute).collect(Collectors.toList()).toArray(new CompletableFuture[downloadTasks.size()])).thenRun(() ->
+        CompletableFuture.allOf(downloadTasks.stream().map(DownloadTask::execute).collect(Collectors.toList()).toArray(new CompletableFuture[downloadTasks.size()])).thenRunAsync(() ->
                 {
                     progressTask.cancel(false);
                     executor.shutdown();
