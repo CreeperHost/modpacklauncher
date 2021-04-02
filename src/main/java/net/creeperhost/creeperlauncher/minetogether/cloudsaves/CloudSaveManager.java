@@ -15,6 +15,7 @@ import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
 import net.covers1624.quack.util.HashUtils;
 import net.creeperhost.creeperlauncher.Constants;
+import net.creeperhost.creeperlauncher.minecraft.McUtils;
 import net.creeperhost.creeperlauncher.util.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -193,6 +194,7 @@ public class CloudSaveManager {
 
     public static void syncManual(Path file, String location, boolean blocking, boolean client, HashMap<String, S3ObjectSummary> existing) throws Exception
     {
+        McUtils.killOldMinecraft();
         LOGGER.debug("Uploading {}", file);
         ObjectMetadata objectMetadata = null;
         try {
@@ -285,6 +287,7 @@ public class CloudSaveManager {
 
     public static void deleteFile(String location)
     {
+        McUtils.killOldMinecraft().join();
         try {
             LOGGER.debug("deleting file {}", location);
             s3.deleteObject(bucket, urlEncodeParts(location));

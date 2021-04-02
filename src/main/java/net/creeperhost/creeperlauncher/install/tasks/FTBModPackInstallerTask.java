@@ -10,6 +10,7 @@ import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.DownloadableFile;
 import net.creeperhost.creeperlauncher.api.SimpleDownloadableFile;
 import net.creeperhost.creeperlauncher.minecraft.GameLauncher;
+import net.creeperhost.creeperlauncher.minecraft.McUtils;
 import net.creeperhost.creeperlauncher.minecraft.modloader.ModLoader;
 import net.creeperhost.creeperlauncher.minecraft.modloader.ModLoaderManager;
 import net.creeperhost.creeperlauncher.os.OS;
@@ -65,6 +66,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
 
     public FTBModPackInstallerTask(LocalInstance instance)
     {
+        McUtils.killOldMinecraft().join();
         this.instance = instance;
         try
         {

@@ -3,8 +3,10 @@ package net.creeperhost.creeperlauncher.minecraft;
 import com.google.common.hash.HashCode;
 import com.google.gson.*;
 import net.creeperhost.creeperlauncher.Constants;
+import net.creeperhost.creeperlauncher.CreeperLauncher;
 import net.creeperhost.creeperlauncher.api.DownloadableFile;
 import net.creeperhost.creeperlauncher.os.OS;
+import net.creeperhost.creeperlauncher.os.Platform;
 import net.creeperhost.creeperlauncher.util.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -17,6 +19,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 public class McUtils {
 
@@ -230,6 +233,7 @@ public class McUtils {
     }
 
     public static boolean injectProfile(Path target, Profile profile, Path jrePath) {
+        killOldMinecraft();
         try {
             JsonObject json = null;
             try (BufferedReader reader = Files.newBufferedReader(target)) {
@@ -330,6 +334,26 @@ public class McUtils {
             LOGGER.error("Failed to load version json.", e);
         }
         return targetList;
+    }
+
+    public static CompletableFuture killOldMinecraft()
+    {
+        return CompletableFuture.runAsync(() -> {
+            List<Process> processes = CreeperLauncher.mojangProcesses.get();
+            if (processes != null && !processes.isEmpty()) {
+                for (Process mojang : processes) {
+                    if (mojang.isAlive()) {
+                        LOGGER.error("Mojang launcher, started by us is still running with PID {}", mojang.pid());
+                        try {
+                            mojang.destroyForcibly().waitFor();
+                            //No need to clean up here as onExit() is fired.
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+        });
     }
 }
 

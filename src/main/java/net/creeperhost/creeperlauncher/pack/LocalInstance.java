@@ -443,20 +443,7 @@ public class LocalInstance implements IPack
     {
         Platform platform = OS.CURRENT.getPlatform();
         {
-            List<Process> processes = CreeperLauncher.mojangProcesses.get();
-            if (processes != null && !processes.isEmpty()) {
-                for (Process mojang : processes) {
-                    if (mojang.isAlive()) {
-                        LOGGER.error("Mojang launcher, started by us is still running with PID {}", mojang.pid());
-                        try {
-                            mojang.destroyForcibly().waitFor();
-                            //No need to clean up here as onExit() is fired.
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-            }
+            McUtils.killOldMinecraft();
         }
 
         if(hasInstMods)
