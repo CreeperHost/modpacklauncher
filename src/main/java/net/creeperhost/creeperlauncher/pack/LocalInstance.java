@@ -673,9 +673,6 @@ public class LocalInstance implements IPack
 
     public boolean saveJson() throws IOException
     {
-        Exception exception = new Exception();
-        exception.printStackTrace();
-
         try (BufferedWriter writer = Files.newBufferedWriter(path.resolve("instance.json"))) {
             GsonUtils.GSON.toJson(this, writer);
             writer.close();
