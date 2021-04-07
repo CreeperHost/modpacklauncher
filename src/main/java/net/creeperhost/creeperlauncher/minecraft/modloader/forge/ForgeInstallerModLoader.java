@@ -1,14 +1,14 @@
 package net.creeperhost.creeperlauncher.minecraft.modloader.forge;
 
 import net.creeperhost.creeperlauncher.Constants;
-import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.minecraft.McUtils;
 import net.creeperhost.creeperlauncher.pack.LocalInstance;
 import net.creeperhost.creeperlauncher.util.DownloadUtils;
 import net.creeperhost.creeperlauncher.util.ForgeUtils;
 import net.creeperhost.creeperlauncher.util.LoaderTarget;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -16,6 +16,8 @@ import java.util.List;
 
 public class ForgeInstallerModLoader extends ForgeModLoader
 {
+    private static final Logger LOGGER = LogManager.getLogger();
+
 	public ForgeInstallerModLoader(List<LoaderTarget> loaderTargets)
 	{
 		super(loaderTargets);
@@ -30,10 +32,12 @@ public class ForgeInstallerModLoader extends ForgeModLoader
 	@Override
 	public Path install(LocalInstance instance)
 	{
-		String forgeUrl = "https://apps.modpacks.ch/versions/net/minecraftforge/forge/" + getMinecraftVersion() + "-" + getForgeVersion() + "/forge-" + getMinecraftVersion() + "-" + getForgeVersion() + "-installer.jar";
-		String forgeUrlJson = "https://apps.modpacks.ch/versions/net/minecraftforge/forge/" + getMinecraftVersion() + "-" + getForgeVersion() + "/forge-" + getMinecraftVersion() + "-" + getForgeVersion() + "-installer.json";
+		instance.modLoader = getMinecraftVersion() + "-forge-" + getForgeVersion();
 
-		CreeperLogger.INSTANCE.info("Attempting to download " + forgeUrl);
+		String forgeUrl = Constants.FORGE_CH + getMinecraftVersion() + "-" + getForgeVersion() + "/forge-" + getMinecraftVersion() + "-" + getForgeVersion() + "-installer.jar";
+		String forgeUrlJson = Constants.FORGE_CH + getMinecraftVersion() + "-" + getForgeVersion() + "/forge-" + getMinecraftVersion() + "-" + getForgeVersion() + "-installer.json";
+
+        LOGGER.info("Attempting to download {}.", forgeUrl);
 		Path installerFile = instance.getDir().resolve("installer.jar");
         Path installerJson = instance.getDir().resolve("installer.json");
 
@@ -46,21 +50,14 @@ public class ForgeInstallerModLoader extends ForgeModLoader
 			ForgeUtils.extractJson(installerFile, "installer.json");
 		}
 
-		instance.setPostInstall(() ->
-		{
-			ForgeUtils.runForgeInstaller(installerFile.toAbsolutePath());
-			McUtils.removeProfile(Constants.LAUNCHER_PROFILES_JSON, "forge");
-            try {
-                Files.delete(installerFile);
-            } catch (IOException ignored) {
-            }
-        }, false);
 
-		instance.modLoader = getMinecraftVersion() + "-forge-" + getForgeVersion();
-		try
-		{
-			instance.saveJson();
-		} catch (Exception ignored) {}
+		ForgeUtils.runForgeInstaller(installerFile.toAbsolutePath());
+		McUtils.removeProfile(Constants.LAUNCHER_PROFILES_JSON, "forge");
+		try {
+			Files.delete(installerFile);
+		} catch (IOException ignored) {}
+
+
 		return installerJson;
 	}
 

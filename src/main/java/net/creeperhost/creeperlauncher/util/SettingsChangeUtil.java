@@ -1,15 +1,18 @@
 package net.creeperhost.creeperlauncher.util;
 
-import net.creeperhost.creeperlauncher.CreeperLogger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.HashMap;
 
 public class SettingsChangeUtil {
+    private static final Logger LOGGER = LogManager.getLogger();
+
     private static HashMap<String, ISettingsChangedHandler> settingsChangedListeners = new HashMap<>();
 
     public static void registerListener(String key, ISettingsChangedHandler handler) {
         if (settingsChangedListeners.containsKey(key)) {
-            CreeperLogger.INSTANCE.warning("New handler for " + key + " when already exists, doing nothing");
+            LOGGER.warn("New handler for {} when already exists, doing nothing", key);
             return;
         }
         settingsChangedListeners.put(key, handler);

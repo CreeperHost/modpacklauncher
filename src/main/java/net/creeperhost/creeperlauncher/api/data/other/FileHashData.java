@@ -7,8 +7,8 @@ public class FileHashData extends BaseData {
     public String filePath;
 
     public static class Reply extends BaseData {
-        String md5Hash;
-        String shaHash;
+        public String md5Hash;
+        public String shaHash;
         public Reply(FileHashData data, String md5Hash, String shaHash)
         {
             requestId = data.requestId;

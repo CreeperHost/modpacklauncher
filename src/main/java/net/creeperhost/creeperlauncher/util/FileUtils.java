@@ -1,13 +1,12 @@
 package net.creeperhost.creeperlauncher.util;
 
-import net.creeperhost.creeperlauncher.CreeperLogger;
+import net.covers1624.quack.collection.ColUtils;
+import net.covers1624.quack.util.SneakyUtils;
 import org.apache.commons.compress.archivers.ArchiveEntry;
-import org.apache.commons.compress.archivers.ArchiveException;
-import org.apache.commons.compress.archivers.ArchiveStreamFactory;
-import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.tika.detect.Detector;
-import org.apache.tika.io.IOUtils;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.mime.MediaType;
 import org.apache.tika.parser.AutoDetectParser;
@@ -18,6 +17,7 @@ import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
@@ -25,8 +25,13 @@ import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
+import static net.covers1624.quack.util.SneakyUtils.*;
+
 public class FileUtils
 {
+    private static final Logger LOGGER = LogManager.getLogger();
+
     public static List<Path> unTar(InputStream is, final Path outputDir) throws IOException
     {
         final List<Path> untaredFiles = new LinkedList<>();
@@ -38,7 +43,7 @@ public class FileUtils
                 if (entry.isDirectory()) continue;
 
                 FileUtils.createDirectories(outputFile.getParent());
-                Files.copy(tarStream, outputFile);
+                Files.copy(tarStream, outputFile, REPLACE_EXISTING);
                 untaredFiles.add(outputFile);
             }
         }
@@ -50,7 +55,53 @@ public class FileUtils
         try (java.nio.file.FileSystem fileSystem = FileSystems.newFileSystem(zip, null))
         {
             Path fileToExtract = fileSystem.getPath(fileName);
-            Files.copy(fileToExtract, dest, StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(fileToExtract, dest, REPLACE_EXISTING);
+        }
+    }
+
+    public static void extractFromZip(Path zip, Path dest, String fileName, boolean relative) throws IOException
+    {
+        try (java.nio.file.FileSystem fileSystem = FileSystems.newFileSystem(zip, null))
+        {
+            Path src = fileSystem.getPath(fileName);
+            try (Stream<Path> stream = Files.walk(src)) {
+                stream.forEach(source -> {
+                    Path localPath = pathTransform(dest.getFileSystem(), source);
+                    if (relative) {
+                        if (localPath.getNameCount() == 1) {
+                            return; // Eh, probably directory
+                        } else {
+                            localPath = localPath.subpath(1, localPath.getNameCount());
+                        }
+
+                        if(Files.isDirectory(source)) {
+                            //noinspection ResultOfMethodCallIgnored
+                            dest.resolve(localPath).toFile().mkdirs();
+                            return;
+                        }
+
+                        //TODO: If we end up having to remove multiple, work this out, for now works to hardcode to -1
+                    }
+
+                    copy(source, dest.resolve(localPath));
+                });
+            }
+        }
+    }
+
+    private static Path pathTransform(final FileSystem fs, final Path path)
+    {
+        Path ret = fs.getPath(path.isAbsolute() ? fs.getSeparator() : "");
+        for (final Path component: path)
+            ret = ret.resolve(component.getFileName().toString());
+        return ret;
+    }
+
+    private static void copy(Path source, Path dest) {
+        try {
+            Files.copy(source, dest, REPLACE_EXISTING);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -60,9 +111,9 @@ public class FileUtils
         Files.walk(sourceDir).forEach(sourcePath -> {
             try {
                 Path targetPath = destinationDir.resolve(sourceDir.relativize(sourcePath));
-                Files.copy(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
+                Files.copy(sourcePath, targetPath, REPLACE_EXISTING);
             } catch (IOException ex) {
-                CreeperLogger.INSTANCE.error("File copy I/O error: ", ex);
+                LOGGER.error("File copy I/O error: ", ex);
                 error.set(true);
             }
         });
@@ -78,26 +129,17 @@ public class FileUtils
     {
         HashMap<String, Exception> errors = new HashMap<>();
         try (ZipFile zipFile = new ZipFile(launcherFile.toFile())) {
-            ArrayList<String> entries = new ArrayList<>();
-            zipFile.stream().map(ZipEntry::getName).forEach(entries::add);
-            for(String ze : entries) {
-                CreeperLogger.INSTANCE.debug("Extracting '" + ze + "'...");
-                ZipEntry entry = zipFile.getEntry(ze);
+            for (ZipEntry entry : ColUtils.toIterable(zipFile.entries())) {
+                LOGGER.debug("Extracting '{}'...", entry.getName());
                 try {
-                    Path DestFile = destination.resolve(entry.getName());
-                    if (entry.isDirectory())
-                    {
-                        DestFile.getParent().toFile().mkdir();
-                        continue;
-                    }
-                    DestFile.getParent().toFile().mkdirs();
-                    InputStream inputStream = zipFile.getInputStream(entry);
-                    byte[] bytes = inputStream.readAllBytes();
-                    CreeperLogger.INSTANCE.debug("Writing to " + DestFile);
-                    Files.write(DestFile, bytes);
-                    inputStream.close();
-                } catch (Exception e) {
-                    CreeperLogger.INSTANCE.debug("Failed extracting file " + entry.getName(), e);
+                    Path dest = destination.resolve(entry.getName());
+                    if (entry.isDirectory()) continue;
+
+                    createDirectories(dest.getParent());
+                    LOGGER.debug("Writing to {}", dest);
+                    Files.copy(zipFile.getInputStream(entry), dest, REPLACE_EXISTING);
+                } catch (IOException e) {
+                    LOGGER.debug("Failed extracting file {}", entry.getName(), e);
                     errors.put(entry.getName(), e);
                     if (!continueOnError) {
                         return errors;
@@ -105,7 +147,7 @@ public class FileUtils
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("Error extracting zip file {}", launcherFile.toAbsolutePath(), e);
         }
         return errors;
     }
@@ -115,12 +157,12 @@ public class FileUtils
         if (Files.notExists(file)) return;
         try {
             Files.walk(file)
+                    .filter(Files::exists)
                     .sorted(Comparator.reverseOrder())
-                    .map(Path::toFile)
-                    .forEach(File::delete);
+                    .forEach(sneak(Files::delete));
 
         } catch (IOException e) {
-            CreeperLogger.INSTANCE.error("Failed to delete directory. " + file, e);
+            LOGGER.error("Failed to delete directory. {}", file, e);
         }
     }
 
@@ -145,6 +187,7 @@ public class FileUtils
         return "application/octet-stream";
     }
 
+    @Deprecated//Use UnixPlatform#chmod755
     public static void setFilePermissions(Path file)
     {
         try
@@ -168,42 +211,6 @@ public class FileUtils
         return 0L;
     }
 
-    public static String getHash(Path file, String hashType)
-    {
-        try {
-            return hashToString(createChecksum(file, hashType));
-        } catch (Exception e) {
-            return "error - " + e.getMessage();
-        }
-    }
-
-    private static byte[] createChecksum(Path file, String hashType) throws Exception {
-        try (InputStream is = Files.newInputStream(file)) {
-
-            byte[] buffer = new byte[4096];
-            MessageDigest complete = MessageDigest.getInstance(hashType);
-            int numRead;
-
-            do {
-                numRead = is.read(buffer);
-                if (numRead > 0) {
-                    complete.update(buffer, 0, numRead);
-                }
-            }
-            while (numRead != -1);
-            return complete.digest();
-        }
-    }
-
-    private static String hashToString(byte[] b) {
-        StringBuilder result = new StringBuilder();
-
-        for (byte value : b) {
-            result.append(Integer.toString((value & 0xff) + 0x100, 16).substring(1));
-        }
-        return result.toString();
-    }
-
     //I hate this but its the only way I can get it to work right now
     public static boolean removeMeta(Path file)
     {
@@ -219,7 +226,7 @@ public class FileUtils
                             Files.deleteIfExists(file);
                         }
                     } catch (Exception e) {
-                        CreeperLogger.INSTANCE.error("Failed to delete entry from META-INF", e);
+                        LOGGER.error("Failed to delete entry from META-INF", e);
                     }
                     return FileVisitResult.CONTINUE;
                 }
@@ -228,7 +235,7 @@ public class FileUtils
 //            FileUtils.deleteDirectory(meta);
             return true;
         } catch (IOException e) {
-            CreeperLogger.INSTANCE.error("Failed to remove meta from " + file, e);
+            LOGGER.error("Failed to remove meta from {}", file, e);
         }
         return false;
     }
@@ -247,7 +254,7 @@ public class FileUtils
                         Path dst = dstRoot.resolve(srcRoot.relativize(file));
                         try {
                             Files.createDirectories(dst.getParent());
-                            Files.copy(file, dst, StandardCopyOption.REPLACE_EXISTING);
+                            Files.copy(file, dst, REPLACE_EXISTING);
                         } catch (Exception e) {
                             flag.set(false);
                             e.printStackTrace();
@@ -263,13 +270,14 @@ public class FileUtils
         return flag.get();
     }
 
-    public static void createDirectories(Path dir)
+    public static Path createDirectories(Path dir)
     {
         try {
-            Files.createDirectories(dir);
+            return Files.createDirectories(dir);
         } catch (IOException e) {
-            CreeperLogger.INSTANCE.error("Failed to create directories.", e);
+            LOGGER.error("Failed to create directories.", e);
         }
+        return null;
     }
 
     public static List<Path> listDir(Path dir) {
@@ -277,11 +285,12 @@ public class FileUtils
             return stream.filter(e -> !e.equals(dir))
                     .collect(Collectors.toList());
         } catch (IOException e) {
-            CreeperLogger.INSTANCE.error("Failed to list directory. " + dir.toAbsolutePath(), e);
+            LOGGER.error("Failed to list directory. {}", dir.toAbsolutePath(), e);
             return Collections.emptyList();
         }
     }
 
+    @Deprecated// Use move(Path, Path, boolean)
     private static HashMap<Pair<Path, Path>, IOException> moveDirectory(Path in, Path out, boolean replaceExisting, boolean failFast) {
         HashMap<Pair<Path, Path>, IOException> errors = new HashMap<>();
         if (!in.getFileName().toString().equals(out.getFileName().toString()))
@@ -306,7 +315,7 @@ public class FileUtils
             Files.move(in, out);
             return errors;
         } catch (IOException e) {
-            CreeperLogger.INSTANCE.warning("Could not move " + in + " to " + out + " - trying another method", e);
+            LOGGER.warn("Could not move {} to {} - trying another method", in, out, e);
         }
 
         try {
@@ -367,11 +376,13 @@ public class FileUtils
         return errors;
     }
 
+    @Deprecated// Use move(Path, Path, boolean)
     public static HashMap<Pair<Path, Path>, IOException> move(Path in, Path out)
     {
         return move(in, out, false, true);
     }
 
+    @Deprecated// Use move(Path, Path, boolean)
     public static HashMap<Pair<Path, Path>, IOException> move(Path in, Path out, boolean replaceExisting, boolean failFast)
     {
         if (Files.isDirectory(in))
@@ -386,7 +397,7 @@ public class FileUtils
                 out = out.resolve(in.getFileName().toString());
             }
             if (replaceExisting) {
-                Files.move(in, out, StandardCopyOption.REPLACE_EXISTING);
+                Files.move(in, out, REPLACE_EXISTING);
             } else {
                 Files.move(in, out);
             }
@@ -395,4 +406,84 @@ public class FileUtils
         }
         return errors;
     }
+
+    public static void move(Path from, Path to, boolean replaceExisting) throws IOException {
+        if (Files.isDirectory(from)) {
+            if (!Files.isDirectory(to)) throw new IllegalArgumentException("Requested to move directory into file.");
+            try (Stream<Path> children = Files.list(from)) {
+                children.filter(e -> e != from)
+                        .forEach(sneak(e -> {
+                            move(e, to.resolve(e.getFileName()), replaceExisting);
+                        }));
+
+            }
+        } else {
+            if (Files.exists(from)) {
+                Files.createDirectories(from.toAbsolutePath().getParent());
+                if(replaceExisting) {
+                    Files.move(from, to, REPLACE_EXISTING);
+                } else {
+                    Files.move(from, to);
+                }
+            }
+        }
+    }
+
+    public static String getHash(Path file, String hashType)
+    {
+        try {
+            return hashToString(createChecksum(file, hashType));
+        } catch (Exception e) {
+            return "error - " + e.getMessage();
+        }
+    }
+
+    private static byte[] createChecksum(Path file, String hashType) throws Exception {
+        try (InputStream is = Files.newInputStream(file)) {
+
+            byte[] buffer = new byte[4096];
+            MessageDigest complete = MessageDigest.getInstance(hashType);
+            int numRead;
+
+            do {
+                numRead = is.read(buffer);
+                if (numRead > 0) {
+                    complete.update(buffer, 0, numRead);
+                }
+            }
+            while (numRead != -1);
+            return complete.digest();
+        }
+    }
+
+    private static String hashToString(byte[] b) {
+        StringBuilder result = new StringBuilder();
+
+        for (byte value : b) {
+            result.append(Integer.toString((value & 0xff) + 0x100, 16).substring(1));
+        }
+        return result.toString();
+    }
+
+    private boolean move(File sourceFile, File destFile)
+    {
+        if (sourceFile.isDirectory())
+        {
+            for (File file : sourceFile.listFiles())
+            {
+                move(file, new File(file.getPath().substring("temp".length()+1)));
+            }
+        }
+        else
+        {
+            try {
+                Files.move(Paths.get(sourceFile.getPath()), Paths.get(destFile.getPath()), REPLACE_EXISTING);
+                return true;
+            } catch (IOException e) {
+                return false;
+            }
+        }
+        return false;
+    }
+
 }

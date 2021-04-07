@@ -3,9 +3,10 @@ package net.creeperhost.creeperlauncher.util;
 import com.google.gson.*;
 import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.CreeperLauncher;
-import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.minecraft.StartJson;
 import net.creeperhost.creeperlauncher.pack.LocalInstance;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.*;
 import java.lang.reflect.Constructor;
@@ -17,49 +18,49 @@ import java.nio.file.Path;
 
 public class ForgeUtils
 {
+    private static final Logger LOGGER = LogManager.getLogger();
+
+    @SuppressWarnings("all")
     public static URI findForgeDownloadURL(String minecraftVersion, String forgeVersion) throws URISyntaxException, MalformedURLException
     {
-        String repo = "https://apps.modpacks.ch/versions/net/minecraftforge/forge/";
+        String repo = Constants.FORGE_CH;
+        String failedMsg = "FAILED, Using alternative mirror {}";
 
-        URI url = new URI(repo + minecraftVersion + "-" + forgeVersion + "/" +
-                "forge-" + minecraftVersion + "-" + forgeVersion + "-universal.jar");
+        URI url = new URI(repo + minecraftVersion + "-" + forgeVersion + "/" + "forge-" + minecraftVersion + "-" + forgeVersion + "-universal.jar");
 
         //Temp code to get around there being -universal.jars on our repo that are not real
         if(minecraftVersion.equalsIgnoreCase("1.2.5"))
         {
-            CreeperLogger.INSTANCE.info("Legacy version detected, Using older forge urls " + url);
+            LOGGER.info("Legacy version detected, Using older forge urls {}", url);
             return new URI(repo + minecraftVersion + "-" + forgeVersion + "/" +
+                    "forge-" + minecraftVersion + "-" + forgeVersion + "-client.zip");
+        }
+        if (!WebUtils.checkExist(url.toURL()))
+        {
+            LOGGER.info(failedMsg, url);
+            url = new URI(repo + minecraftVersion + "-" + forgeVersion + "-" + minecraftVersion + "/" +
+                    "forge-" + minecraftVersion + "-" + forgeVersion + "-" + minecraftVersion + "-universal.jar");
+        }
+        if (!WebUtils.checkExist(url.toURL()))
+        {
+            LOGGER.info(failedMsg, url);
+            url = new URI(repo + minecraftVersion + "-" + forgeVersion + "/" +
+                    "forge-" + minecraftVersion + "-" + forgeVersion + "-universal.zip");
+        }
+        if (!WebUtils.checkExist(url.toURL()))
+        {
+            LOGGER.info(failedMsg, url);
+            url = new URI(repo + minecraftVersion + "-" + forgeVersion + "/" +
                     "forge-" + minecraftVersion + "-" + forgeVersion + "-client.jar");
         }
 
         if (!WebUtils.checkExist(url.toURL()))
         {
-            CreeperLogger.INSTANCE.info("File does not exist on repo for " + url);
-            url = new URI(repo + minecraftVersion + "-" + forgeVersion + "-" + minecraftVersion + "/" +
-                    "forge-" + minecraftVersion + "-" + forgeVersion + "-" + minecraftVersion + "-universal.jar");
-
-            if (!WebUtils.checkExist(url.toURL()))
-            {
-                CreeperLogger.INSTANCE.info("File does not exist on repo for " + url);
-                url = new URI(repo + minecraftVersion + "-" + forgeVersion + "/" +
-                        "forge-" + minecraftVersion + "-" + forgeVersion + "-universal.zip");
-            }
-            if (!WebUtils.checkExist(url.toURL()))
-            {
-                CreeperLogger.INSTANCE.info("File does not exist on repo for " + url);
-                url = new URI(repo + minecraftVersion + "-" + forgeVersion + "/" +
-                        "forge-" + minecraftVersion + "-" + forgeVersion + "-client.jar");
-            }
-
-            if (!WebUtils.checkExist(url.toURL()))
-            {
-                CreeperLogger.INSTANCE.info("File does not exist on repo for " + url);
-                url = new URI(repo + minecraftVersion + "-" + forgeVersion + "/" +
-                        "forge-" + minecraftVersion + "-" + forgeVersion + "-universal.jar");
-            }
+            LOGGER.info(failedMsg, url);
+            url = new URI(repo + minecraftVersion + "-" + forgeVersion + "/" +
+                    "forge-" + minecraftVersion + "-" + forgeVersion + "-universal.jar");
         }
-
-        CreeperLogger.INSTANCE.info("Downloading forge from: " + url.toString());
+        LOGGER.info("SUCCESS, Downloading forge from: {}", url);
         return url;
     }
 
@@ -120,7 +121,7 @@ public class ForgeUtils
 
     public static boolean updateForgeJson(Path target, String newname, String minecraftversion)
     {
-        CreeperLogger.INSTANCE.info("Attempting to update forge json");
+        LOGGER.info("Attempting to update forge json");
         try
         {
             JsonObject json;
@@ -129,7 +130,7 @@ public class ForgeUtils
                 json = GsonUtils.GSON.fromJson(reader, JsonObject.class);
             } catch (IOException e)
             {
-                CreeperLogger.INSTANCE.error("Failed to read " + target);
+                LOGGER.error("Failed to read {}", target);
                 e.printStackTrace();
                 return false;
             }
@@ -192,7 +193,7 @@ public class ForgeUtils
             return true;
         } catch (IOException err)
         {
-            CreeperLogger.INSTANCE.error("Failed to extract 'version.json' from '" + path + "' to '" + name + "'", err);
+            LOGGER.error("Failed to extract 'version.json' from '{}' to '{}'", path, name, err);
         }
         return false;
     }
@@ -225,8 +226,7 @@ public class ForgeUtils
             Thread.sleep(10000);
         } catch (Exception e)
         {
-            CreeperLogger.INSTANCE.error(e.toString());
-            e.printStackTrace();
+            LOGGER.error("Failed to launch Forge installer.", e);
         }
     }
 }

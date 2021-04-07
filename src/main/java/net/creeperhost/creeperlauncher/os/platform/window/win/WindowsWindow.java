@@ -1,61 +1,58 @@
-package net.creeperhost.creeperlauncher.util.window.internal;
+package net.creeperhost.creeperlauncher.os.platform.window.win;
 
 import com.sun.jna.Native;
-import com.sun.jna.platform.win32.*;
-import com.sun.jna.platform.wince.CoreDLL;
+import com.sun.jna.platform.win32.User32;
+import com.sun.jna.platform.win32.WinDef;
+import com.sun.jna.platform.win32.WinUser;
 import com.sun.jna.ptr.IntByReference;
-import net.creeperhost.creeperlauncher.util.window.IMonitor;
-import net.creeperhost.creeperlauncher.util.window.IWindow;
+import net.creeperhost.creeperlauncher.os.platform.window.IMonitor;
+import net.creeperhost.creeperlauncher.os.platform.window.IWindow;
 
 import java.awt.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class WindowsWindow implements IWindow {
+
     private final WinDef.HWND hWnd;
-    private int pid;
-    public WindowsWindow(WinDef.HWND hWnd)
-    {
+    private final int pid;
+
+    public WindowsWindow(WinDef.HWND hWnd) {
         this.hWnd = hWnd;
         IntByReference pidPointer = new IntByReference();
         User32.INSTANCE.GetWindowThreadProcessId(hWnd, pidPointer);
         pid = pidPointer.getValue();
     }
 
-    private WinDef.HWND gethWnd()
-    {
+    private WinDef.HWND gethWnd() {
         return hWnd;
     }
 
     @Override
-    public Object getHandle()
-    {
+    public Object getHandle() {
         return gethWnd();
     }
 
-    public String getWindowTitle()
-    {
+    public String getWindowTitle() {
         char[] windowText = new char[512];
         User32.INSTANCE.GetWindowText(hWnd, windowText, 512);
         return Native.toString(windowText);
     }
-    public void attachedInputAction(Runnable action)
-    {
+
+    public void attachedInputAction(Runnable action) {
         long foreGround = getPid();
         long us = ProcessHandle.current().pid();
         User32.INSTANCE.AttachThreadInput(new WinDef.DWORD(foreGround), new WinDef.DWORD(us), true);
         action.run();
         User32.INSTANCE.AttachThreadInput(new WinDef.DWORD(foreGround), new WinDef.DWORD(us), false);
     }
+
     @Override
-    public int getPid()
-    {
+    public int getPid() {
         return pid;
     }
 
     @Override
-    public Rectangle getRect()
-    {
+    public Rectangle getRect() {
         WinDef.RECT rect = new WinDef.RECT();
         boolean i = User32.INSTANCE.GetWindowRect(hWnd, rect);
         if (!i) return new Rectangle(-1, -1, -1, -1);
@@ -87,13 +84,12 @@ public class WindowsWindow implements IWindow {
         return new WindowsMonitor(monitorIndex.get(), new Rectangle(x, y, width, height));
     }
 
-
     @Override
     public Color getPixelColour(int x, int y) {
         WinDef.HWND hwnd = User32.INSTANCE.GetDesktopWindow();
 
         WinDef.HDC hdc = User32.INSTANCE.GetDC(hwnd);
-        int i = WindowsWindowUtilImplementation.OurGDI32.INSTANCE.GetPixel(hdc, x, y);
+        int i = WindowsWindowHelper.OurGDI32.INSTANCE.GetPixel(hdc, x, y);
         User32.INSTANCE.ReleaseDC(hwnd, hdc);
         return new Color(i & 0xff, (i >> 8) & 0xff, (i >> 16) & 0xff);
     }

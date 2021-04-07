@@ -4,20 +4,18 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.annotations.SerializedName;
-import com.google.gson.reflect.TypeToken;
-import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.util.GsonUtils;
 import net.creeperhost.creeperlauncher.util.MiscUtils;
 import net.creeperhost.creeperlauncher.util.WebUtils;
-
-import java.lang.reflect.Type;
-import java.util.ArrayList;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 
 public class Friends {
+
+    private static final Logger LOGGER = LogManager.getLogger();
 
     public class Friend {
         public int id;
@@ -80,7 +78,7 @@ public class Friends {
         CompletableFuture.runAsync(() -> {
             String resp = WebUtils.postWebResponse("https://api.creeper.host/minetogether/profile", "{\"target\": \"" + hash + "\"}", "application/json");
             if(resp.equals("error")) {
-                CreeperLogger.INSTANCE.error("Error getting profile for hash:" + hash);
+                LOGGER.error("Error getting profile for hash: {}", hash);
                 response.completeExceptionally(new RuntimeException(resp));
             } else {
                 JsonElement respEl = new JsonParser().parse(resp);
