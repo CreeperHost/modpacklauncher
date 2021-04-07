@@ -32,6 +32,8 @@ public class ForgeInstallerModLoader extends ForgeModLoader
 	@Override
 	public Path install(LocalInstance instance)
 	{
+		instance.modLoader = getMinecraftVersion() + "-forge-" + getForgeVersion();
+
 		String forgeUrl = Constants.FORGE_CH + getMinecraftVersion() + "-" + getForgeVersion() + "/forge-" + getMinecraftVersion() + "-" + getForgeVersion() + "-installer.jar";
 		String forgeUrlJson = Constants.FORGE_CH + getMinecraftVersion() + "-" + getForgeVersion() + "/forge-" + getMinecraftVersion() + "-" + getForgeVersion() + "-installer.json";
 
@@ -48,21 +50,14 @@ public class ForgeInstallerModLoader extends ForgeModLoader
 			ForgeUtils.extractJson(installerFile, "installer.json");
 		}
 
-		instance.setPostInstall(() ->
-		{
-			ForgeUtils.runForgeInstaller(installerFile.toAbsolutePath());
-			McUtils.removeProfile(Constants.LAUNCHER_PROFILES_JSON, "forge");
-            try {
-                Files.delete(installerFile);
-            } catch (IOException ignored) {
-            }
-        }, false);
 
-		instance.modLoader = getMinecraftVersion() + "-forge-" + getForgeVersion();
-		try
-		{
-			instance.saveJson();
-		} catch (Exception ignored) {}
+		ForgeUtils.runForgeInstaller(installerFile.toAbsolutePath());
+		McUtils.removeProfile(Constants.LAUNCHER_PROFILES_JSON, "forge");
+		try {
+			Files.delete(installerFile);
+		} catch (IOException ignored) {}
+
+
 		return installerJson;
 	}
 

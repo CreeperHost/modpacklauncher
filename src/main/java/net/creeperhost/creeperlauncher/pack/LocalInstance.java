@@ -274,6 +274,7 @@ public class LocalInstance implements IPack
             this.cloudSaves = jsonOutput.cloudSaves;
             this.hasInstMods = jsonOutput.hasInstMods;
             this.packType = jsonOutput.packType;
+            reader.close();
         } catch(Exception e)
         {
             throw new RuntimeException("Instance is corrupted!", e);
@@ -363,6 +364,10 @@ public class LocalInstance implements IPack
                     FTBModPackInstallerTask.currentStage = FTBModPackInstallerTask.Stage.FINISHED;
                     CreeperLauncher.isInstalling.set(false);
                 }
+                try
+                {
+                    this.saveJson();
+                } catch (IOException e) { e.printStackTrace(); }
                 this.hasLoadingMod = checkForLaunchMod();
             });
         }
@@ -422,6 +427,10 @@ public class LocalInstance implements IPack
                 FTBModPackInstallerTask.currentStage = FTBModPackInstallerTask.Stage.FINISHED;
                 CreeperLauncher.isInstalling.set(false);
             }
+            try
+            {
+                this.saveJson();
+            } catch (IOException e) { e.printStackTrace(); }
         });
         return update;
     }
@@ -664,8 +673,12 @@ public class LocalInstance implements IPack
 
     public boolean saveJson() throws IOException
     {
+        Exception exception = new Exception();
+        exception.printStackTrace();
+
         try (BufferedWriter writer = Files.newBufferedWriter(path.resolve("instance.json"))) {
             GsonUtils.GSON.toJson(this, writer);
+            writer.close();
         }
         return true;
     }
@@ -991,7 +1004,7 @@ public class LocalInstance implements IPack
             {
                 cloudSaves = false;
                 try {
-                    saveJson();
+                    this.saveJson();
                 } catch (IOException e) { e.printStackTrace(); }
                 syncConflict.set(false);
                 Settings.webSocketAPI.sendMessage(new CloseModalData());

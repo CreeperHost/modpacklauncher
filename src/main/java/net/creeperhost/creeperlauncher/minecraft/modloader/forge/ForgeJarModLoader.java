@@ -43,6 +43,9 @@ public class ForgeJarModLoader extends ForgeModLoader
 	{
 		Path returnFile = null;
 		String newname = getMinecraftVersion() + "-forge" + getMinecraftVersion() + "-" + getForgeVersion();
+		instance.mcVersion = getMinecraftVersion();
+		instance.modLoader = newname;
+		instance.hasInstMods = true;
 
 		LOGGER.info("Minecraft version: {} Forge version: {} NewName: {}", getMinecraftVersion(), getForgeVersion(), newname);
 
@@ -103,18 +106,6 @@ public class ForgeJarModLoader extends ForgeModLoader
 			{
 				ForgeUtils.updateForgeJson(forgeJson, newname, getMinecraftVersion());
 				returnFile = forgeJson;
-			}
-
-			instance.mcVersion = getMinecraftVersion();
-			instance.modLoader = newname;//getForgeVersion();
-			instance.hasInstMods = true;
-
-			try
-			{
-				instance.saveJson();
-			} catch (Exception e)
-			{
-                LOGGER.error("Failed to save instance json", e);
 			}
 
 			return returnFile;

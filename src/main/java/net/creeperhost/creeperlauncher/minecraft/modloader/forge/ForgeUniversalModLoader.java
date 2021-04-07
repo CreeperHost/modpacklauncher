@@ -85,10 +85,6 @@ public class ForgeUniversalModLoader extends ForgeModLoader
 		{
 		    LOGGER.error(e);
 		}
-		try
-		{
-			instance.saveJson();
-		} catch (Exception ignored) {}
 		return returnFile;
 	}
 

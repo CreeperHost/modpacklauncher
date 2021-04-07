@@ -99,13 +99,6 @@ public class FabricModLoader extends ModLoader
 			return null;
 		}
 
-		try {
-			instance.saveJson();
-		} catch (IOException e) {
-            LOGGER.error("Failed to save instance", e);
-			return null;
-		}
-
 		return null;
 	}
 

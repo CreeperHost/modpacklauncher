@@ -64,10 +64,10 @@ public class InstallInstanceHandler implements IMessageHandler<InstallInstanceDa
             List<SimpleDownloadableFile> files = pack.getFiles();
             Settings.webSocketAPI.sendMessage(new InstallInstanceData.Reply(data, "files", GsonUtils.GSON.toJson(files), ""));
             instance = new LocalInstance(pack, data.version, data.packType);
-            Instances.addInstance(instance.getUuid(), instance);
             data.uuid = instance.getUuid().toString();
             LOGGER.debug("Running install task");
             install = instance.install();
+            Instances.addInstance(instance.getUuid(), instance);
         }
         install.currentTask.exceptionally((t) ->
         {
