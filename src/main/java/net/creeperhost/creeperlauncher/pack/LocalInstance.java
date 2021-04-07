@@ -309,7 +309,7 @@ public class LocalInstance implements IPack
                 .anyMatch(file -> {
                     if (!Files.isRegularFile(file)) return false;
 
-                    try (ZipInputStream zin = new ZipInputStream(Files.newInputStream(file))) {
+                    try (InputStream fileStream = Files.newInputStream(file); ZipInputStream zin = new ZipInputStream(fileStream)) {
                         Set<String> entries = new HashSet<>();
 
                         ZipEntry entry;
