@@ -1,10 +1,14 @@
 package net.creeperhost.creeperlauncher.pack;
 
-import net.creeperhost.creeperlauncher.api.DownloadableFile;
 import net.creeperhost.creeperlauncher.api.SimpleDownloadableFile;
+import net.creeperhost.creeperlauncher.api.handlers.ModFile;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class FTBPack implements IPack
 {
@@ -19,9 +23,9 @@ public class FTBPack implements IPack
     private final int minMemory;
     private final int recMemory;
     private final long id;
-    private final List<SimpleDownloadableFile> mods;
+    private final List<SimpleDownloadableFile> files;
 
-    public FTBPack(String name, String version, Path dir, List<String> authors, String description, String mcVersion, String URL, String artUrl, long id, int minMemory, int recMemory, List<SimpleDownloadableFile> mods)
+    public FTBPack(String name, String version, Path dir, List<String> authors, String description, String mcVersion, String URL, String artUrl, long id, int minMemory, int recMemory, List<SimpleDownloadableFile> files)
     {
         this.name = name;
         this.version = version;
@@ -34,7 +38,7 @@ public class FTBPack implements IPack
         this.id = id;
         this.minMemory = minMemory;
         this.recMemory = recMemory;
-        this.mods = mods;
+        this.files = files;
     }
 
     @Override
@@ -103,7 +107,17 @@ public class FTBPack implements IPack
         return recMemory;
     }
 
-    public List<SimpleDownloadableFile> getMods() {
-        return mods;
+    public List<SimpleDownloadableFile> getFiles()
+    {
+        return files;
+    }
+
+    public List<ModFile> getMods()
+    {
+        return files.stream()
+                .filter(file -> file.getPath().toString().substring(0, 6).contains("mods") && (ModFile.isPotentialMod(file.getName())))
+                .map(file -> new ModFile(file.getName(), file.getVersion(), file.getSize(), file.getSha1()).setExists(true))
+                .sorted((e1, e2) -> e1.getName().compareToIgnoreCase(e2.getName()))
+                .collect(Collectors.toList());
     }
 }

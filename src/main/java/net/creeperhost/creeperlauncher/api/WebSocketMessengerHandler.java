@@ -1,12 +1,12 @@
 package net.creeperhost.creeperlauncher.api;
 
+import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.google.gson.reflect.TypeToken;
+import com.google.common.reflect.TypeToken;
 import net.creeperhost.creeperlauncher.CreeperLauncher;
-import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.api.data.*;
 import net.creeperhost.creeperlauncher.api.data.friends.AddFriendData;
 import net.creeperhost.creeperlauncher.api.data.friends.BlockFriendData;
@@ -21,12 +21,16 @@ import net.creeperhost.creeperlauncher.api.handlers.friends.GetFriendsHandler;
 import net.creeperhost.creeperlauncher.api.handlers.instances.*;
 import net.creeperhost.creeperlauncher.api.handlers.irc.*;
 import net.creeperhost.creeperlauncher.api.handlers.other.*;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.HashMap;
 import java.util.concurrent.CompletableFuture;
 
 public class WebSocketMessengerHandler
 {
+    private static final Logger LOGGER = LogManager.getLogger();
+
     private static HashMap<TypeToken<? extends BaseData>, IMessageHandler<? extends BaseData>> handlers = new HashMap<TypeToken<? extends BaseData>, IMessageHandler<? extends BaseData>>();
     private static HashMap<String, Class<? extends BaseData>> dataMap = new HashMap<>();
     static Gson gson = new Gson();
@@ -92,11 +96,15 @@ public class WebSocketMessengerHandler
         registerDataMap("ping", PingLauncherData.class);
         registerDataMap("messageClient", MessageClientData.class);
         registerHandler(MessageClientData.class, new MessageClientHandler());
+        registerDataMap("shareInstance", ShareInstanceData.class);
+        registerHandler(ShareInstanceData.class, new ShareInstanceHandler());
+        registerDataMap("instanceInstallMod", InstanceInstallModData.class);
+        registerHandler(InstanceInstallModData.class, new InstanceInstallModHandler());
     }
 
     public static void registerHandler(Class<? extends BaseData> clazz, IMessageHandler<? extends BaseData> handler)
     {
-        TypeToken<? extends BaseData> typeToken = TypeToken.get(clazz);
+        TypeToken<? extends BaseData> typeToken = TypeToken.of(clazz);
         handlers.put(typeToken, handler);
     }
 
@@ -116,7 +124,7 @@ public class WebSocketMessengerHandler
             {
                 String type = jsonObject.get("type").getAsString();
                 Class<? extends BaseData> dataType = dataMap.get(type);
-                TypeToken typeToken = TypeToken.get(dataType);
+                TypeToken typeToken = TypeToken.of(dataType);
                 IMessageHandler<? extends BaseData> iMessageHandler = handlers.get(typeToken);
                 if (iMessageHandler != null)
                 {
@@ -124,8 +132,7 @@ public class WebSocketMessengerHandler
                         BaseData parsedData = gson.fromJson(data, typeToken.getType());
                         if (CreeperLauncher.isDevMode || (parsedData.secret != null && parsedData.secret.equals(CreeperLauncher.websocketSecret))) {
                             CompletableFuture.runAsync(() -> iMessageHandler.handle(parsedData), CreeperLauncher.taskExeggutor).exceptionally((t) -> {
-                                CreeperLogger.INSTANCE.debug("Error handling message", t.getCause());
-                                t.printStackTrace();
+                                LOGGER.error("Error handling message", t);
                                 return null;
                             });
                         }

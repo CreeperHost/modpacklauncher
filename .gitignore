@@ -28,7 +28,7 @@ launcher.log.lck
 
 launcher.log
 
-test/
+/test
 
 .DS_Store
 

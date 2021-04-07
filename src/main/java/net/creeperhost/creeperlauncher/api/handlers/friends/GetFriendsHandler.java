@@ -1,16 +1,20 @@
 package net.creeperhost.creeperlauncher.api.handlers.friends;
 
-import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.data.friends.GetFriendsData;
 import net.creeperhost.creeperlauncher.api.handlers.IMessageHandler;
 import net.creeperhost.creeperlauncher.chat.Friends;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public class GetFriendsHandler implements IMessageHandler<GetFriendsData> {
+
+    private static final Logger LOGGER = LogManager.getLogger();
+
     @Override
     public void handle(GetFriendsData data) {
         Friends.getFriends(data.hash).whenComplete((listFriendResponse, throwable) -> {
@@ -41,9 +45,8 @@ public class GetFriendsHandler implements IMessageHandler<GetFriendsData> {
                         }
                         listFriendResponse.friends = friends;
                         listFriendResponse.requests = requests;
-                    } catch(Exception ignored) {
-                        CreeperLogger.INSTANCE.error("Error sorting profiles", ignored);
-                        ignored.printStackTrace();
+                    } catch(Exception e) {
+                        LOGGER.error("Error sorting profiles", e);
                     }
                     Settings.webSocketAPI.sendMessage(new GetFriendsData.Reply(data, listFriendResponse));
                 });

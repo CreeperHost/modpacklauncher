@@ -1,5 +1,7 @@
 package net.creeperhost.creeperlauncher;
 
+import com.google.common.hash.HashCode;
+
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -8,8 +10,8 @@ public class IntegrityCheckException extends RuntimeException
 {
     private Throwable otherThrowable = null;
     private int errorCode = 0;
-    private String checksum = "";
-    private List<String> checksums = new ArrayList<>();
+    private HashCode checksum = null;
+    private List<HashCode> checksums = new ArrayList<>();
     private long size = 0;
     private long expectedSize = 0;
     private String source = "";
@@ -20,14 +22,14 @@ public class IntegrityCheckException extends RuntimeException
         super(detailMessage);
     }
 
-    public IntegrityCheckException(Throwable t, int errorCode, String checksum, List<String> checksums, long size, long expectedSize, String source, Path destination)
+    public IntegrityCheckException(Throwable t, int errorCode, HashCode checksum, List<HashCode> checksums, long size, long expectedSize, String source, Path destination)
     {
         this(t.getMessage(), errorCode, checksum, checksums, size, expectedSize, source, destination);
         initCause(t);
         otherThrowable = t;
     }
 
-    public IntegrityCheckException(String detailMessage, int errorCode, String checksum, List<String> checksums, long size, long expectedSize, String source, Path destination)
+    public IntegrityCheckException(String detailMessage, int errorCode, HashCode checksum, List<HashCode> checksums, long size, long expectedSize, String source, Path destination)
     {
         super(detailMessage);
         this.errorCode = errorCode;
@@ -48,12 +50,9 @@ public class IntegrityCheckException extends RuntimeException
         }
         errorString.append("errorCode: ").append(errorCode).append("\n");
         errorString.append("checksum: ").append(checksum).append("\n");
-        if (checksums != null)
+        for (HashCode validChecksum : checksums)
         {
-            for (String validChecksum : checksums)
-            {
-                errorString.append("validChecksum: ").append(validChecksum).append("\n");
-            }
+            errorString.append("validChecksum: ").append(validChecksum).append("\n");
         }
         errorString.append("size: ").append(size).append("\n");
         errorString.append("expectedSize: ").append(expectedSize).append("\n");
