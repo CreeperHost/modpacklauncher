@@ -146,6 +146,12 @@ public class ForgeUtils
                 if (json.get("jar") == null)
                     json.addProperty("jar", minecraftversion);
 
+                if(!json.get("jar").getAsString().equalsIgnoreCase(newname))
+                {
+                    json.remove("jar");
+                    json.addProperty("jar", newname);
+                }
+
                 JsonArray targets = json.getAsJsonObject().getAsJsonArray("libraries");
                 if (targets != null)
                 {
