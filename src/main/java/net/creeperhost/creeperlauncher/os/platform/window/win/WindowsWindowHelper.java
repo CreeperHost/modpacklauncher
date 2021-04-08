@@ -1,21 +1,17 @@
-package net.creeperhost.creeperlauncher.util.window.internal;
+package net.creeperhost.creeperlauncher.os.platform.window.win;
 
 import com.sun.jna.Native;
-import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.GDI32;
 import com.sun.jna.platform.win32.User32;
 import com.sun.jna.platform.win32.WinDef;
-import com.sun.jna.platform.win32.WinUser;
-import com.sun.jna.ptr.IntByReference;
-import com.sun.jna.win32.StdCallLibrary;
 import com.sun.jna.win32.W32APIOptions;
-import net.creeperhost.creeperlauncher.util.window.IWindow;
+import net.creeperhost.creeperlauncher.os.platform.window.IWindow;
+import net.creeperhost.creeperlauncher.os.platform.window.IWindowHelper;
 
-import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class WindowsWindowUtilImplementation implements IWindowUtilImplementation {
+public class WindowsWindowHelper implements IWindowHelper {
     @Override
     public List<IWindow> getWindows() {
         return getWindows(-1);
@@ -34,7 +30,7 @@ public class WindowsWindowUtilImplementation implements IWindowUtilImplementatio
     }
 
     @Override
-    public void setPos(int x, int y) {
+    public void setCursorPos(int x, int y) {
         com.sun.jna.platform.win32.User32.INSTANCE.SetCursorPos(x, y);
     }
 

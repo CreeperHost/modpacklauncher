@@ -1,13 +1,17 @@
 package net.creeperhost.creeperlauncher.api;
 
+import com.google.common.hash.HashCode;
+import com.google.common.hash.Hashing;
 import net.creeperhost.creeperlauncher.Settings;
-import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.IntegrityCheckException;
 import net.creeperhost.creeperlauncher.install.tasks.FTBModPackInstallerTask;
 import net.creeperhost.creeperlauncher.install.tasks.http.DownloadedFile;
 import net.creeperhost.creeperlauncher.install.tasks.http.IHttpClient;
+import net.creeperhost.creeperlauncher.install.tasks.http.IProgressUpdater;
 import net.creeperhost.creeperlauncher.install.tasks.http.OkHttpClientImpl;
 import net.creeperhost.creeperlauncher.util.FileUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -16,65 +20,44 @@ import java.net.URL;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class DownloadableFile
 {
-    String version;
-    Path path;
-    String downloadUrl;
-    URL url;
-    List<String> expectedChecksums;
-    long size;
-    boolean clientSide;
-    boolean optional;
-    long id;
-    String name;
-    String type;
-    String updated;
-    boolean hasPrepared;
-    MessageDigest digest;
-    String sha1;
-    Path destination;
+    private static final Logger LOGGER = LogManager.getLogger();
+
+    private final String version;
+    private final Path path;
+    private final String downloadUrl;
+    private final List<HashCode> expectedChecksums;
+    private long size;
+    private final long id;
+    private final String name;
+    private final String type;
+    private final String updated;
+    private boolean hasPrepared;
+    private HashCode sha1;
+    private Path destination;
     private final IHttpClient client = new OkHttpClientImpl();
 
-    public DownloadableFile(String version, Path path, String url, List<String> acceptedChecksums, long size, boolean clientSide, boolean optional, long id, String name, String type, String updated)
-    {
+    public DownloadableFile(String version, Path path, String url, List<HashCode> acceptedChecksums, long size, long id, String name, String type, String updated) {
         this.version = version;
         this.path = path;
         this.downloadUrl = url;
-        this.expectedChecksums = acceptedChecksums;
+        this.expectedChecksums = new ArrayList<>(acceptedChecksums);
         this.size = size;
-        this.clientSide = clientSide;
-        this.optional = optional;
         this.id = id;
         this.name = name;
         this.type = type;
         this.updated = updated;
-        try
-        {
-            this.digest = MessageDigest.getInstance("SHA-1");
-        } catch (NoSuchAlgorithmException e)
-        {
-            e.printStackTrace();
-        }
     }
 
-    public void prepare() throws IOException
-    {
-        try
-        {
-            this.url = new URL(this.downloadUrl.replace(" ", "%20"));
-        } catch (Exception ignored)
-        {
-        }
+    public void prepare() throws IOException {
         boolean remoteExists = false;
         long remoteSize = 0;
-        if (this.downloadUrl.length() > 10)
-        {
+        if (this.downloadUrl.length() > 10) {
+            URL url = new URL(downloadUrl.replace(" ", "%20"));
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("HEAD");
             connection.setConnectTimeout(15000);
@@ -116,10 +99,10 @@ public class DownloadableFile
                 if(connection.getResponseCode() == 200)
                 {
                     remoteExists = true;
-                    CreeperLogger.INSTANCE.warning(this.getName() + " unable to get content length from HTTP headers!");
+                    LOGGER.warn("{} unable to get content length from HTTP headers!", getName());
                     remoteSize = this.getSize();
                 } else {
-                    CreeperLogger.INSTANCE.warning(this.getName() + " error "+connection.getResponseCode()+": "+connection.getResponseMessage()+"!");
+                    LOGGER.warn("{} error {}: {}!", getName(), connection.getResponseCode(), connection.getResponseMessage());
                 }
             }
             connection.disconnect();
@@ -129,7 +112,7 @@ public class DownloadableFile
             if (this.getSize() > 0)
             {
                 FTBModPackInstallerTask.overallBytes.set(FTBModPackInstallerTask.overallBytes.get() - this.getSize());
-                CreeperLogger.INSTANCE.warning(this.getName() + " size expected does not match remote file size. File size updated.");
+                LOGGER.warn("{} size expected does not match remote file size. File size updated.", getName());
             }
             this.size = remoteSize;
             FTBModPackInstallerTask.overallBytes.addAndGet(this.getSize());
@@ -141,7 +124,7 @@ public class DownloadableFile
         this.hasPrepared = true;
     }
 
-    public void download(Path destination, boolean OverwriteOnExist, boolean FailOnExist) throws Throwable
+    public void download(Path destination, boolean OverwriteOnExist, boolean FailOnExist, IProgressUpdater watcher) throws Throwable
     {
         if (!hasPrepared)
             throw new UnsupportedOperationException("Unable to download file that has not been prepared.");
@@ -156,7 +139,7 @@ public class DownloadableFile
                 } else
                 {
 
-                    CreeperLogger.INSTANCE.warning(this.getName() + " already exists.");
+                    LOGGER.warn("{} already exists.", getName());
                 }
             }
         }
@@ -170,10 +153,12 @@ public class DownloadableFile
         } catch (Exception ignored) {
         }
 
-        DownloadedFile send = client.doDownload(this.downloadUrl, destination, (downloaded, delta, total, done) ->
-        {
-            FTBModPackInstallerTask.currentBytes.addAndGet(delta);
-        }, digest, speedLimit * 1000L); // not really async - our client will run async things on same thread. bit of a hack, but async just froze.
+        DownloadedFile send = client.doDownload(
+                downloadUrl,
+                destination,
+                watcher,
+                Hashing.sha1(),
+                speedLimit * 1000L); // not really async - our client will run async things on same thread. bit of a hack, but async just froze.
         Path body = send.getDestination();
         sha1 = send.getChecksum();
 
@@ -188,30 +173,19 @@ public class DownloadableFile
     public void validate(boolean FailOnChecksum, boolean FailOnFileSize) throws IntegrityCheckException, FileNotFoundException
     {
         if (Files.notExists(destination)) throw new FileNotFoundException("File not saved.");
-        AtomicBoolean passChecksum = new AtomicBoolean(false);
 
         long dstSize = 0;
         try {
             dstSize = Files.size(destination);
         } catch (IOException ignored) {
-            CreeperLogger.INSTANCE.warning("Failed to get size of file: " + destination);
+            LOGGER.warn("Failed to get size of file: {}", destination);
         }
-        if ((sha1 != null && sha1.length() > 0) && (expectedChecksums != null && expectedChecksums.size() > 0))
-        {
-
-            expectedChecksums.forEach((s) ->
-            {
-                if (s.equalsIgnoreCase(sha1)) passChecksum.set(true);
-
-            });
-            if (!passChecksum.get())
-            {
-                if (FailOnChecksum)
-                {
+        if (!expectedChecksums.isEmpty() && sha1 != null) {
+            if (!expectedChecksums.contains(sha1)) {
+                if (FailOnChecksum) {
                     throw new IntegrityCheckException("SHA1 checksum does not match.", -1, sha1, expectedChecksums, dstSize, size, downloadUrl, path);
-                } else
-                {
-                    CreeperLogger.INSTANCE.warning(this.getName() + "'s SHA1 checksum failed.");
+                } else {
+                    LOGGER.warn("{}'s SHA1 checksum failed.", getName());
                 }
             }
         }
@@ -222,8 +196,32 @@ public class DownloadableFile
                 throw new IntegrityCheckException("Downloaded file is not the same size.", -1, sha1, expectedChecksums, dstSize, getSize(), downloadUrl, path);
             } else
             {
-                CreeperLogger.INSTANCE.warning(this.getName() + " size incorrect.");
+                LOGGER.warn("{} size incorrect.", getName());
             }
+        }
+    }
+
+    public void finito() throws Exception
+    {
+        switch (type)
+        {
+            case "cf-extract":
+                try {
+                    FileUtils.extractFromZip(this.destination, this.path.getParent(), "overrides", true);
+                    Files.delete(this.destination);
+                } catch (Exception e) {
+                    throw new Exception("Unable to extract overrides due to error", e);
+                }
+
+                /*FileUtils.extractZip2ElectricBoogaloo(this.destination, this.path.getParent());
+                Path movePath = Path.of(this.destination.getParent().toString(),"overrides");
+                List<Path> files = FileUtils.listDir(movePath);
+                for(Path file : files) {
+                    try {
+                        Files.move(file, Path.of(this.destination.getParent().toString(), file.toString().replace(movePath.toString(), "")), StandardCopyOption.REPLACE_EXISTING);
+                    } catch (IOException e) { e.printStackTrace(); }
+                }*/
+//                FileUtils.move(Path.of(this.path, "overrides"));
         }
     }
 
@@ -243,12 +241,12 @@ public class DownloadableFile
         return downloadUrl;
     }
 
-    public String getSha1()
+    public HashCode getSha1()
     {
         return sha1;
     }
 
-    public List<String> getExpectedSha1()
+    public List<HashCode> getExpectedSha1()
     {
         return expectedChecksums;
     }

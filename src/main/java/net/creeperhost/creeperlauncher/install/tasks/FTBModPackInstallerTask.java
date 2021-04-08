@@ -1,12 +1,11 @@
 package net.creeperhost.creeperlauncher.install.tasks;
 
+import com.google.common.hash.HashCode;
 import com.google.gson.*;
 import com.google.gson.stream.JsonReader;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.CreeperLauncher;
-import net.creeperhost.creeperlauncher.CreeperLogger;
 import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.DownloadableFile;
 import net.creeperhost.creeperlauncher.api.SimpleDownloadableFile;
@@ -19,6 +18,8 @@ import net.creeperhost.creeperlauncher.os.OSUtils;
 import net.creeperhost.creeperlauncher.pack.FTBPack;
 import net.creeperhost.creeperlauncher.pack.LocalInstance;
 import net.creeperhost.creeperlauncher.util.*;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.*;
 import java.net.MalformedURLException;
@@ -36,6 +37,8 @@ import static net.creeperhost.creeperlauncher.util.MiscUtils.allFutures;
 
 public class FTBModPackInstallerTask implements IInstallTask<Void>
 {
+    private static final Logger LOGGER = LogManager.getLogger();
+
     private static final Gson gson = new Gson();
     public static AtomicLong currentSpeed = new AtomicLong(0);
     public static AtomicLong averageSpeed = new AtomicLong(0);
@@ -63,6 +66,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
 
     public FTBModPackInstallerTask(LocalInstance instance)
     {
+        McUtils.killOldMinecraft().join();
         this.instance = instance;
         try
         {
@@ -75,30 +79,30 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
     @Override
     public CompletableFuture<Void> execute()
     {
-        CreeperLogger.INSTANCE.debug("Running install execute");
+        LOGGER.debug("Running install execute");
         return currentTask = CompletableFuture.runAsync(() ->
         {
-            CreeperLogger.INSTANCE.debug("Actually running install execute");
+            LOGGER.debug("Actually running install execute");
             currentStage = Stage.INIT;
             overallBytes.set(0);
             currentBytes.set(0);
             currentSpeed.set(0);
             startTime.set(System.currentTimeMillis());
             lastError.set("");
-            CreeperLogger.INSTANCE.info(instance.getName() + " " + instance.getId() + " " + instance.getVersionId());
+            LOGGER.info("{} {} {}", instance.getName(), instance.getId(), instance.getVersionId());
             Path instanceRoot = Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC);
             FileUtils.createDirectories(instanceRoot);
-            CreeperLogger.INSTANCE.debug("Setting stage to VANILLA");
+            LOGGER.debug("Setting stage to VANILLA");
             currentStage = Stage.VANILLA;
-            CreeperLogger.INSTANCE.debug("About to download launcher");
-            McUtils.downloadVanillaLauncher();
+            LOGGER.debug("About to download launcher");
+            OS.CURRENT.getPlatform().installLauncher();
             Path profileJson = Constants.LAUNCHER_PROFILES_JSON;
-            CreeperLogger.INSTANCE.debug("Launching game and close");
+            LOGGER.debug("Launching game and close");
             if (Files.notExists(profileJson)) GameLauncher.downloadLauncherProfiles();
             Path instanceDir = instance.getDir();
             FileUtils.createDirectories(instanceDir);
             currentStage = Stage.API;
-            downloadJsons(instanceDir, this._private);
+            downloadJsons(instanceDir, this._private, this.instance.packType);
             currentStage = Stage.FORGE;
             Path forgeJson = installModLoaders();
             currentStage = Stage.DOWNLOADS;
@@ -117,13 +121,13 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
     {
         if (FTBModPackInstallerTask.currentBytes.get() == 0 || overallBytes.get() == 0) return 0.00d;
         double initPercent = FTBModPackInstallerTask.currentBytes.get() / (double) overallBytes.get();
-        Double returnVal = Math.round((initPercent * 100d) * 100d) / 100d;
-        return (returnVal > 100.00d) ? 100.00d : returnVal;
+        double returnVal = Math.round((initPercent * 100d) * 100d) / 100d;
+        return Math.min(returnVal, 100.00d);
     }
 
-    public boolean downloadJsons(Path instanceDir, boolean _private)
+    public boolean downloadJsons(Path instanceDir, boolean _private, byte packType)
     {
-        CreeperLogger.INSTANCE.info("Preparing instance folder for " + instanceDir.toAbsolutePath().toString());
+        LOGGER.info("Preparing instance folder for {}", instanceDir.toAbsolutePath());
         FileUtils.createDirectories(instanceDir);
 
         Path modpackJson = instanceDir.resolve("modpack.json");
@@ -132,7 +136,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
             Files.deleteIfExists(modpackJson);
         } catch (IOException ignored) {
         }
-        DownloadUtils.downloadFile(modpackJson, Constants.getCreeperhostModpackSearch2(_private) + instance.getId());
+        DownloadUtils.downloadFile(modpackJson, Constants.getCreeperhostModpackSearch2(_private, packType) + instance.getId());
 
         Path versionJson = instanceDir.resolve("version.json");
         if (Files.exists(versionJson))
@@ -141,19 +145,19 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                 Files.delete(versionJson);
             } catch (IOException e)
             {
-                CreeperLogger.INSTANCE.error("version.json must be exclusively locked elsewhere, we can't remove it to put the new one in!", e);
+                LOGGER.error("version.json must be exclusively locked elsewhere, we can't remove it to put the new one in!", e);
                 return false;
             }
         }
-        DownloadUtils.downloadFile(versionJson, Constants.getCreeperhostModpackSearch2(_private) + instance.getId() + "/" + instance.getVersionId());
+        DownloadUtils.downloadFile(versionJson, Constants.getCreeperhostModpackSearch2(_private, packType) + instance.getId() + "/" + instance.getVersionId());
 
         return (Files.exists(modpackJson) && Files.exists(versionJson));
     }
 
-    public static FTBPack getPackFromAPI(long packId, long versionId, boolean _private)
+    public static FTBPack getPackFromAPI(long packId, long versionId, boolean _private, byte packType)
     {
-        CreeperLogger.INSTANCE.info("Getting pack from api.");
-        String modpackURL = Constants.getCreeperhostModpackSearch2(_private) + packId;
+        LOGGER.info("Getting pack from api.");
+        String modpackURL = Constants.getCreeperhostModpackSearch2(_private, packType) + packId;
         String versionURL = modpackURL + "/" + versionId;
         String name = "";
         String version = "";
@@ -175,7 +179,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
             JsonObject object = jElement.getAsJsonObject();
             if(object.getAsJsonPrimitive("status").getAsString().equalsIgnoreCase("error"))
             {
-                CreeperLogger.INSTANCE.error("Unable to load modpack from '" + modpackURL + "'...");
+                LOGGER.error("Unable to load modpack from '" + modpackURL + "'...");
                 return null;
             }
             description = object.getAsJsonPrimitive("description").getAsString();
@@ -217,8 +221,16 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
         {
             JsonObject object = jElement2.getAsJsonObject();
             version = object.getAsJsonPrimitive("name").getAsString();
-            minMemory = object.getAsJsonObject("specs").getAsJsonPrimitive("minimum").getAsInt();
-            recMemory = object.getAsJsonObject("specs").getAsJsonPrimitive("recommended").getAsInt();
+            if(object.has("specs") && object.get("specs").isJsonObject())
+            {
+                minMemory = object.getAsJsonObject("specs").getAsJsonPrimitive("minimum").getAsInt();
+                recMemory = object.getAsJsonObject("specs").getAsJsonPrimitive("recommended").getAsInt();
+            }
+            else
+            {
+                minMemory = 4096;
+                recMemory = 6132;
+            }
 
             JsonArray targets = jElement.getAsJsonObject().getAsJsonArray("targets");
 
@@ -249,7 +261,8 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                     boolean clientSideOnly = server.get("clientonly").getAsBoolean();
                     boolean optional = server.get("optional").getAsBoolean();
                     long fileId = server.get("id").getAsLong();
-                    downloadableFileList.add(new SimpleDownloadableFile(fileVersion, Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve(name).resolve(path).resolve(fileName), size, clientSideOnly, optional, fileId, fileName, fileType));
+                    if(fileName == null) continue;
+                    downloadableFileList.add(new SimpleDownloadableFile(fileVersion, Path.of(path).resolve(fileName), size, clientSideOnly, optional, fileId, fileName, fileType));
                 }
             }
         }
@@ -280,15 +293,15 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                     String version = server.get("version").getAsString();
                     String path = server.get("path").getAsString();
                     String downloadUrl = server.get("url").getAsString().replaceAll(" ", "%20");
-                    List<String> sha1 = new ArrayList<>();
-                    sha1.add(server.get("sha1").getAsString());
+                    List<HashCode> sha1 = new ArrayList<>();
+                    sha1.add(HashCode.fromString(server.get("sha1").getAsString()));
                     long size = server.get("size").getAsInt();
                     boolean clientSideOnly = server.get("clientonly").getAsBoolean();
                     boolean optional = server.get("optional").getAsBoolean();
                     long fileId = server.get("id").getAsLong();
                     String fileType = server.get("type").getAsString();
                     String updated = server.get("updated").getAsString();
-                    downloadableFileList.add(new DownloadableFile(version, instance.getDir().resolve(path).resolve(fileName), downloadUrl, sha1, size, clientSideOnly, optional, fileId, fileName, fileType, updated));
+                    downloadableFileList.add(new DownloadableFile(version, instance.getDir().resolve(path).resolve(fileName), downloadUrl, sha1, size, fileId, fileName, fileType, updated));
                 }
             }
         }
@@ -322,20 +335,21 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                     String version = server.get("version").getAsString();
                     String path = server.get("path").getAsString();
                     String downloadUrl = server.get("url").getAsString().replaceAll(" ", "%20");
-                    List<String> sha1 = new ArrayList<>();
-                    sha1.add(server.get("sha1").getAsString());
+                    List<HashCode> sha1 = new ArrayList<>();
+                    String sha1val = server.get("sha1").getAsString();
+                    if(sha1val.length() > 2) sha1.add(HashCode.fromString(sha1val));
                     long size = server.get("size").getAsInt();
                     boolean clientSideOnly = server.get("clientonly").getAsBoolean();
                     boolean optional = server.get("optional").getAsBoolean();
                     long fileId = server.get("id").getAsLong();
                     String fileType = server.get("type").getAsString();
                     String updated = server.get("updated").getAsString();
-                    downloadableFileList.add(new DownloadableFile(version, instance.getDir().resolve(path).resolve(fileName), downloadUrl, sha1, size, clientSideOnly, optional, fileId, fileName, fileType, updated));
+                    downloadableFileList.add(new DownloadableFile(version, instance.getDir().resolve(path).resolve(fileName), downloadUrl, sha1, size, fileId, fileName, fileType, updated));
                 }
             }
         }
 
-        if (forgeTarget != null)
+        if (forgeTarget != null && !forgeTarget.toString().isEmpty())
         {
             JsonObject forgeElement = null;
             try (BufferedReader reader = Files.newBufferedReader(forgeTarget))
@@ -402,7 +416,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                                         }
                                     }
                                 }
-                                if (ruleTarget == OSUtils.getOs())
+                                if (ruleTarget == OS.CURRENT)
                                 {
                                     Pattern versRegex = Pattern.compile(_ruleTarget.get("version").getAsString());
                                     Matcher versMatch = versRegex.matcher(OSUtils.getVersion());
@@ -420,18 +434,18 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                         Path localPath = artifact.getLocalPath(Constants.LIBRARY_LOCATION);
                         if (!ForgeUtils.isUrlValid(uri))
                         {
-                            CreeperLogger.INSTANCE.error("Not valid url " + uri);
+                            LOGGER.error("Not valid url {}", uri);
                         }
                         FileUtils.createDirectories(localPath.toAbsolutePath().getParent());
                         String version = "unknown";
                         String downloadUrl = uri;
                         JsonArray checksums = server.getAsJsonArray("checksums");
-                        List<String> sha1 = new ArrayList<>();
+                        List<HashCode> sha1 = new ArrayList<>();
                         if (checksums != null)
                         {
                             for (JsonElement checksum : checksums)
                             {
-                                sha1.add(checksum.getAsString());
+                                sha1.add(HashCode.fromString(checksum.getAsString()));
                             }
                         }
                         long size = -1;
@@ -441,7 +455,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                         String fileName = localPath.getFileName().toString();
                         String fileType = "library";
                         String updated = String.valueOf(System.currentTimeMillis() / 1000L);
-                        downloadableFileList.add(new DownloadableFile(version, localPath, downloadUrl, sha1, size, clientSideOnly, optional, fileId, fileName, fileType, updated));
+                        downloadableFileList.add(new DownloadableFile(version, localPath, downloadUrl, sha1, size, fileId, fileName, fileType, updated));
                     }
                 }
             }
@@ -451,7 +465,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
 
     void downloadFiles(Path instanceDir, Path forgeLibs)
     {
-        CreeperLogger.INSTANCE.info("Attempting to downloaded required files");
+        LOGGER.info("Attempting to downloaded required files");
 
         ArrayList<CompletableFuture<?>> futures = new ArrayList<>();
         overallBytes.set(0);
@@ -574,11 +588,15 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
     public Path installModLoaders()
     {
         List<ModLoader> modLoaders = ModLoaderManager.getModLoaders(getTargets());
-        if (modLoaders.size() != 1) {
+        if (modLoaders.size() > 1)
+        {
             throw new RuntimeException("Only one mod loader is currently supported!");
-        } else {
+        }
+        else if(modLoaders.size() == 1)
+        {
             ModLoader modLoader = modLoaders.get(0);
             return modLoader.install(instance);
         }
+        return null;
     }
 }

@@ -1,10 +1,11 @@
-package net.creeperhost.creeperlauncher.util.window.internal;
+package net.creeperhost.creeperlauncher.os.platform.window.win;
 
-import net.creeperhost.creeperlauncher.util.window.IMonitor;
+import net.creeperhost.creeperlauncher.os.platform.window.IMonitor;
 
 import java.awt.*;
 
 public class WindowsMonitor implements IMonitor {
+
     private final int number;
     private final Rectangle rect;
 

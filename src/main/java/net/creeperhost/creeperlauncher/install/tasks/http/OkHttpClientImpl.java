@@ -1,13 +1,14 @@
 package net.creeperhost.creeperlauncher.install.tasks.http;
 
-import net.creeperhost.creeperlauncher.util.MiscUtils;
+import com.google.common.hash.HashFunction;
+import com.google.common.hash.Hasher;
+import net.covers1624.quack.util.SneakyUtils;
 import okhttp3.*;
 import okio.*;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.security.MessageDigest;
 
 public class OkHttpClientImpl implements IHttpClient
 {
@@ -34,14 +35,10 @@ public class OkHttpClientImpl implements IHttpClient
 
     /* returns when done */
     @Override
-    public DownloadedFile doDownload(String url, Path destination, IProgressUpdater progressWatcher, MessageDigest digest, long maxSpeed) throws IOException
+    public DownloadedFile doDownload(String url, Path destination, IProgressUpdater progressWatcher, HashFunction hashFunc, long maxSpeed) throws IOException
     {
-        ResponseHandlers responseHandlers = new ResponseHandlers(progressWatcher, (source, bytes) ->
-        {
-            //int read = source.read(tempBytes);
-            byte[] _bytes = source.readByteArray();
-            if (digest != null) digest.update(_bytes);
-        });
+        Hasher hasher = hashFunc.newHasher();
+        ResponseHandlers responseHandlers = new ResponseHandlers(progressWatcher, e -> hasher.putBytes(e.readByteArray()));
 
         Request request = new Request.Builder()
                 .url(url)
@@ -51,13 +48,13 @@ public class OkHttpClientImpl implements IHttpClient
 
         Response response = client.newCall(request).execute();
 
-        BufferedSink sink = Okio.buffer(Okio.sink(destination.toFile()));
+        BufferedSink sink = Okio.buffer(Okio.sink(destination));
         sink.writeAll(response.body().source());
         sink.close();
 
         response.close();
 
-        return new DownloadedFile(destination, 0, digest == null ? null : MiscUtils.byteArrayToHex(digest.digest()));
+        return new DownloadedFile(destination, 0, hasher.hash());
     }
 
     private static class ProgressResponseBody extends ResponseBody
@@ -115,8 +112,7 @@ public class OkHttpClientImpl implements IHttpClient
                 public long read(@NotNull Buffer sink, long byteCount) throws IOException
                 {
                     long bytesRead = super.read(sink, byteCount);
-                    BufferedSource peek = sink.peek();
-                    responseHandlers.handler.handleDigest(peek, byteCount);
+                    responseHandlers.handler.accept(sink.peek());
 
                     totalBytesRead += bytesRead != -1 ? bytesRead : 0;
 
@@ -133,18 +129,13 @@ public class OkHttpClientImpl implements IHttpClient
 
     private static class ResponseHandlers
     {
-        IProgressUpdater updater;
-        IDigestHandler handler;
+        private final IProgressUpdater updater;
+        private final SneakyUtils.ThrowingConsumer<BufferedSource, IOException> handler;
 
-        public ResponseHandlers(IProgressUpdater updater, IDigestHandler handler)
+        public ResponseHandlers(IProgressUpdater updater, SneakyUtils.ThrowingConsumer<BufferedSource, IOException> handler)
         {
             this.updater = updater;
             this.handler = handler;
         }
-    }
-
-    private interface IDigestHandler
-    {
-        void handleDigest(BufferedSource source, long bytes) throws IOException;
     }
 }

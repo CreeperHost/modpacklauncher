@@ -11,6 +11,8 @@ import net.creeperhost.creeperlauncher.pack.FTBPack;
 import net.creeperhost.creeperlauncher.pack.LocalInstance;
 import net.creeperhost.creeperlauncher.util.GsonUtils;
 import net.creeperhost.creeperlauncher.util.MiscUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.List;
 import java.util.UUID;
@@ -20,6 +22,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class InstallInstanceHandler implements IMessageHandler<InstallInstanceData>
 {
+    private static final Logger LOGGER = LogManager.getLogger();
+
     //TODO: Make these local instead of static once Exceptions work properly again
     public static AtomicBoolean hasError = new AtomicBoolean(false);
     public static AtomicReference<String> lastError = new AtomicReference<>();
@@ -28,7 +32,7 @@ public class InstallInstanceHandler implements IMessageHandler<InstallInstanceDa
     @Override
     public void handle(InstallInstanceData data)
     {
-        CreeperLogger.INSTANCE.debug("Received install pack message");
+        LOGGER.debug("Received install pack message");
         hasError.set(false);
         if (CreeperLauncher.isInstalling.get())
         {
@@ -36,28 +40,34 @@ public class InstallInstanceHandler implements IMessageHandler<InstallInstanceDa
             return;
         }
         Settings.webSocketAPI.sendMessage(new InstallInstanceData.Reply(data, "init", "Install started.", ""));
-        FTBPack pack = FTBModPackInstallerTask.getPackFromAPI(data.id, data.version, data._private);
-        List<SimpleDownloadableFile> files = pack.getMods();
-        Settings.webSocketAPI.sendMessage(new InstallInstanceData.Reply(data, "files", GsonUtils.GSON.toJson(files), ""));
         LocalInstance instance;
         if(data.uuid != null && data.uuid.length() > 0)
         {
             try {
                 instance = new LocalInstance(Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve(data.uuid));
+                data.packType = instance.packType;
+                FTBPack pack = FTBModPackInstallerTask.getPackFromAPI(data.id, data.version, data._private, data.packType);
+                List<SimpleDownloadableFile> files = pack.getFiles();
+                Settings.webSocketAPI.sendMessage(new InstallInstanceData.Reply(data, "files", GsonUtils.GSON.toJson(files), ""));
                 install = instance.update(data.version);
-            } catch (Exception ignored) {
+            } catch (Exception exception) {
+                exception.printStackTrace();
                 lastError.set("Instance not found, aborting update.");
                 hasError.set(true);
-                CreeperLauncher.currentInstall.get().cancel();
+                if(CreeperLauncher.currentInstall.get() != null)
+                    CreeperLauncher.currentInstall.get().cancel();
                 Settings.webSocketAPI.sendMessage(new InstallInstanceData.Reply(data, "error", lastError.get(), data.uuid));
                 return;
             }
         } else {
-            instance = new LocalInstance(pack, data.version);
-            Instances.addInstance(instance.getUuid(), instance);
+            FTBPack pack = FTBModPackInstallerTask.getPackFromAPI(data.id, data.version, data._private, data.packType);
+            List<SimpleDownloadableFile> files = pack.getFiles();
+            Settings.webSocketAPI.sendMessage(new InstallInstanceData.Reply(data, "files", GsonUtils.GSON.toJson(files), ""));
+            instance = new LocalInstance(pack, data.version, data.packType);
             data.uuid = instance.getUuid().toString();
-            CreeperLogger.INSTANCE.debug("Running install task");
+            LOGGER.debug("Running install task");
             install = instance.install();
+            Instances.addInstance(instance.getUuid(), instance);
         }
         install.currentTask.exceptionally((t) ->
         {
@@ -73,7 +83,7 @@ public class InstallInstanceHandler implements IMessageHandler<InstallInstanceDa
                 if (indexOf != -1)
                     msg = msg.substring(indexOf + 2);
 
-                CreeperLogger.INSTANCE.error("Error occurred whilst downloading pack:", t);
+                LOGGER.error("Error occurred whilst downloading pack:", t);
                 lastError.set(msg);
                 hasError.set(true);
                 CreeperLauncher.currentInstall.get().cancel();

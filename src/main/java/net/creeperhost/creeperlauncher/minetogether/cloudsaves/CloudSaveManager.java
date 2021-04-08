@@ -11,9 +11,14 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.*;
 import com.amazonaws.services.s3.transfer.*;
+import com.google.common.hash.HashCode;
+import com.google.common.hash.Hashing;
+import net.covers1624.quack.util.HashUtils;
 import net.creeperhost.creeperlauncher.Constants;
-import net.creeperhost.creeperlauncher.CreeperLogger;
+import net.creeperhost.creeperlauncher.minecraft.McUtils;
 import net.creeperhost.creeperlauncher.util.FileUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.*;
 import java.net.URLEncoder;
@@ -26,6 +31,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class CloudSaveManager {
+    private static final Logger LOGGER = LogManager.getLogger();
+
     private static boolean isSetup = false;
     private static AmazonS3 s3 = null;
     private static String bucket = "";
@@ -96,7 +103,7 @@ public class CloudSaveManager {
     }
 
     private static void uploadFile(Path file, String location, boolean blocking, String existingEtag) throws Exception {
-        CreeperLogger.INSTANCE.debug("Uploading " + file);
+        LOGGER.debug("Uploading {}", file);
         ObjectMetadata objectMetadata = null;
         try {
             //System.out.println("Getting metadata for " + location);
@@ -107,10 +114,10 @@ public class CloudSaveManager {
 
         } catch (AmazonS3Exception ignored) {}
 
-        String fileHash = FileUtils.getHash(file, "SHA-256");
+        HashCode fileHash = HashUtils.hash(Hashing.sha256(), file);
         if (objectMetadata != null) {
-            if (fileHash.equals(objectMetadata.getUserMetaDataOf("ourhash"))) {
-                CreeperLogger.INSTANCE.debug("Not uploading " + file + " as object exists on server");
+            if (HashUtils.equals(fileHash, objectMetadata.getUserMetaDataOf("ourhash"))) {
+                LOGGER.debug("Not uploading {} as object exists on server", file);
                 return;
             }
         }
@@ -129,7 +136,7 @@ public class CloudSaveManager {
 
         long fileSize = Files.size(file);
         ObjectMetadata meta = new ObjectMetadata();
-        meta.addUserMetadata("ourhash", fileHash);
+        meta.addUserMetadata("ourhash", fileHash.toString());
         meta.addUserMetadata("ourlastmodified", String.valueOf(FileUtils.getLastModified(file)));
         meta.setContentLength(fileSize);
         Upload upload = transferManager.upload(bucket, location.replace(" ", ""), bufferedStream, meta);
@@ -142,7 +149,7 @@ public class CloudSaveManager {
                 if (type == ProgressEventType.TRANSFER_CANCELED_EVENT || type == ProgressEventType.TRANSFER_COMPLETED_EVENT || type == ProgressEventType.TRANSFER_FAILED_EVENT)
                 {
                     currentUploads.remove(upload);
-                    CreeperLogger.INSTANCE.debug("Removed " + upload.getDescription() + " due to " + type.toString());
+                    LOGGER.debug("Removed {} due to {}", upload.getDescription(), type.toString());
                 }
             });
         }
@@ -187,13 +194,14 @@ public class CloudSaveManager {
 
     public static void syncManual(Path file, String location, boolean blocking, boolean client, HashMap<String, S3ObjectSummary> existing) throws Exception
     {
-        CreeperLogger.INSTANCE.debug("Uploading " + file);
+        McUtils.killOldMinecraft();
+        LOGGER.debug("Uploading {}", file);
         ObjectMetadata objectMetadata = null;
         try {
             S3ObjectSummary summary = existing.get(location);
             if (Files.exists(file) && summary != null) {
-                if(summary.getSize() <= 5242500 && FileUtils.getHash(file, "MD5").equals(summary.getETag())) {
-                    CreeperLogger.INSTANCE.debug("Not syncing " + file + " as object exists on server");
+                if(summary.getSize() <= 5242500 && HashUtils.equals(HashUtils.hash(Hashing.md5(), file), summary.getETag())) {
+                    LOGGER.debug("Not syncing {} as object exists on server", file);
                     return;
                 }
                 objectMetadata = s3.getObjectMetadata(bucket, location);
@@ -201,12 +209,12 @@ public class CloudSaveManager {
             //System.out.println("Getting metadata for " + location);
         } catch (AmazonS3Exception ignored) {}
 
-        String fileHash = FileUtils.getHash(file, "SHA-256");
+        HashCode fileHash = HashUtils.hash(Hashing.sha256(), file);
         if (objectMetadata != null) {
-            CreeperLogger.INSTANCE.debug("Client " + fileHash + " Server " + objectMetadata.getUserMetaDataOf("ourhash"));
+            LOGGER.debug("Client {} Server {}", fileHash, objectMetadata.getUserMetaDataOf("ourhash"));
 
-            if (fileHash.equals(objectMetadata.getUserMetaDataOf("ourhash"))) {
-                CreeperLogger.INSTANCE.debug("Not syncing " + file + " as object exists on server");
+            if (HashUtils.equals(fileHash, objectMetadata.getUserMetaDataOf("ourhash"))) {
+                LOGGER.debug("Not syncing {} as object exists on server", file);
                 return;
             } else
             {
@@ -229,14 +237,14 @@ public class CloudSaveManager {
     public static void syncFile(Path file, String location, boolean blocking, HashMap<String, S3ObjectSummary> existingObjects) throws Exception
     {
         location = location.replace("\\", "/");
-        CreeperLogger.INSTANCE.debug("Uploading " + file.toAbsolutePath());
+        LOGGER.debug("Uploading {}", file.toAbsolutePath());
         ObjectMetadata objectMetadata = null;
         try {
             if (Files.exists(file) && existingObjects.containsKey(location))
             {
                 S3ObjectSummary summary = existingObjects.get(location);
-                if (summary.getSize() <= 5242500 && FileUtils.getHash(file, "MD5").equals(summary.getETag())) {
-                    CreeperLogger.INSTANCE.debug("Not syncing " + file + " as object exists on server");
+                if (summary.getSize() <= 5242500 && HashUtils.equals(HashUtils.hash(Hashing.md5(), file), summary.getETag())) {
+                    LOGGER.debug("Not syncing {} as object exists on server", file);
                     return;
                 }
                 objectMetadata = s3.getObjectMetadata(bucket, location);
@@ -244,24 +252,23 @@ public class CloudSaveManager {
             //System.out.println("Getting metadata for " + location);
         } catch (AmazonS3Exception ignored) {}
 
-        String fileHash = FileUtils.getHash(file, "SHA-256");
+        HashCode fileHash = HashUtils.hash(Hashing.sha256(), file);
         if (objectMetadata != null) {
-            if (fileHash.equals(objectMetadata.getUserMetaDataOf("ourhash"))) {
-                CreeperLogger.INSTANCE.debug("Not uploading " + file + " as object exists on server");
+            if (HashUtils.equals(fileHash, objectMetadata.getUserMetaDataOf("ourhash"))) {
+                LOGGER.debug("Not uploading {} as object exists on server", file);
                 return;
             } else
             {
                 long ourModifiedClient = FileUtils.getLastModified(file);
                 long ourModifiedServer = Long.parseLong(objectMetadata.getUserMetaDataOf("ourlastmodified"));
 
+                LOGGER.debug("Client {} Server {}", ourModifiedClient, ourModifiedServer);
                 if(ourModifiedClient > ourModifiedServer)
                 {
-                    CreeperLogger.INSTANCE.debug("Client " + ourModifiedClient + " Server " + ourModifiedServer);
                     uploadFile(file, location, blocking, null);
                 }
                 else if(ourModifiedClient < ourModifiedServer)
                 {
-                    CreeperLogger.INSTANCE.debug("Client " + ourModifiedClient + " Server " + ourModifiedServer);
                     downloadFile(location, file, blocking, null);
                 }
             }
@@ -280,25 +287,26 @@ public class CloudSaveManager {
 
     public static void deleteFile(String location)
     {
+        McUtils.killOldMinecraft().join();
         try {
-            CreeperLogger.INSTANCE.debug("deleting file " + location);
+            LOGGER.debug("deleting file {}", location);
             s3.deleteObject(bucket, urlEncodeParts(location));
         } catch (Throwable e)
         {
-            e.printStackTrace();
+            LOGGER.warn("Error deleting file from bucket. {}", location, e);
         }
     }
 
     public static void downloadFile(String location, Path file, boolean blocking, String eTag) throws Exception {
-        CreeperLogger.INSTANCE.debug("Downloading " + location);
+        LOGGER.debug("Downloading {}", location);
 
         if (Files.exists(file) && !Files.isDirectory(file))
         {
             if (eTag != null)
             {
-                if (eTag.equals(FileUtils.getHash(file, "MD5")));
+                if (HashUtils.equals(HashUtils.hash(Hashing.md5(), file), eTag))
                 {
-                    CreeperLogger.INSTANCE.debug("Not downloading " + file + " as object exists on client");
+                    LOGGER.debug("Not downloading {} as object exists on client", file);
                     return;
                 }
             }
@@ -309,8 +317,8 @@ public class CloudSaveManager {
             } catch (AmazonS3Exception ignored) {}
 
             if (objectMetadata != null) {
-                if (FileUtils.getHash(file, "SHA-256").equals(objectMetadata.getUserMetaDataOf("ourhash"))) {
-                    CreeperLogger.INSTANCE.debug("Not downloading " + file + " as object exists on client");
+                if (HashUtils.equals(HashUtils.hash(Hashing.md5(), file), objectMetadata.getUserMetaDataOf("ourhash"))) {
+                    LOGGER.debug("Not downloading {} as object exists on client", file);
                     return;
                 }
             }
@@ -328,7 +336,7 @@ public class CloudSaveManager {
                 if (type == ProgressEventType.TRANSFER_CANCELED_EVENT || type == ProgressEventType.TRANSFER_COMPLETED_EVENT || type == ProgressEventType.TRANSFER_FAILED_EVENT)
                 {
                     currentUploads.remove(download);
-                    CreeperLogger.INSTANCE.debug("Removed " + download.getDescription() + " due to " + type.toString());
+                    LOGGER.debug("Removed {} due to {}", download.getDescription(), type.toString());
                 }
             });
         }

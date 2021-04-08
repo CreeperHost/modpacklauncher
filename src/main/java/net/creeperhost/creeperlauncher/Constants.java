@@ -2,12 +2,16 @@ package net.creeperhost.creeperlauncher;
 
 import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.os.OSUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class Constants
 {
+    private static final Logger LOGGER = LogManager.getLogger();
+
     //CWD
     public static final Path WORKING_DIR = Paths.get(System.getProperty("user.dir"));
     private static final String INNER_DATA_DIR = ".ftba";
@@ -25,25 +29,19 @@ public class Constants
     //API
     public static final String CREEPERHOST_MODPACK = CreeperLauncher.isDevMode ? "https://modpack-api.ch.tools" : "https://api.modpacks.ch";
     public static final String CREEPERHOST_MODPACK_SEARCH2 = CREEPERHOST_MODPACK + "/public/modpack/";
+    public static final String SHARE_API = CREEPERHOST_MODPACK + Constants.KEY + "/modpack/share/";
+    public static final String MOD_API = CREEPERHOST_MODPACK + "/public/mod/";
 
     //Forge
     public static final String FORGE_XML = "https://files.minecraftforge.net/maven/net/minecraftforge/forge/maven-metadata.xml";
     public static final String FORGE_MAVEN = "https://files.minecraftforge.net/maven/net/minecraftforge/forge/";
     public static final String FORGE_RECOMMENDED = "https://files.minecraftforge.net/maven/net/minecraftforge/forge/promotions_slim.json";
+    public static final String FORGE_CH = "https://forge.modpacks.ch/maven/net/minecraftforge/forge/";
 
     //Paths
     public static final Path BIN_LOCATION_OURS = WORKING_DIR.resolve("bin");
     public static final Path BIN_LOCATION = getDataDir().resolve("bin");
-    public static final String MINECRAFT_LAUNCHER_NAME = "launcher."+OSUtils.getExtension();
-    public static final Path MINECRAFT_LAUNCHER_LOCATION = BIN_LOCATION.resolve(MINECRAFT_LAUNCHER_NAME);
-    public static final String MINECRAFT_MAC_LAUNCHER_NAME = "Minecraft.app";
-    public static final Path MINECRAFT_MAC_LAUNCHER_APP = BIN_LOCATION.resolve(MINECRAFT_MAC_LAUNCHER_NAME);
-    public static final String MINECRAFT_MAC_LAUNCHER_EXECUTABLE_NAME = MINECRAFT_MAC_LAUNCHER_NAME + "/" + "Contents/MacOS/launcher";
-    public static final Path MINECRAFT_MAC_LAUNCHER_EXECUTABLE = BIN_LOCATION.resolve(MINECRAFT_MAC_LAUNCHER_EXECUTABLE_NAME);
 
-    public static final String MINECRAFT_MAC_LAUNCHER_VOLUME = "/Volumes/Minecraft";
-    public static final String MINECRAFT_LINUX_LAUNCHER_EXECUTABLE_NAME = "minecraft-launcher/minecraft-launcher";
-    public static final Path MINECRAFT_LINUX_LAUNCHER_EXECUTABLE = BIN_LOCATION.resolve(MINECRAFT_LINUX_LAUNCHER_EXECUTABLE_NAME);
     public static final Path VERSIONS_FOLDER_LOC = getDataDir().resolve(Paths.get("bin", "versions"));
     public static final Path INSTANCES_FOLDER_LOC = getDataDir().resolve("instances");
     public static final String LAUNCHER_PROFILES_JSON_NAME = "launcher_profiles.json";
@@ -72,27 +70,36 @@ public class Constants
     public static String S3_HOST = "";
 
 
-    public static String getCreeperhostModpackSearch2(boolean _private)
+    public static String getCreeperhostModpackSearch2(boolean _private, byte packType)
     {
+        String typeSlug = "modpack";
+
+        switch (packType)
+        {
+            case 1:
+                typeSlug = "curseforge";
+                break;
+        }
         if(Constants.KEY.isEmpty() || !_private)
         {
-            return Constants.CREEPERHOST_MODPACK_SEARCH2;
+            return Constants.CREEPERHOST_MODPACK + "/public/" + typeSlug + "/";
         }
         if(Constants.KEY.isEmpty() && _private)
         {
-            CreeperLogger.INSTANCE.error("Tried to access a private pack without having configured the secret and key.");
+            LOGGER.error("Tried to access a private pack without having configured the secret and key.");
         }
-        return Constants.CREEPERHOST_MODPACK + "/" + Constants.KEY + "/modpack/";
+        return Constants.CREEPERHOST_MODPACK + "/" + Constants.KEY + "/" + typeSlug + "/";
     }
     public static Path getDataDir()
     {
         Path ret = DATA_DIR;
-        if(OSUtils.getOs() == OS.WIN)
-        {
-            ret = Paths.get(System.getenv("LOCALAPPDATA"), INNER_DATA_DIR);
-        } else if (OSUtils.getOs() == OS.MAC)
-        {
-            ret = Paths.get(System.getProperty("user.home"), "Library", "Application Support", INNER_DATA_DIR);
+        switch (OS.CURRENT) {
+            case WIN:
+                ret = Paths.get(System.getenv("LOCALAPPDATA"), INNER_DATA_DIR);
+                break;
+            case MAC:
+                ret = Paths.get(System.getProperty("user.home"), "Library", "Application Support", INNER_DATA_DIR);
+                break;
         }
         return ret.toAbsolutePath().normalize();
     }

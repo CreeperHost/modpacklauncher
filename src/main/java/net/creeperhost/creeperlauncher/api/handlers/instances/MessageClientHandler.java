@@ -2,16 +2,14 @@ package net.creeperhost.creeperlauncher.api.handlers.instances;
 
 import com.google.gson.JsonObject;
 import net.creeperhost.creeperlauncher.CreeperLauncher;
-import net.creeperhost.creeperlauncher.CreeperLogger;
-import net.creeperhost.creeperlauncher.Instances;
 import net.creeperhost.creeperlauncher.api.data.instances.MessageClientData;
 import net.creeperhost.creeperlauncher.api.handlers.IMessageHandler;
-import net.creeperhost.creeperlauncher.pack.LocalInstance;
-
-import java.io.OutputStream;
-import java.util.UUID;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class MessageClientHandler implements IMessageHandler<MessageClientData> {
+    private static final Logger LOGGER = LogManager.getLogger();
+
     @Override
     public void handle(MessageClientData data) {
         try {
@@ -23,7 +21,7 @@ public class MessageClientHandler implements IMessageHandler<MessageClientData> 
                 CreeperLauncher.socketWrite.write((jsonObject.toString()+"\n").getBytes());
             }
         } catch (Throwable e) {
-            CreeperLogger.INSTANCE.warning("Error sending message to Minecraft client", e);
+            LOGGER.warn("Error sending message to Minecraft client", e);
         }
     }
 }

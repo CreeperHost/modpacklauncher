@@ -1,16 +1,14 @@
 package net.creeperhost.creeperlauncher.minecraft;
 
 import com.google.gson.JsonObject;
-import net.creeperhost.creeperlauncher.CreeperLogger;
-import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.util.GsonUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import javax.imageio.ImageIO;
-import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Base64;
 
@@ -18,6 +16,8 @@ import static net.creeperhost.creeperlauncher.util.ImageUtils.resizeImage;
 
 public class Profile
 {
+    private static final Logger LOGGER = LogManager.getLogger();
+
     private String name;
     private String mcVersion;
     private String lastVersionId;
@@ -34,22 +34,27 @@ public class Profile
         this.name = name;
         this.mcVersion = mcVersion;
         this.lastVersionId = lastVersionId;
+        if((lastVersionId == null || lastVersionId.isEmpty()) && (mcVersion == null || mcVersion.isEmpty())) this.lastVersionId = mcVersion;
         this.lastUsed = lastUsed;
         this.type = type;
         this.gameDir = gameDir;
         this.ID = ID;
+        if(ram == 0) ram = 1024;
         this.javaArgs = ("-Xmx" + ram + "M -Duser.language=en-GB " + args.trim()).trim();
-        String[] img = icon.split(",");
-        byte[] imageByte = img[1].getBytes();
-        ByteArrayInputStream bis = new ByteArrayInputStream(Base64.getDecoder().decode(imageByte));
-        try {
-            BufferedImage art = resizeImage(ImageIO.read(bis), 32, 32);
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            ImageIO.write(art, "png", bos);
-            this.icon = "data:image/png;base64,"+Base64.getEncoder().encodeToString(bos.toByteArray());
-        } catch (Throwable e) {
-            CreeperLogger.INSTANCE.warning("Unable to resize pack art for Mojang launcher.", e);
-            this.icon = icon;
+
+        if(icon != null && !icon.isEmpty()) {
+            String[] img = icon.split(",");
+            byte[] imageByte = img[1].getBytes();
+            ByteArrayInputStream bis = new ByteArrayInputStream(Base64.getDecoder().decode(imageByte));
+            try {
+                BufferedImage art = resizeImage(ImageIO.read(bis), 32, 32);
+                ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                ImageIO.write(art, "png", bos);
+                this.icon = "data:image/png;base64," + Base64.getEncoder().encodeToString(bos.toByteArray());
+            } catch (Throwable e) {
+                LOGGER.warn("Unable to resize pack art for Mojang launcher.", e);
+                this.icon = icon;
+            }
         }
         this.resolution = new McResolution(width, height);
     }

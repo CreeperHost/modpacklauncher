@@ -6,6 +6,7 @@ import net.creeperhost.creeperlauncher.minecraft.modloader.forge.ForgeJarModLoad
 import net.creeperhost.creeperlauncher.minecraft.modloader.forge.ForgeUniversalModLoader;
 import net.creeperhost.creeperlauncher.util.LoaderTarget;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -27,10 +28,32 @@ public class ModLoaderManager {
 
 	public static List<ModLoader> getModLoaders(List<LoaderTarget> loaderTargets)
 	{
-		return MOD_LOADER_FACTORIES.stream()
-				.map(modLoaderFactory -> modLoaderFactory.create(loaderTargets))
-				.filter(ModLoader::isApplicable)
-				.collect(Collectors.toList());
+		//TODO This is deduplicate the list, This should not be needed but fixes an outstanding issue
+		List<ModLoader> output = new ArrayList<>();
+		for(ModLoaderFactory<?> factory : MOD_LOADER_FACTORIES)
+		{
+			ModLoader target = factory.create(loaderTargets);
+			if(!output.contains(target) && target.isApplicable())
+			{
+				boolean exists = false;
+				for(ModLoader modLoader : output)
+				{
+					if(modLoader.getName().equals(target.getName()))
+					{
+						exists = true;
+					}
+				}
+				if(!exists)
+				{
+					output.add(target);
+				}
+			}
+		}
+		return output;
+//		return MOD_LOADER_FACTORIES.stream()
+//				.map(modLoaderFactory -> modLoaderFactory.create(loaderTargets))
+//				.filter(ModLoader::isApplicable)
+//				.collect(Collectors.toList());
 	}
 
 	@FunctionalInterface
