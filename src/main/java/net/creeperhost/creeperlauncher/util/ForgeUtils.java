@@ -121,6 +121,11 @@ public class ForgeUtils
 
     public static boolean updateForgeJson(Path target, String newname, String minecraftversion)
     {
+        return updateForgeJson(target, newname, minecraftversion, false);
+    }
+
+    public static boolean updateForgeJson(Path target, String newname, String minecraftversion, boolean updateJar)
+    {
         LOGGER.info("Attempting to update forge json");
         try
         {
@@ -146,7 +151,7 @@ public class ForgeUtils
                 if (json.get("jar") == null)
                     json.addProperty("jar", minecraftversion);
 
-                if(json.get("jar") != null && !json.get("jar").getAsString().equalsIgnoreCase(newname))
+                if(updateJar && !json.get("jar").getAsString().equalsIgnoreCase(newname))
                 {
                     LOGGER.debug("Updating jar to run to " + newname);
                     json.remove("jar");
