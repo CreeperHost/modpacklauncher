@@ -148,6 +148,7 @@ public class ForgeUtils
 
                 if(json.get("jar") != null && !json.get("jar").getAsString().equalsIgnoreCase(newname))
                 {
+                    LOGGER.debug("Updating jar to run to " + newname);
                     json.remove("jar");
                     json.addProperty("jar", newname);
                 }
@@ -172,7 +173,7 @@ public class ForgeUtils
                 Files.write(target, jstring.getBytes(StandardCharsets.UTF_8));
                 return true;
             }
-        } catch (IOException e)
+        } catch (Exception e)
         {
             e.printStackTrace();
             return false;

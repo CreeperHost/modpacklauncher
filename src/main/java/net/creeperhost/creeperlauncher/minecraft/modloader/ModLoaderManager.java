@@ -5,6 +5,8 @@ import net.creeperhost.creeperlauncher.minecraft.modloader.forge.ForgeInstallerM
 import net.creeperhost.creeperlauncher.minecraft.modloader.forge.ForgeJarModLoader;
 import net.creeperhost.creeperlauncher.minecraft.modloader.forge.ForgeUniversalModLoader;
 import net.creeperhost.creeperlauncher.util.LoaderTarget;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
@@ -12,6 +14,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class ModLoaderManager {
+
+	private static final Logger LOGGER = LogManager.getLogger();
 
 	private static final List<ModLoaderFactory<?>> MOD_LOADER_FACTORIES = new ArrayList<>();
 
@@ -49,6 +53,7 @@ public class ModLoaderManager {
 				}
 			}
 		}
+		output.forEach(modLoader -> LOGGER.debug(modLoader.getName()));
 		return output;
 //		return MOD_LOADER_FACTORIES.stream()
 //				.map(modLoaderFactory -> modLoaderFactory.create(loaderTargets))

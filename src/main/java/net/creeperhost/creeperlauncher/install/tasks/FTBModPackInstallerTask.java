@@ -101,12 +101,16 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
             if (Files.notExists(profileJson)) GameLauncher.downloadLauncherProfiles();
             Path instanceDir = instance.getDir();
             FileUtils.createDirectories(instanceDir);
+            LOGGER.debug("Setting stage to API");
             currentStage = Stage.API;
             downloadJsons(instanceDir, this._private, this.instance.packType);
+            LOGGER.debug("Setting stage to FORGE");
             currentStage = Stage.FORGE;
             Path forgeJson = installModLoaders();
+            LOGGER.debug("Setting stage to DOWNLOADS");
             currentStage = Stage.DOWNLOADS;
             downloadFiles(instanceDir, forgeJson);
+            LOGGER.debug("Setting stage to POST_INSTALL");
             currentStage = Stage.POSTINSTALL;
         }, CreeperLauncher.taskExeggutor);
     }
@@ -314,6 +318,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
 
     public List<DownloadableFile> getRequiredDownloads(Path target, Path forgeTarget) throws MalformedURLException
     {
+        LOGGER.debug("Attempting to get Required Downloads");
         List<DownloadableFile> downloadableFileList = new ArrayList<>();
         JsonObject jElement = null;
         try (BufferedReader reader = Files.newBufferedReader(target))
@@ -351,6 +356,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
             }
         }
 
+        LOGGER.debug("Attempting to get Required Downloads from Forge Target");
         if (forgeTarget != null && !forgeTarget.toString().isEmpty())
         {
             JsonObject forgeElement = null;
@@ -464,6 +470,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                 }
             }
         }
+        LOGGER.debug("Created Downloadable file list");
         return downloadableFileList;
     }
 

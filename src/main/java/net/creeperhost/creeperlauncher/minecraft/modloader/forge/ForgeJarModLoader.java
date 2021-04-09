@@ -108,10 +108,12 @@ public class ForgeJarModLoader extends ForgeModLoader
 
 			if(Files.exists(forgeJson))
 			{
-				ForgeUtils.updateForgeJson(forgeJson, newname, getMinecraftVersion());
+				boolean val = ForgeUtils.updateForgeJson(forgeJson, newname, getMinecraftVersion());
+				LOGGER.info(val ? "ForgeJson has been updated at " + forgeJson.toAbsolutePath() : "Failed to update ForgeJson " + forgeJson.toAbsolutePath());
 				returnFile = forgeJson;
 			}
 
+			LOGGER.info("Forge Install finished");
 			return returnFile;
 		} catch (Exception exception)
 		{
