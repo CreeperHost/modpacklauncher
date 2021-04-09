@@ -319,7 +319,9 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
         try (BufferedReader reader = Files.newBufferedReader(target))
         {
             jElement = gson.fromJson(reader, JsonObject.class);
-        } catch (IOException ignored) {
+        } catch (IOException exception)
+        {
+            exception.printStackTrace();
         }
 
         if (jElement.isJsonObject())
@@ -355,7 +357,9 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
             try (BufferedReader reader = Files.newBufferedReader(forgeTarget))
             {
                 forgeElement = gson.fromJson(reader, JsonObject.class);
-            } catch (IOException ignored) {
+            } catch (IOException exception)
+            {
+                exception.printStackTrace();
             }
             if (forgeElement.isJsonObject())
             {

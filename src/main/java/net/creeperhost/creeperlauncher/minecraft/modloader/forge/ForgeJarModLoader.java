@@ -70,6 +70,8 @@ public class ForgeJarModLoader extends ForgeModLoader
             Path forgeFile = instMods.resolve(newname + ".jar");
 			if(Files.notExists(forgeFile))
 			{
+				LOGGER.info(forgeFile.toAbsolutePath() + " Does not exist, Downloading from " + url.toString());
+
 				DownloadableFile forge = new DownloadableFile(newname, forgeFile, url.toString(), Collections.emptyList(), 0, 0, newname, "modloader", String.valueOf(System.currentTimeMillis() / 1000L));
 				DownloadTask task = new DownloadTask(forge, forgeFile);
 				task.execute();
@@ -78,6 +80,7 @@ public class ForgeJarModLoader extends ForgeModLoader
             Path mcFile = instMods.resolve("minecraft.jar");
 			if(Files.notExists(mcFile))
 			{
+				LOGGER.info(mcFile.toAbsolutePath() + " Does not exist, Downloading from Mojang servers");
 				DownloadableFile mc = McUtils.getMinecraftDownload(getMinecraftVersion(), instMods);
 				DownloadTask mcTask = new DownloadTask(mc, mcFile);
 				mcTask.execute();
@@ -86,9 +89,10 @@ public class ForgeJarModLoader extends ForgeModLoader
 			Path forgeJson = file.resolve(newname + ".json");
 			if(Files.notExists(forgeJson))
 			{
-                LOGGER.error("Failed to extract version json, attempting to download it from repo");
 				String downloadName = "forge-" + getMinecraftVersion() + ".json";
 				String jsonurl = "https://apps.modpacks.ch/versions/minecraftjsons/" + downloadName;
+
+				LOGGER.error("Failed to extract version json, attempting to download it from repo " + jsonurl);
 
 				if(WebUtils.checkExist(new URL(jsonurl)))
 				{
@@ -109,7 +113,10 @@ public class ForgeJarModLoader extends ForgeModLoader
 			}
 
 			return returnFile;
-		} catch (Exception ignored) { }
+		} catch (Exception exception)
+		{
+			exception.printStackTrace();
+		}
 		return returnFile;
 	}
 

@@ -146,7 +146,7 @@ public class ForgeUtils
                 if (json.get("jar") == null)
                     json.addProperty("jar", minecraftversion);
 
-                if(!json.get("jar").getAsString().equalsIgnoreCase(newname))
+                if(json.get("jar") != null && !json.get("jar").getAsString().equalsIgnoreCase(newname))
                 {
                     json.remove("jar");
                     json.addProperty("jar", newname);
@@ -174,6 +174,7 @@ public class ForgeUtils
             }
         } catch (IOException e)
         {
+            e.printStackTrace();
             return false;
         }
         return false;
