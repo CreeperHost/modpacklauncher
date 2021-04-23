@@ -357,110 +357,134 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
         }
 
         LOGGER.debug("Attempting to get Required Downloads from Forge Target");
-        if (forgeTarget != null && !forgeTarget.toString().isEmpty())
+        try (BufferedReader reader = Files.newBufferedReader(forgeTarget))
         {
-            JsonObject forgeElement = null;
-            try (BufferedReader reader = Files.newBufferedReader(forgeTarget))
-            {
-                forgeElement = gson.fromJson(reader, JsonObject.class);
-            } catch (IOException exception)
-            {
-                exception.printStackTrace();
-            }
-            try
-            {
-                if (forgeElement != null && forgeElement.isJsonObject()) {
-                    JsonArray targets = forgeElement.getAsJsonObject().getAsJsonArray("libraries");
-                    if (targets != null) {
-                        for (JsonElement serverEl : targets) {
-                            JsonObject server = (JsonObject) serverEl;
-                            String name = server.get("name").getAsString();
-                            Artifact artifact = Artifact.from(name);
-                            if (server.has("rules")) {
-                                for (JsonElement _rule : server.getAsJsonArray("rules")) {
-                                    JsonObject rule = (JsonObject) _rule;
-                                    boolean allowed = false;
-                                    JsonObject _ruleTarget = null;
-                                    OS ruleTarget = null;
-                                    if (rule.has("action")) {
-                                        switch (rule.get("action").getAsString().toLowerCase()) {
-                                            case "accept":
-                                            case "allow":
-                                                if (rule.has("os")) {
-                                                    // May have more logic to put in these later
-                                                    allowed = true;
-                                                    _ruleTarget = rule.getAsJsonObject("os");
-                                                }
-                                                break;
-                                            case "disallow":
-                                            case "deny":
-                                            case "yeet":
-                                                if (rule.has("os")) {
-                                                    // May have more logic to put in these later
-                                                    allowed = false;
-                                                    _ruleTarget = rule.getAsJsonObject("os");
-                                                }
-                                                break;
-                                        }
+            JsonObject jsonObject = gson.fromJson(reader, JsonObject.class);
+            parseJson(jsonObject).forEach(downloadableFile -> LOGGER.info(downloadableFile.getName()));
+            downloadableFileList.addAll(parseJson(jsonObject));
+        } catch (IOException exception)
+        {
+            LOGGER.error("Unable to read " + forgeTarget);
+            exception.printStackTrace();
+        }
 
-                                        if (_ruleTarget != null && _ruleTarget.has("name")) {
-                                            switch (_ruleTarget.get("name").getAsString().toLowerCase()) {
-                                                case "osx":
-                                                    ruleTarget = OS.MAC;
-                                                    break;
-                                                case "win":
-                                                    ruleTarget = OS.WIN;
-                                                    break;
-                                                case "linux":
-                                                    ruleTarget = OS.LINUX;
-                                                    break;
+        LOGGER.debug("Attempting to get Required Downloads from Minecraft Target");
+        try
+        {
+            //getMinecraftVersion can be stupid some times so better safe than null
+            if(getMinecraftVersion() != null && !getMinecraftVersion().isEmpty())
+            {
+                String url = McUtils.getMinecraftJsonForVersion(getMinecraftVersion());
+                JsonElement jsonElement = new JsonParser().parse(WebUtils.getAPIResponse(url));
+                if (jsonElement != null && jsonElement.isJsonObject())
+                {
+                    downloadableFileList.addAll(parseJson(jsonElement.getAsJsonObject()));
+                }
+            }
+        } catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+
+        LOGGER.debug("Created Downloadable file list");
+        return downloadableFileList;
+    }
+
+    List<DownloadableFile> parseJson(JsonObject jsonElement)
+    {
+        List<DownloadableFile> downloadableFileList = new ArrayList<>();
+        try
+        {
+            if (jsonElement != null && jsonElement.isJsonObject()) {
+                JsonArray targets = jsonElement.getAsJsonObject().getAsJsonArray("libraries");
+                if (targets != null) {
+                    for (JsonElement serverEl : targets) {
+                        JsonObject server = (JsonObject) serverEl;
+                        String name = server.get("name").getAsString();
+                        Artifact artifact = Artifact.from(name);
+                        if (server.has("rules")) {
+                            for (JsonElement _rule : server.getAsJsonArray("rules")) {
+                                JsonObject rule = (JsonObject) _rule;
+                                boolean allowed = false;
+                                JsonObject _ruleTarget = null;
+                                OS ruleTarget = null;
+                                if (rule.has("action")) {
+                                    switch (rule.get("action").getAsString().toLowerCase()) {
+                                        case "accept":
+                                        case "allow":
+                                            if (rule.has("os")) {
+                                                // May have more logic to put in these later
+                                                allowed = true;
+                                                _ruleTarget = rule.getAsJsonObject("os");
                                             }
-                                        }
+                                            break;
+                                        case "disallow":
+                                        case "deny":
+                                        case "yeet":
+                                            if (rule.has("os")) {
+                                                // May have more logic to put in these later
+                                                allowed = false;
+                                                _ruleTarget = rule.getAsJsonObject("os");
+                                            }
+                                            break;
                                     }
-                                    if (ruleTarget == OS.CURRENT) {
-                                        Pattern versRegex = Pattern.compile(_ruleTarget.get("version").getAsString());
-                                        Matcher versMatch = versRegex.matcher(OSUtils.getVersion());
-                                        if (allowed) {
-                                            if (!versMatch.matches()) continue;
-                                        } else {
-                                            if (versMatch.matches()) continue;
+
+                                    if (_ruleTarget != null && _ruleTarget.has("name")) {
+                                        switch (_ruleTarget.get("name").getAsString().toLowerCase()) {
+                                            case "osx":
+                                                ruleTarget = OS.MAC;
+                                                break;
+                                            case "win":
+                                                ruleTarget = OS.WIN;
+                                                break;
+                                            case "linux":
+                                                ruleTarget = OS.LINUX;
+                                                break;
                                         }
                                     }
                                 }
-                            }
-                            String uri = "https://apps.modpacks.ch/versions/" + artifact.getPath();
-                            Path localPath = artifact.getLocalPath(Constants.LIBRARY_LOCATION);
-                            if (!ForgeUtils.isUrlValid(uri)) {
-                                LOGGER.error("Not valid url {}", uri);
-                            }
-                            FileUtils.createDirectories(localPath.toAbsolutePath().getParent());
-                            String version = "unknown";
-                            String downloadUrl = uri;
-                            JsonArray checksums = server.getAsJsonArray("checksums");
-                            List<HashCode> sha1 = new ArrayList<>();
-                            if (checksums != null) {
-                                for (JsonElement checksum : checksums) {
-                                    sha1.add(HashCode.fromString(checksum.getAsString()));
+                                if (ruleTarget == OS.CURRENT) {
+                                    Pattern versRegex = Pattern.compile(_ruleTarget.get("version").getAsString());
+                                    Matcher versMatch = versRegex.matcher(OSUtils.getVersion());
+                                    if (allowed) {
+                                        if (!versMatch.matches()) continue;
+                                    } else {
+                                        if (versMatch.matches()) continue;
+                                    }
                                 }
                             }
-                            long size = -1;
-                            boolean clientSideOnly = (server.get("clientreq") != null) && server.get("clientreq").getAsBoolean();
-                            boolean optional = false;
-                            long fileId = -1;
-                            String fileName = localPath.getFileName().toString();
-                            String fileType = "library";
-                            String updated = String.valueOf(System.currentTimeMillis() / 1000L);
-                            downloadableFileList.add(new DownloadableFile(version, localPath, downloadUrl, sha1, size, fileId, fileName, fileType, updated));
                         }
+                        String uri = "https://maven.creeperhost.net/" + artifact.getPath();//"https://apps.modpacks.ch/versions/" + artifact.getPath();
+                        Path localPath = artifact.getLocalPath(Constants.LIBRARY_LOCATION);
+                        if (!ForgeUtils.isUrlValid(uri)) {
+                            LOGGER.error("Not valid url {}", uri);
+                        }
+                        FileUtils.createDirectories(localPath.toAbsolutePath().getParent());
+                        String version = "unknown";
+                        String downloadUrl = uri;
+                        JsonArray checksums = server.getAsJsonArray("checksums");
+                        List<HashCode> sha1 = new ArrayList<>();
+                        if (checksums != null) {
+                            for (JsonElement checksum : checksums) {
+                                sha1.add(HashCode.fromString(checksum.getAsString()));
+                            }
+                        }
+                        long size = -1;
+                        boolean clientSideOnly = (server.get("clientreq") != null) && server.get("clientreq").getAsBoolean();
+                        boolean optional = false;
+                        long fileId = -1;
+                        String fileName = localPath.getFileName().toString();
+                        String fileType = "library";
+                        String updated = String.valueOf(System.currentTimeMillis() / 1000L);
+                        downloadableFileList.add(new DownloadableFile(version, localPath, downloadUrl, sha1, size, fileId, fileName, fileType, updated));
                     }
                 }
-            } catch (Exception e)
-            {
-                LOGGER.debug("Failed to create Downloadable file from forge, Continuing");
-                e.printStackTrace();
             }
+        } catch (Exception e)
+        {
+            LOGGER.debug("Failed to create Downloadable file from forge, Continuing");
+            e.printStackTrace();
         }
-        LOGGER.debug("Created Downloadable file list");
         return downloadableFileList;
     }
 
