@@ -360,7 +360,6 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
         try (BufferedReader reader = Files.newBufferedReader(forgeTarget))
         {
             JsonObject jsonObject = gson.fromJson(reader, JsonObject.class);
-            parseJson(jsonObject).forEach(downloadableFile -> LOGGER.info(downloadableFile.getName()));
             downloadableFileList.addAll(parseJson(jsonObject));
         } catch (IOException exception)
         {
@@ -454,7 +453,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                                 }
                             }
                         }
-                        String uri = "https://maven.creeperhost.net/" + artifact.getPath();//"https://apps.modpacks.ch/versions/" + artifact.getPath();
+                        String uri = "https://maven.creeperhost.net/" + artifact.getPath();
                         Path localPath = artifact.getLocalPath(Constants.LIBRARY_LOCATION);
                         if (!ForgeUtils.isUrlValid(uri)) {
                             LOGGER.error("Not valid url {}", uri);
