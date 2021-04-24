@@ -138,7 +138,9 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
         //Need to remove and redownload this each time or updates will have old info
         try {
             Files.deleteIfExists(modpackJson);
-        } catch (IOException ignored) {
+        } catch (IOException ignored)
+        {
+            LOGGER.error("Unable to delete " + modpackJson.toAbsolutePath());
         }
         DownloadUtils.downloadFile(modpackJson, Constants.getCreeperhostModpackSearch2(_private, packType) + instance.getId());
 
@@ -314,7 +316,6 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
         } catch (IOException e) { e.printStackTrace(); }
         return downloadableFileList;
     }
-
 
     public List<DownloadableFile> getRequiredDownloads(Path target, Path forgeTarget) throws MalformedURLException
     {
