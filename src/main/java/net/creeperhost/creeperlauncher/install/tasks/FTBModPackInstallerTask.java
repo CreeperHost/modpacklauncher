@@ -142,7 +142,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
         {
             LOGGER.error("Unable to delete " + modpackJson.toAbsolutePath());
         }
-        DownloadUtils.downloadFile(modpackJson, Constants.getCreeperhostModpackSearch2(_private, packType) + instance.getId());
+        DownloadUtils.downloadFile(modpackJson, Constants.getCreeperhostModpackSearch2(_private, packType) + instance.getId(), true);
 
         Path versionJson = instanceDir.resolve("version.json");
         if (Files.exists(versionJson))
@@ -155,7 +155,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                 return false;
             }
         }
-        DownloadUtils.downloadFile(versionJson, Constants.getCreeperhostModpackSearch2(_private, packType) + instance.getId() + "/" + instance.getVersionId());
+        DownloadUtils.downloadFile(versionJson, Constants.getCreeperhostModpackSearch2(_private, packType) + instance.getId() + "/" + instance.getVersionId(), true);
 
         return (Files.exists(modpackJson) && Files.exists(versionJson));
     }
