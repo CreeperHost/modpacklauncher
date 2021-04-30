@@ -68,7 +68,10 @@ public class FabricModLoader extends ModLoader
 		Path dummyJar = profileDir.resolve(profileName + ".jar");
 		try
 		{
-			Files.createFile(dummyJar);
+			if (!Files.exists(dummyJar))
+			{
+				Files.createFile(dummyJar);
+			}
 		} catch (IOException e) {
             LOGGER.error("Failed to create fabric jar, is the game running?", e);
 			return null;
