@@ -103,7 +103,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
             FileUtils.createDirectories(instanceDir);
             LOGGER.debug("Setting stage to API");
             currentStage = Stage.API;
-            downloadJsons(instanceDir, this._private, this.instance.packType);
+            downloadJsons(instanceDir, this.instance._private, this.instance.packType);
             LOGGER.debug("Setting stage to FORGE");
             currentStage = Stage.FORGE;
             Path forgeJson = installModLoaders();
