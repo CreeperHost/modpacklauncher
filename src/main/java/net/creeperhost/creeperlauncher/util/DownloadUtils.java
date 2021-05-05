@@ -1,7 +1,8 @@
 package net.creeperhost.creeperlauncher.util;
 
+import net.creeperhost.creeperlauncher.Constants;
+
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
@@ -16,9 +17,14 @@ public class DownloadUtils
 {
     public static boolean downloadFile(Path target, String url)
     {
+        return downloadFile(target, url, false);
+    }
+
+    public static boolean downloadFile(Path target, String url, boolean auth)
+    {
         try
         {
-            URLConnection connection = getConnection(url);
+            URLConnection connection = getConnection(url, auth);
             if (connection != null && connection.getInputStream() != null)
             {
                 Files.copy(connection.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
@@ -32,6 +38,11 @@ public class DownloadUtils
 
     private static URLConnection getConnection(String address)
     {
+        return getConnection(address, false);
+    }
+
+    private static URLConnection getConnection(String address, boolean auth)
+    {
         try
         {
             int MAX = 3;
@@ -40,6 +51,13 @@ public class DownloadUtils
             for (int x = 0; x < MAX; x++)
             {
                 connection = url.openConnection();
+                if (auth)
+                {
+                    if(!Constants.KEY.isEmpty() | !Constants.SECRET.isEmpty())
+                    {
+                        connection.addRequestProperty("USER_SECRET", Constants.SECRET);
+                    }
+                }
                 connection.setConnectTimeout(5000);
                 connection.setReadTimeout(5000);
                 if (connection instanceof HttpURLConnection)

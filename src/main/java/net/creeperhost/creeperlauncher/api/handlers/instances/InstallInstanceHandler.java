@@ -63,7 +63,7 @@ public class InstallInstanceHandler implements IMessageHandler<InstallInstanceDa
             FTBPack pack = FTBModPackInstallerTask.getPackFromAPI(data.id, data.version, data._private, data.packType);
             List<SimpleDownloadableFile> files = pack.getFiles();
             Settings.webSocketAPI.sendMessage(new InstallInstanceData.Reply(data, "files", GsonUtils.GSON.toJson(files), ""));
-            instance = new LocalInstance(pack, data.version, data.packType);
+            instance = new LocalInstance(pack, data.version, data._private, data.packType);
             data.uuid = instance.getUuid().toString();
             LOGGER.debug("Running install task");
             install = instance.install();
