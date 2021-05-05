@@ -47,6 +47,9 @@ public class InstallInstanceHandler implements IMessageHandler<InstallInstanceDa
                 instance = new LocalInstance(Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve(data.uuid));
                 data.packType = instance.packType;
                 FTBPack pack = FTBModPackInstallerTask.getPackFromAPI(data.id, data.version, data._private, data.packType);
+                if (pack == null) {
+                    pack = FTBModPackInstallerTask.getPackFromAPI(data.id, data.version, !data._private, data.packType);
+                }
                 List<SimpleDownloadableFile> files = pack.getFiles();
                 Settings.webSocketAPI.sendMessage(new InstallInstanceData.Reply(data, "files", GsonUtils.GSON.toJson(files), ""));
                 install = instance.update(data.version);
@@ -61,6 +64,9 @@ public class InstallInstanceHandler implements IMessageHandler<InstallInstanceDa
             }
         } else {
             FTBPack pack = FTBModPackInstallerTask.getPackFromAPI(data.id, data.version, data._private, data.packType);
+            if (pack == null) {
+                pack = FTBModPackInstallerTask.getPackFromAPI(data.id, data.version, !data._private, data.packType);
+            }
             List<SimpleDownloadableFile> files = pack.getFiles();
             Settings.webSocketAPI.sendMessage(new InstallInstanceData.Reply(data, "files", GsonUtils.GSON.toJson(files), ""));
             instance = new LocalInstance(pack, data.version, data._private, data.packType);
