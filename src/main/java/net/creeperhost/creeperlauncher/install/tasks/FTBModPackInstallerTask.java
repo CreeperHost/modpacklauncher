@@ -101,12 +101,16 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
             if (Files.notExists(profileJson)) GameLauncher.downloadLauncherProfiles();
             Path instanceDir = instance.getDir();
             FileUtils.createDirectories(instanceDir);
+            LOGGER.debug("Setting stage to API");
             currentStage = Stage.API;
-            downloadJsons(instanceDir, this._private, this.instance.packType);
+            downloadJsons(instanceDir, this.instance._private, this.instance.packType);
+            LOGGER.debug("Setting stage to FORGE");
             currentStage = Stage.FORGE;
             Path forgeJson = installModLoaders();
+            LOGGER.debug("Setting stage to DOWNLOADS");
             currentStage = Stage.DOWNLOADS;
             downloadFiles(instanceDir, forgeJson);
+            LOGGER.debug("Setting stage to POST_INSTALL");
             currentStage = Stage.POSTINSTALL;
         }, CreeperLauncher.taskExeggutor);
     }
@@ -134,9 +138,11 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
         //Need to remove and redownload this each time or updates will have old info
         try {
             Files.deleteIfExists(modpackJson);
-        } catch (IOException ignored) {
+        } catch (IOException ignored)
+        {
+            LOGGER.error("Unable to delete " + modpackJson.toAbsolutePath());
         }
-        DownloadUtils.downloadFile(modpackJson, Constants.getCreeperhostModpackSearch2(_private, packType) + instance.getId());
+        DownloadUtils.downloadFile(modpackJson, Constants.getCreeperhostModpackSearch2(_private, packType) + instance.getId(), true);
 
         Path versionJson = instanceDir.resolve("version.json");
         if (Files.exists(versionJson))
@@ -149,7 +155,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                 return false;
             }
         }
-        DownloadUtils.downloadFile(versionJson, Constants.getCreeperhostModpackSearch2(_private, packType) + instance.getId() + "/" + instance.getVersionId());
+        DownloadUtils.downloadFile(versionJson, Constants.getCreeperhostModpackSearch2(_private, packType) + instance.getId() + "/" + instance.getVersionId(), true);
 
         return (Files.exists(modpackJson) && Files.exists(versionJson));
     }
@@ -311,15 +317,17 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
         return downloadableFileList;
     }
 
-
     public List<DownloadableFile> getRequiredDownloads(Path target, Path forgeTarget) throws MalformedURLException
     {
+        LOGGER.debug("Attempting to get Required Downloads");
         List<DownloadableFile> downloadableFileList = new ArrayList<>();
         JsonObject jElement = null;
         try (BufferedReader reader = Files.newBufferedReader(target))
         {
             jElement = gson.fromJson(reader, JsonObject.class);
-        } catch (IOException ignored) {
+        } catch (IOException exception)
+        {
+            exception.printStackTrace();
         }
 
         if (jElement.isJsonObject())
@@ -349,40 +357,62 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
             }
         }
 
-        if (forgeTarget != null && !forgeTarget.toString().isEmpty())
+        LOGGER.debug("Attempting to get Required Downloads from Forge Target");
+        try (BufferedReader reader = Files.newBufferedReader(forgeTarget))
         {
-            JsonObject forgeElement = null;
-            try (BufferedReader reader = Files.newBufferedReader(forgeTarget))
+            JsonObject jsonObject = gson.fromJson(reader, JsonObject.class);
+            downloadableFileList.addAll(parseJson(jsonObject));
+        } catch (IOException exception)
+        {
+            LOGGER.error("Unable to read " + forgeTarget);
+            exception.printStackTrace();
+        }
+
+        LOGGER.debug("Attempting to get Required Downloads from Minecraft Target");
+        try
+        {
+            //getMinecraftVersion can be stupid some times so better safe than null
+            if(getMinecraftVersion() != null && !getMinecraftVersion().isEmpty())
             {
-                forgeElement = gson.fromJson(reader, JsonObject.class);
-            } catch (IOException ignored) {
-            }
-            if (forgeElement.isJsonObject())
-            {
-                JsonArray targets = forgeElement.getAsJsonObject().getAsJsonArray("libraries");
-                if (targets != null)
+                String url = McUtils.getMinecraftJsonForVersion(getMinecraftVersion());
+                JsonElement jsonElement = new JsonParser().parse(WebUtils.getAPIResponse(url));
+                if (jsonElement != null && jsonElement.isJsonObject())
                 {
-                    for (JsonElement serverEl : targets)
-                    {
+                    downloadableFileList.addAll(parseJson(jsonElement.getAsJsonObject()));
+                }
+            }
+        } catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+
+        LOGGER.debug("Created Downloadable file list");
+        return downloadableFileList;
+    }
+
+    List<DownloadableFile> parseJson(JsonObject jsonElement)
+    {
+        List<DownloadableFile> downloadableFileList = new ArrayList<>();
+        try
+        {
+            if (jsonElement != null && jsonElement.isJsonObject()) {
+                JsonArray targets = jsonElement.getAsJsonObject().getAsJsonArray("libraries");
+                if (targets != null) {
+                    for (JsonElement serverEl : targets) {
                         JsonObject server = (JsonObject) serverEl;
                         String name = server.get("name").getAsString();
                         Artifact artifact = Artifact.from(name);
-                        if (server.has("rules"))
-                        {
-                            for (JsonElement _rule : server.getAsJsonArray("rules"))
-                            {
+                        if (server.has("rules")) {
+                            for (JsonElement _rule : server.getAsJsonArray("rules")) {
                                 JsonObject rule = (JsonObject) _rule;
                                 boolean allowed = false;
                                 JsonObject _ruleTarget = null;
                                 OS ruleTarget = null;
-                                if (rule.has("action"))
-                                {
-                                    switch (rule.get("action").getAsString().toLowerCase())
-                                    {
+                                if (rule.has("action")) {
+                                    switch (rule.get("action").getAsString().toLowerCase()) {
                                         case "accept":
                                         case "allow":
-                                            if (rule.has("os"))
-                                            {
+                                            if (rule.has("os")) {
                                                 // May have more logic to put in these later
                                                 allowed = true;
                                                 _ruleTarget = rule.getAsJsonObject("os");
@@ -391,8 +421,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                                         case "disallow":
                                         case "deny":
                                         case "yeet":
-                                            if (rule.has("os"))
-                                            {
+                                            if (rule.has("os")) {
                                                 // May have more logic to put in these later
                                                 allowed = false;
                                                 _ruleTarget = rule.getAsJsonObject("os");
@@ -400,10 +429,8 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                                             break;
                                     }
 
-                                    if (_ruleTarget != null && _ruleTarget.has("name"))
-                                    {
-                                        switch (_ruleTarget.get("name").getAsString().toLowerCase())
-                                        {
+                                    if (_ruleTarget != null && _ruleTarget.has("name")) {
+                                        switch (_ruleTarget.get("name").getAsString().toLowerCase()) {
                                             case "osx":
                                                 ruleTarget = OS.MAC;
                                                 break;
@@ -416,24 +443,20 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                                         }
                                     }
                                 }
-                                if (ruleTarget == OS.CURRENT)
-                                {
+                                if (ruleTarget == OS.CURRENT) {
                                     Pattern versRegex = Pattern.compile(_ruleTarget.get("version").getAsString());
                                     Matcher versMatch = versRegex.matcher(OSUtils.getVersion());
-                                    if (allowed)
-                                    {
+                                    if (allowed) {
                                         if (!versMatch.matches()) continue;
-                                    } else
-                                    {
+                                    } else {
                                         if (versMatch.matches()) continue;
                                     }
                                 }
                             }
                         }
-                        String uri = "https://apps.modpacks.ch/versions/" + artifact.getPath();
+                        String uri = "https://maven.creeperhost.net/" + artifact.getPath();
                         Path localPath = artifact.getLocalPath(Constants.LIBRARY_LOCATION);
-                        if (!ForgeUtils.isUrlValid(uri))
-                        {
+                        if (!ForgeUtils.isUrlValid(uri)) {
                             LOGGER.error("Not valid url {}", uri);
                         }
                         FileUtils.createDirectories(localPath.toAbsolutePath().getParent());
@@ -441,10 +464,8 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                         String downloadUrl = uri;
                         JsonArray checksums = server.getAsJsonArray("checksums");
                         List<HashCode> sha1 = new ArrayList<>();
-                        if (checksums != null)
-                        {
-                            for (JsonElement checksum : checksums)
-                            {
+                        if (checksums != null) {
+                            for (JsonElement checksum : checksums) {
                                 sha1.add(HashCode.fromString(checksum.getAsString()));
                             }
                         }
@@ -459,6 +480,10 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                     }
                 }
             }
+        } catch (Exception e)
+        {
+            LOGGER.debug("Failed to create Downloadable file from forge, Continuing");
+            e.printStackTrace();
         }
         return downloadableFileList;
     }

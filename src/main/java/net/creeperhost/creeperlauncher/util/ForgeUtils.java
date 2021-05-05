@@ -121,6 +121,11 @@ public class ForgeUtils
 
     public static boolean updateForgeJson(Path target, String newname, String minecraftversion)
     {
+        return updateForgeJson(target, newname, minecraftversion, false);
+    }
+
+    public static boolean updateForgeJson(Path target, String newname, String minecraftversion, boolean updateJar)
+    {
         LOGGER.info("Attempting to update forge json");
         try
         {
@@ -146,6 +151,13 @@ public class ForgeUtils
                 if (json.get("jar") == null)
                     json.addProperty("jar", minecraftversion);
 
+                if(updateJar && !json.get("jar").getAsString().equalsIgnoreCase(newname))
+                {
+                    LOGGER.debug("Updating jar to run to " + newname);
+                    json.remove("jar");
+                    json.addProperty("jar", newname);
+                }
+
                 JsonArray targets = json.getAsJsonObject().getAsJsonArray("libraries");
                 if (targets != null)
                 {
@@ -166,8 +178,9 @@ public class ForgeUtils
                 Files.write(target, jstring.getBytes(StandardCharsets.UTF_8));
                 return true;
             }
-        } catch (IOException e)
+        } catch (Exception e)
         {
+            e.printStackTrace();
             return false;
         }
         return false;

@@ -82,7 +82,7 @@ public class InstanceData
         CreeperLauncher.initSettingsAndCache();
         Instances.refreshInstances();
         FTBPack pack = FTBModPackInstallerTask.getPackFromAPI(285109, 2935316, false, (byte) 1);
-        LocalInstance localInstance = new LocalInstance(pack, 2935316, (byte) 1);
+        LocalInstance localInstance = new LocalInstance(pack, 2935316, false, (byte) 1);
         FTBModPackInstallerTask install = localInstance.install();
         install.execute().join();
 //        install.currentTask.join();

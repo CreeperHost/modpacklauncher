@@ -51,6 +51,7 @@ import static net.creeperhost.creeperlauncher.util.MiscUtils.allFutures;
 public class LocalInstance implements IPack
 {
     private static final Logger LOGGER = LogManager.getLogger();
+    public boolean _private;
 
     private UUID uuid;
     private long id;
@@ -160,7 +161,7 @@ public class LocalInstance implements IPack
         }
     }
 
-    public LocalInstance(FTBPack pack, long versionId, byte packType)
+    public LocalInstance(FTBPack pack, long versionId, boolean _private, byte packType)
     {
         //We're making an instance!
         String tmpArt = "";
@@ -179,6 +180,7 @@ public class LocalInstance implements IPack
         this.artUrl = pack.getArtURL();
         this.id = pack.getId();
         this.packType = packType;
+        this._private = _private;
         if (Settings.settings.containsKey("jvmargs"))
         {
             this.jvmArgs = Settings.settings.get("jvmargs");
@@ -274,6 +276,7 @@ public class LocalInstance implements IPack
             this.cloudSaves = jsonOutput.cloudSaves;
             this.hasInstMods = jsonOutput.hasInstMods;
             this.packType = jsonOutput.packType;
+            this._private = jsonOutput._private;
             reader.close();
         } catch(Exception e)
         {
