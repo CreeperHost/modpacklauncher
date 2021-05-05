@@ -135,7 +135,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
         FileUtils.createDirectories(instanceDir);
 
         Path modpackJson = instanceDir.resolve("modpack.json");
-        //Need to remove and redownload this each time or updates will have old info
+        //Need to remove and re-download this each time or updates will have old info
         try {
             Files.deleteIfExists(modpackJson);
         } catch (IOException ignored)
@@ -357,15 +357,15 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
             }
         }
 
-        LOGGER.debug("Attempting to get Required Downloads from Forge Target");
-        try (BufferedReader reader = Files.newBufferedReader(forgeTarget))
-        {
-            JsonObject jsonObject = gson.fromJson(reader, JsonObject.class);
-            downloadableFileList.addAll(parseJson(jsonObject));
-        } catch (IOException exception)
-        {
-            LOGGER.error("Unable to read " + forgeTarget);
-            exception.printStackTrace();
+        LOGGER.debug("Attempting to get Required Downloads from Modloader Target");
+        if(forgeTarget != null) {
+            try (BufferedReader reader = Files.newBufferedReader(forgeTarget)) {
+                JsonObject jsonObject = gson.fromJson(reader, JsonObject.class);
+                downloadableFileList.addAll(parseJson(jsonObject));
+            } catch (IOException exception) {
+                LOGGER.error("Unable to read " + forgeTarget);
+                exception.printStackTrace();
+            }
         }
 
         LOGGER.debug("Attempting to get Required Downloads from Minecraft Target");
