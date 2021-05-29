@@ -1,15 +1,21 @@
 package net.creeperhost.creeperlauncher.minetogether.vpn;
 
+import com.google.common.hash.HashCode;
+import com.google.common.hash.Hashing;
+import net.covers1624.quack.util.HashUtils;
 import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.DownloadableFile;
 import net.creeperhost.creeperlauncher.os.OS;
+import net.creeperhost.creeperlauncher.util.DownloadUtils;
 import net.creeperhost.creeperlauncher.util.FileUtils;
+import net.creeperhost.creeperlauncher.util.StreamGobblerLog;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -23,8 +29,6 @@ public class MineTogetherConnect {
     private static final Logger LOGGER = LogManager.getLogger();
 
     private boolean enabled;
-    private String config;
-    private String ipv6;
     private Process vpnProcess;
     private boolean connected;
     private Runnable runConnected;
@@ -38,14 +42,13 @@ public class MineTogetherConnect {
             this.enabled = false;
             return;
         }
-        this.ipv6 = "2a04:de41:" + String.join(":", Constants.MT_HASH.substring(0,24).split("(?<=\\G....)"));
         Settings.loadSettings();
-        this.enabled = (Settings.settings.getOrDefault("mtConnect", "false").equalsIgnoreCase("true"));
-    }
-    public String getIPv6()
-    {
-        if(!enabled) return "";
-        return ipv6;
+        //this.enabled = (Settings.settings.getOrDefault("mtConnect", "false").equalsIgnoreCase("true"));
+        // For now, if logged in as the front end checks plan type before enabling UI
+        this.enabled = !Settings.settings.getOrDefault("sessionString", "").isEmpty();
+        Settings.settings.put("mtConnect", "true");
+        Settings.saveSettings();
+        // Update it in settings so it at least shows as on. TODO: Remove when front end has proper support for checking the enabled features rather than plan
     }
     public boolean isEnabled()
     {
@@ -55,14 +58,6 @@ public class MineTogetherConnect {
     {
         return connected;
     }
-    public void onConnect(Runnable lambda)
-    {
-        runConnected = lambda;
-    }
-    public void onDisconnect(Runnable lambda)
-    {
-        runDisconnected = lambda;
-    }
     public boolean connect()
     {
         if(!enabled) return false;
@@ -71,11 +66,7 @@ public class MineTogetherConnect {
         switch(OS.CURRENT)
         {
             case WIN:
-                //executable.add(System.getenv("WINDIR") + "\\system32\\rundll32.exe");
-                //executable.add("url.dll,FileProtocolHandler");
-                executable.add(System.getenv("WINDIR") + "\\system32\\cmd.exe");
-                executable.add("/c");
-                binary = "MineTogetherConnect.exe";
+                binary = "GoNATProxyClient.exe";
                 executable.add(Constants.MTCONNECT_DIR.resolve(binary).toAbsolutePath().toString());
                 break;
             default:
@@ -91,77 +82,94 @@ public class MineTogetherConnect {
             return false;
         }
         Path fullPath = Constants.MTCONNECT_DIR.resolve(binary);
-        if(Files.notExists(fullPath))
-        {
-            LOGGER.info("First run... Downloading binaries...");
-            if(!download(fullPath)) return false;
-        }
-        Path config = Constants.MTCONNECT_DIR.resolve("MTConnect.ovpn");
-        if(Files.exists(config) && !Files.isWritable(config))
-        {
-            LOGGER.error("Unable to write to '{}'...", config.toAbsolutePath());
+        if(!download(fullPath)) return false;
+
+        String sessionIdent = Settings.settings.get("sessionString");
+        if(sessionIdent == null || sessionIdent.isEmpty()) {
+            LOGGER.error("Unable to launch MineTogether Connect as not logged in...");
             return false;
         }
-        try(BufferedWriter fw = Files.newBufferedWriter(config)) {
-            String sessionIdent = Settings.settings.get("sessionString");
-            if(sessionIdent == null || sessionIdent.isEmpty()) return false;
-            this.config = mtAPIGet("https://minetogether.io/api/mtConnect");
-            if(this.config.equals("error") || this.config.length() == 0)
-            {
-                LOGGER.error("Unable to grab configuration file... Not high enough supporter tier?");
-                return false;
-            }
-            fw.write(this.config);
-        } catch (IOException e) {
-            LOGGER.error("Unable to grab configuration file...", e);
-            return false;
+        executable.add(sessionIdent);
+        //if(Settings.settings.getOrDefault("verbose", "false").equals("true")) {
+        if (true) { // whilst during open test, always
+            executable.add("true"); // enable debug output
         }
-        executable.add(config.toAbsolutePath().toString());
         ProcessBuilder pb = new ProcessBuilder(executable);
         try {
             vpnProcess = pb.start();
         } catch (IOException e) {
-            LOGGER.error("Unable to launch VPN elevation process...", e);
+            LOGGER.error("Unable to launch MineTogether Connect...", e);
             return false;
         }
-        //TODO: Add code to connect to named pipe, and get new process id, then replace vpnProcess with the handle of the new process. (Yay, elevation!)
-        /*
+        CompletableFuture<Void> stdoutFuture = StreamGobblerLog.redirectToLogger(vpnProcess.getInputStream(), LOGGER::info);
+        CompletableFuture<Void> stderrFuture = StreamGobblerLog.redirectToLogger(vpnProcess.getErrorStream(), LOGGER::error);
         vpnProcess.onExit().thenRunAsync(() -> {
-            try {
-                config.delete();
-            } catch (Exception e)
-            {
-                e.printStackTrace();
+            if (!stdoutFuture.isDone()) {
+                stdoutFuture.cancel(true);
             }
-        });*/
-        //TODO: Logic to check if it is actually connected, ideally not reliant on the actual process... Perhaps we have a device on 2a04:de41::/32 that can always reply to pings.
+            if (!stderrFuture.isDone()) {
+                stderrFuture.cancel(true);
+            }
+        });
+        //TODO: Logic to check if it is actually connected, ideally not reliant on the actual process... we can wait for "Connected to Java Process" on the STDOUT maybe, instead of passing straight to LOGGER::info?
         connected = true;
-        if(runConnected != null) CompletableFuture.runAsync(runConnected);
         return true;
+    }
+    public void logExaminer(String line) {
+        if (connected) return;
+        LOGGER.info(line);
+        if (line.contains("Connection received from Java")) {
+            connected = true;
+            if(runConnected != null) CompletableFuture.runAsync(runConnected);
+        }
     }
     private static boolean download(Path path)
     {
-        DownloadableFile remoteFile = new DownloadableFile("latest", path, "https://apps.modpacks.ch/MineTogether/MineTogetherConnect.exe", Collections.emptyList(), 0, 0, "MineTogetherConnect", "MineTogetherConnect", String.valueOf(System.currentTimeMillis() / 1000L));
-        try {
-            remoteFile.prepare();
-            remoteFile.download(path, true, false, null);
-        } catch(Throwable e)
-        {
-            LOGGER.error("Unable to grab binaries...", e);
-            return false;
+        HashCode fileHash = null;
+        if (!Files.notExists(path)) {
+            try {
+                fileHash = HashUtils.hash(Hashing.sha256(), path);
+                String hashString = fileHash.toString();
+                System.out.println(hashString);
+            } catch (IOException e) {
+            }
         }
-        if(!Files.exists(path)) return false;
+
+        HashCode webHash = null;
+        boolean download = true;
+        if (fileHash != null) {
+            try {
+                download = false; // if this fails for some reason, we want to not download... we have no proper hash to see if changed, and the file exists by this point
+                String hashString = DownloadUtils.urlToString(new URL("https://apps.modpacks.ch/MineTogether/GoNATProxyClient.exe.sha256")).trim();
+                webHash = HashCode.fromString(hashString);
+                if (!HashUtils.equals(fileHash, hashString)) download = true;
+            } catch (IOException e) {
+            }
+        }
+
+        if (download) {
+            LOGGER.info("Downloading MineTogether Connect as hash has changed or doesn't exist");
+            DownloadableFile remoteFile = new DownloadableFile("latest", path, "https://apps.modpacks.ch/MineTogether/GoNATProxyClient.exe", webHash == null ? Collections.emptyList() : Collections.singletonList(webHash), 0, 0, "MineTogetherConnect", "MineTogetherConnect", String.valueOf(System.currentTimeMillis() / 1000L));
+            try {
+                remoteFile.prepare();
+                remoteFile.download(path, true, false, null);
+            } catch (Throwable e) {
+                LOGGER.error("Unable to grab binaries...", e);
+                return false;
+            }
+            if (!Files.exists(path)) return false;
+            return true;
+        }
         return true;
     }
     public void disconnect()
     {
         if(!enabled) return;
+        if (connected) {
+            // If we are connected, it will close itself on game close - we don't want to end it early when the FTB Launcher closes
+            LOGGER.info("Not closing MineTogether Connect as might be in use by the game");
+        }
         if(vpnProcess != null) vpnProcess.destroy();
-        try {
-            Path config = Constants.MTCONNECT_DIR.resolve("MTConnect.ovpn");
-            //Act of removing this config shuts down the VPN
-            Files.delete(config);
-        } catch(Exception ignored) {}
         connected = false;
         if(runDisconnected != null) CompletableFuture.runAsync(runDisconnected);
     }
