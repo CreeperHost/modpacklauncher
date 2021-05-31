@@ -43,7 +43,7 @@ public class MineTogetherConnect {
             return;
         }
         Settings.loadSettings();
-        //this.enabled = (Settings.settings.getOrDefault("mtConnect", "false").equalsIgnoreCase("true"));
+        this.enabled = (Settings.settings.getOrDefault("mtConnect", "false").equalsIgnoreCase("true"));
         // For now, if logged in as the front end checks plan type before enabling UI
         //this.enabled = !Settings.settings.getOrDefault("sessionString", "").isEmpty();
         //Settings.settings.put("mtConnect", "true");
