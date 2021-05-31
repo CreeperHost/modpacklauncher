@@ -45,9 +45,9 @@ public class MineTogetherConnect {
         Settings.loadSettings();
         //this.enabled = (Settings.settings.getOrDefault("mtConnect", "false").equalsIgnoreCase("true"));
         // For now, if logged in as the front end checks plan type before enabling UI
-        this.enabled = !Settings.settings.getOrDefault("sessionString", "").isEmpty();
-        Settings.settings.put("mtConnect", "true");
-        Settings.saveSettings();
+        //this.enabled = !Settings.settings.getOrDefault("sessionString", "").isEmpty();
+        //Settings.settings.put("mtConnect", "true");
+        //Settings.saveSettings();
         // Update it in settings so it at least shows as on. TODO: Remove when front end has proper support for checking the enabled features rather than plan
     }
     public boolean isEnabled()
@@ -130,7 +130,6 @@ public class MineTogetherConnect {
             try {
                 fileHash = HashUtils.hash(Hashing.sha256(), path);
                 String hashString = fileHash.toString();
-                System.out.println(hashString);
             } catch (IOException e) {
             }
         }
