@@ -1055,13 +1055,6 @@ file.getParent() != null || (file.getName().endsWith(".app") &amp;&amp; director
         <symlink name="Applications" target="/Applications" />
       </topLevelFiles>
     </macosArchive>
-    <windows name="Windows" id="79" downloadURL="https://apps.modpacks.ch/FTBApp/${compiler:branch}/${compiler:sys.version}/" customInstallBaseDir="~/AppData/Roaming" contentFilesType="downloadable">
-      <exclude>
-        <entry filesetId="60" />
-        <entry filesetId="63" />
-      </exclude>
-      <jreBundle jreBundleSource="generated" bundleType="dynamic" bundleUrl="https://apps.modpacks.ch/FTBApp/jres/windows-amd64-11.0.5.tar.gz" directDownload="true" />
-    </windows>
     <linuxRPM name="Linux RPM" id="563" arch="x86_64">
       <jreBundle jreBundleSource="generated" />
     </linuxRPM>
