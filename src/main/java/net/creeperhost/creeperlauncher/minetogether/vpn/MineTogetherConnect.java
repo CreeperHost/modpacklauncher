@@ -28,7 +28,6 @@ import static net.creeperhost.creeperlauncher.util.WebUtils.mtAPIGet;
 public class MineTogetherConnect {
     private static final Logger LOGGER = LogManager.getLogger();
 
-    private boolean enabled;
     private Process vpnProcess;
     private boolean connected;
     private Runnable runConnected;
@@ -39,11 +38,8 @@ public class MineTogetherConnect {
         if(Constants.MT_HASH == null || Constants.MT_HASH.isEmpty())
         {
             LOGGER.info("Tried to initialize MineTogether Connect before storing MineTogether identifier...");
-            this.enabled = false;
             return;
         }
-        Settings.loadSettings();
-        this.enabled = (Settings.settings.getOrDefault("mtConnect", "false").equalsIgnoreCase("true"));
         // For now, if logged in as the front end checks plan type before enabling UI
         //this.enabled = !Settings.settings.getOrDefault("sessionString", "").isEmpty();
         //Settings.settings.put("mtConnect", "true");
@@ -52,7 +48,7 @@ public class MineTogetherConnect {
     }
     public boolean isEnabled()
     {
-        return enabled;
+        return Constants.MT_HASH != null && !Constants.MT_HASH.isEmpty() && Settings.settings.getOrDefault("mtConnect", "false").equalsIgnoreCase("true");
     }
     public boolean isConnected()
     {
@@ -60,7 +56,7 @@ public class MineTogetherConnect {
     }
     public boolean connect()
     {
-        if(!enabled) return false;
+        if(!isEnabled()) return false;
         if(vpnProcess != null && vpnProcess.isAlive()) return false;
         List<String> executable = new ArrayList<>();
         switch(OS.CURRENT)
@@ -163,7 +159,7 @@ public class MineTogetherConnect {
     }
     public void disconnect()
     {
-        if(!enabled) return;
+        if(!isEnabled()) return;
         if (connected) {
             // If we are connected, it will close itself on game close - we don't want to end it early when the FTB Launcher closes
             LOGGER.info("Not closing MineTogether Connect as might be in use by the game");
