@@ -66,7 +66,7 @@ public class MineTogetherConnect {
         switch(OS.CURRENT)
         {
             case WIN:
-                binary = "GoNATProxyClient.exe";
+                binary = "MineTogetherConnect.exe";
                 executable.add(Constants.MTCONNECT_DIR.resolve(binary).toAbsolutePath().toString());
                 break;
             default:
