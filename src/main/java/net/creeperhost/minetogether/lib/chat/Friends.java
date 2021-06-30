@@ -1,12 +1,12 @@
-package net.creeperhost.creeperlauncher.chat;
+package net.creeperhost.minetogether.lib.chat;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.annotations.SerializedName;
-import net.creeperhost.creeperlauncher.util.GsonUtils;
-import net.creeperhost.creeperlauncher.util.MiscUtils;
-import net.creeperhost.creeperlauncher.util.WebUtils;
+import net.creeperhost.minetogether.lib.util.GsonUtils;
+import net.creeperhost.minetogether.lib.util.MiscUtils;
+import net.creeperhost.minetogether.lib.util.WebUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import java.util.HashMap;

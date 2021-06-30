@@ -1,4 +1,4 @@
-package net.creeperhost.creeperlauncher.minetogether.cloudsaves;
+package net.creeperhost.minetogether.lib.cloudsaves;
 
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.Protocol;
@@ -14,9 +14,7 @@ import com.amazonaws.services.s3.transfer.*;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
 import net.covers1624.quack.util.HashUtils;
-import net.creeperhost.creeperlauncher.Constants;
-import net.creeperhost.creeperlauncher.minecraft.McUtils;
-import net.creeperhost.creeperlauncher.util.FileUtils;
+import net.creeperhost.minetogether.lib.util.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -40,8 +38,12 @@ public class CloudSaveManager {
     public static List<Upload> currentUploads = Collections.synchronizedList(new ArrayList<>());
     public static List<Download> currentDownloads = Collections.synchronizedList(new ArrayList<>());
 
+    public static HashMap<String,S3ObjectSummary> listObjects()
+    {
+        return listObjects(null);
+    }
+
     public static void setup(String host, int port, String accessKeyId, String secretAccessKey, String bucketName) {
-        if (isSetup) return;
         bucket = bucketName;
         ClientConfiguration config = new ClientConfiguration();
         config.setProxyHost(host);
@@ -70,21 +72,9 @@ public class CloudSaveManager {
         isSetup = true;
     }
 
-    public static void main(String args[])
-    {
-        CloudSaveManager.setup(Constants.S3_HOST, 8080, Constants.S3_KEY, Constants.S3_SECRET, Constants.S3_BUCKET);
-        String out = s3.getObjectAsString(bucket, "e8d3ea26-2b7b-4f80-8120-7e788392618a/instance.jsonnfoidsnfios");
-        System.out.println(out);
-    }
-
-    public static HashMap<String,S3ObjectSummary> listObjects()
-    {
-        return listObjects(null);
-    }
-
     public static HashMap<String, S3ObjectSummary> listObjects(String prefix)
     {
-        CloudSaveManager.setup(Constants.S3_HOST, 8080, Constants.S3_KEY, Constants.S3_SECRET, Constants.S3_BUCKET);
+        if (!isSetup) return null;
 
         HashMap<String, S3ObjectSummary> tempList = new HashMap<>();
 
@@ -103,6 +93,7 @@ public class CloudSaveManager {
     }
 
     private static void uploadFile(Path file, String location, boolean blocking, String existingEtag) throws Exception {
+        if (!isSetup) return;
         LOGGER.debug("Uploading {}", file);
         ObjectMetadata objectMetadata = null;
         try {
@@ -157,6 +148,7 @@ public class CloudSaveManager {
 
     public static List<UUID> getPrefixes()
     {
+        if (!isSetup) return null;
         Pattern pattern = Pattern.compile(".*([a-z0-9A-Z]{8}-[a-z0-9A-Z]{4}-[a-z0-9A-Z]{4}-[a-z0-9A-Z]{4}-[a-z0-9A-Z]{12}).*");
         List<UUID> uuidList = new ArrayList<>();
 
@@ -167,7 +159,6 @@ public class CloudSaveManager {
 
             if (matcher.find())
             {
-//                System.out.println(matcher.group(1));
                 try
                 {
                     UUID uuid = UUID.fromString(matcher.group(1));
@@ -194,7 +185,7 @@ public class CloudSaveManager {
 
     public static void syncManual(Path file, String location, boolean blocking, boolean client, HashMap<String, S3ObjectSummary> existing) throws Exception
     {
-        McUtils.killOldMinecraft();
+        if (!isSetup) return;
         LOGGER.debug("Uploading {}", file);
         ObjectMetadata objectMetadata = null;
         try {
@@ -206,7 +197,6 @@ public class CloudSaveManager {
                 }
                 objectMetadata = s3.getObjectMetadata(bucket, location);
             }
-            //System.out.println("Getting metadata for " + location);
         } catch (AmazonS3Exception ignored) {}
 
         HashCode fileHash = HashUtils.hash(Hashing.sha256(), file);
@@ -236,6 +226,7 @@ public class CloudSaveManager {
 
     public static void syncFile(Path file, String location, boolean blocking, HashMap<String, S3ObjectSummary> existingObjects) throws Exception
     {
+        if (!isSetup) return;
         location = location.replace("\\", "/");
         LOGGER.debug("Uploading {}", file.toAbsolutePath());
         ObjectMetadata objectMetadata = null;
@@ -281,13 +272,13 @@ public class CloudSaveManager {
 
     public static String getFile(String path) throws AmazonS3Exception
     {
-        CloudSaveManager.setup(Constants.S3_HOST, 8080, Constants.S3_KEY, Constants.S3_SECRET, Constants.S3_BUCKET);
+        if (!isSetup) return null;
         return s3.getObjectAsString(bucket, path);
     }
 
     public static void deleteFile(String location)
     {
-        McUtils.killOldMinecraft().join();
+        if (!isSetup) return;
         try {
             LOGGER.debug("deleting file {}", location);
             s3.deleteObject(bucket, urlEncodeParts(location));
@@ -298,6 +289,7 @@ public class CloudSaveManager {
     }
 
     public static void downloadFile(String location, Path file, boolean blocking, String eTag) throws Exception {
+        if (!isSetup) return;
         LOGGER.debug("Downloading {}", location);
 
         if (Files.exists(file) && !Files.isDirectory(file))
@@ -377,6 +369,7 @@ public class CloudSaveManager {
     }
 
     private static boolean fileExists(String location) {
+        if (!isSetup) return false;
         try {
             s3.getObjectMetadata(bucket, urlEncodeParts(location));
         } catch (AmazonS3Exception e) {
