@@ -44,6 +44,7 @@ public class CloudSaveManager {
     }
 
     public static void setup(String host, int port, String accessKeyId, String secretAccessKey, String bucketName) {
+        if (host == null || host.isEmpty()) return;
         bucket = bucketName;
         ClientConfiguration config = new ClientConfiguration();
         config.setProxyHost(host);
