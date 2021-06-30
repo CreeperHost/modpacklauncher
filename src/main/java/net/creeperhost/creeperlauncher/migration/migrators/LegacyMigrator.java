@@ -31,46 +31,5 @@ public class LegacyMigrator implements Migrator {
 
     @Override
     public void operate(MigrationContext ctx) throws MigrationException {
-        try {
-            OS os = OS.CURRENT;
-            if (os == OS.LINUX) return;
-            LOGGER.info("Attempting Legacy Migration.");
-
-            Path newSettings = Constants.BIN_LOCATION.resolve("settings.json");
-
-            if (Files.exists(newSettings)) return;
-            LOGGER.info("New settings location does not exist: {}", newSettings);
-
-            Path oldDataDir = Constants.getDataDirOld();
-            Path newDataDir = Constants.getDataDir();
-
-            Path oldSettings = oldDataDir.resolve("bin/settings.json");
-            if (Files.notExists(oldSettings)) return;
-            LOGGER.info("Old settings location exists. {}", oldSettings);
-
-            LOGGER.info("Moving settings..");
-            Files.createDirectories(Constants.BIN_LOCATION);
-            Files.move(oldSettings, newSettings);
-
-            Map<String, String> settings = GsonUtils.loadJson(newSettings, settingsToken);
-
-            Path oldInstancesDir = oldDataDir.resolve("instances");
-            if (Files.exists(oldInstancesDir)) {
-                String oldInstancesLoc = settings.getOrDefault("instanceLocation", "");
-                if (oldInstancesLoc.equals(oldInstancesDir.toAbsolutePath().toString())) {
-                    LOGGER.info("Found old instances in non-custom location. Updating settings json..");
-                    //Remove old cache and update to new instance location.
-                    FileUtils.deleteDirectory(oldInstancesDir.resolve(".localCache"));
-                    settings.put("instanceLocation", Constants.INSTANCES_FOLDER_LOC.toAbsolutePath().toString());
-                    if(Files.notExists(Constants.INSTANCES_FOLDER_LOC)) Files.createDirectories(Constants.INSTANCES_FOLDER_LOC);
-                    GsonUtils.saveJson(newSettings, settings, settingsToken);
-                }
-            }
-            LOGGER.info("Moving files..");
-            FileUtils.move(oldDataDir, newDataDir, false);
-            LOGGER.info("Finished.");
-        } catch (IOException e) {
-            throw new MigrationException("Failed to migrate.", e);
-        }
     }
 }
