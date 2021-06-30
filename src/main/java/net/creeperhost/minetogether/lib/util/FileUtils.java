@@ -1,4 +1,4 @@
-package net.creeperhost.creeperlauncher.util;
+package net.creeperhost.minetogether.lib.util;
 
 import net.covers1624.quack.collection.ColUtils;
 import org.apache.commons.compress.archivers.ArchiveEntry;
@@ -10,8 +10,10 @@ import org.apache.tika.metadata.Metadata;
 import org.apache.tika.mime.MediaType;
 import org.apache.tika.parser.AutoDetectParser;
 
-import java.io.*;
-import java.nio.file.FileSystem;
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.PosixFilePermissions;
@@ -24,7 +26,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
-import static net.covers1624.quack.util.SneakyUtils.*;
+import static net.covers1624.quack.util.SneakyUtils.sneak;
 
 public class FileUtils
 {
@@ -50,7 +52,7 @@ public class FileUtils
 
     public static void fileFromZip(Path zip, Path dest, String fileName) throws IOException
     {
-        try (java.nio.file.FileSystem fileSystem = FileSystems.newFileSystem(zip, null))
+        try (FileSystem fileSystem = FileSystems.newFileSystem(zip, null))
         {
             Path fileToExtract = fileSystem.getPath(fileName);
             Files.copy(fileToExtract, dest, REPLACE_EXISTING);
@@ -59,7 +61,7 @@ public class FileUtils
 
     public static void extractFromZip(Path zip, Path dest, String fileName, boolean relative) throws IOException
     {
-        try (java.nio.file.FileSystem fileSystem = FileSystems.newFileSystem(zip, null))
+        try (FileSystem fileSystem = FileSystems.newFileSystem(zip, null))
         {
             Path src = fileSystem.getPath(fileName);
             try (Stream<Path> stream = Files.walk(src)) {

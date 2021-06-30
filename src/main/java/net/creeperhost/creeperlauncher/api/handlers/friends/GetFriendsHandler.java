@@ -3,7 +3,7 @@ package net.creeperhost.creeperlauncher.api.handlers.friends;
 import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.data.friends.GetFriendsData;
 import net.creeperhost.creeperlauncher.api.handlers.IMessageHandler;
-import net.creeperhost.creeperlauncher.chat.Friends;
+import net.creeperhost.minetogether.lib.chat.Friends;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 

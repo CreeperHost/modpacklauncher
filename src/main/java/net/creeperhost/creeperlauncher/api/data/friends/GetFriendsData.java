@@ -1,7 +1,7 @@
 package net.creeperhost.creeperlauncher.api.data.friends;
 
 import net.creeperhost.creeperlauncher.api.data.BaseData;
-import net.creeperhost.creeperlauncher.chat.Friends;
+import net.creeperhost.minetogether.lib.chat.Friends;
 
 public class GetFriendsData extends BaseData {
     public String hash;

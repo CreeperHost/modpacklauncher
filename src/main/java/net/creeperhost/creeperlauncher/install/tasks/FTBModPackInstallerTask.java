@@ -18,6 +18,7 @@ import net.creeperhost.creeperlauncher.os.OSUtils;
 import net.creeperhost.creeperlauncher.pack.FTBPack;
 import net.creeperhost.creeperlauncher.pack.LocalInstance;
 import net.creeperhost.creeperlauncher.util.*;
+import net.creeperhost.creeperlauncher.util.Artifact;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 

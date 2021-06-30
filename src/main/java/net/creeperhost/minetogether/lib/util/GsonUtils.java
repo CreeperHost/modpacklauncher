@@ -1,4 +1,4 @@
-package net.creeperhost.creeperlauncher.util;
+package net.creeperhost.minetogether.lib.util;
 
 import com.google.common.hash.HashCode;
 import com.google.gson.Gson;
@@ -17,7 +17,6 @@ import java.nio.file.Path;
 public class GsonUtils {
 
     public static Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping()
-            .registerTypeAdapter(Artifact.class, new Artifact.Adapter())
             .registerTypeAdapter(Path.class, new PathTypeAdapter())
             .registerTypeAdapter(HashCode.class, new HashCodeAdapter())
             .create();

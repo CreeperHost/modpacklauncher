@@ -4,7 +4,7 @@ import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.Instances;
 import net.creeperhost.creeperlauncher.api.data.instances.LaunchInstanceData;
 import net.creeperhost.creeperlauncher.api.handlers.IMessageHandler;
-import net.creeperhost.creeperlauncher.chat.Handler;
+import net.creeperhost.minetogether.lib.chat.Handler;
 import net.creeperhost.creeperlauncher.pack.LocalInstance;
 
 import java.util.UUID;

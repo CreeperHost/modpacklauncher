@@ -3,8 +3,8 @@ package net.creeperhost.creeperlauncher.api.handlers.friends;
 import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.data.friends.AddFriendData;
 import net.creeperhost.creeperlauncher.api.handlers.IMessageHandler;
-import net.creeperhost.creeperlauncher.chat.Friends;
-import net.creeperhost.creeperlauncher.chat.Handler;
+import net.creeperhost.minetogether.lib.chat.Friends;
+import net.creeperhost.minetogether.lib.chat.Handler;
 
 public class AddFriendHandler implements IMessageHandler<AddFriendData> {
     @Override

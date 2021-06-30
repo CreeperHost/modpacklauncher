@@ -1,8 +1,7 @@
 package net.creeperhost.creeperlauncher.api.data.friends;
 
-import net.creeperhost.creeperlauncher.api.data.BaseData;
 import net.creeperhost.creeperlauncher.api.data.irc.IRCEventBaseUserData;
-import net.creeperhost.creeperlauncher.chat.Friends;
+import net.creeperhost.minetogether.lib.chat.Friends;
 
 public class NewFriendData extends IRCEventBaseUserData {
     Friends.UserProfile profile;

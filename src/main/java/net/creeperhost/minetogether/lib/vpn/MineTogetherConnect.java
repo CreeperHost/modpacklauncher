@@ -1,4 +1,4 @@
-package net.creeperhost.creeperlauncher.minetogether.vpn;
+package net.creeperhost.minetogether.lib.vpn;
 
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
@@ -13,7 +13,6 @@ import net.creeperhost.creeperlauncher.util.StreamGobblerLog;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.io.BufferedWriter;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
@@ -22,8 +21,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-
-import static net.creeperhost.creeperlauncher.util.WebUtils.mtAPIGet;
 
 public class MineTogetherConnect {
     private static final Logger LOGGER = LogManager.getLogger();

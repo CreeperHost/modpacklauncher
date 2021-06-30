@@ -6,8 +6,8 @@ import net.creeperhost.creeperlauncher.api.data.other.CloseModalData;
 import net.creeperhost.creeperlauncher.api.data.other.OpenModalData;
 import net.creeperhost.creeperlauncher.api.handlers.ModFile;
 import net.creeperhost.creeperlauncher.minecraft.modloader.forge.ForgeJarModLoader;
-import net.creeperhost.creeperlauncher.minetogether.cloudsaves.CloudSaveManager;
-import net.creeperhost.creeperlauncher.minetogether.cloudsaves.CloudSyncType;
+import net.creeperhost.minetogether.lib.cloudsaves.CloudSaveManager;
+import net.creeperhost.minetogether.lib.cloudsaves.CloudSyncType;
 import net.creeperhost.creeperlauncher.install.tasks.DownloadTask;
 import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.os.Platform;
@@ -39,7 +39,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -990,6 +989,7 @@ public class LocalInstance implements IPack
                     {
                         try
                         {
+                            McUtils.killOldMinecraft().join();
                             CloudSaveManager.deleteFile(s3ObjectSummary.getKey());
                         } catch (Exception e) { e.printStackTrace(); }
                     }
@@ -1075,9 +1075,11 @@ public class LocalInstance implements IPack
                         }
                         break;
                     case SYNC_MANUAL_CLIENT:
+                        McUtils.killOldMinecraft();
                         CloudSaveManager.syncManual(path, CloudSaveManager.fileToLocation(path, Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC)), true, true, existingObjects);
                         break;
                     case SYNC_MANUAL_SERVER:
+                        McUtils.killOldMinecraft();
                         CloudSaveManager.syncManual(path, CloudSaveManager.fileToLocation(path, Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC)), true, false, existingObjects);
                         break;
                 }
