@@ -77,8 +77,7 @@ public class Constants
         switch (packType)
         {
             case 1:
-                typeSlug = "curseforge";
-                break;
+                return Constants.CREEPERHOST_MODPACK + "/public/" + typeSlug + "/"; // no such thing as private curse modpacks, rest of logic not needed
         }
         if(Constants.KEY.isEmpty() || !_private)
         {

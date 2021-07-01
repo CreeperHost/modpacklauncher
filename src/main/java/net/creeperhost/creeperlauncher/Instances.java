@@ -103,7 +103,12 @@ public class Instances
             return null;
         }
         try {
-            return new LocalInstance(path);
+            LocalInstance localInstance = new LocalInstance(path);
+            if (!localInstance.installComplete) {
+                LOGGER.error("Instance install never completed, Ignoring. {}", json.toAbsolutePath());
+                return null;
+            }
+            return localInstance;
         } catch(Exception e) {
             LOGGER.error("Instance has corrupted 'instance.json'. {}", json.toAbsolutePath());
             return null;

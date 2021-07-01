@@ -78,6 +78,7 @@ public class LocalInstance implements IPack
     private boolean isImport = false;
     public boolean cloudSaves = false;
     public boolean hasInstMods = false;
+    public boolean installComplete = true;
     public byte packType;
 
     private transient CompletableFuture launcherWait;
@@ -249,7 +250,6 @@ public class LocalInstance implements IPack
         Path json = path.resolve("instance.json");
         if (Files.notExists(json)) throw new FileNotFoundException("Instance does not exist!");
 
-        //This won't work, but my intent is clear so hopefully someone else can show me how?
         try (BufferedReader reader = Files.newBufferedReader(json)) {
             LocalInstance jsonOutput = GsonUtils.GSON.fromJson(reader, LocalInstance.class);
             this.id = jsonOutput.id;
@@ -276,6 +276,7 @@ public class LocalInstance implements IPack
             this.hasInstMods = jsonOutput.hasInstMods;
             this.packType = jsonOutput.packType;
             this._private = jsonOutput._private;
+            this.installComplete = jsonOutput.installComplete;
             reader.close();
         } catch(Exception e)
         {
@@ -336,7 +337,6 @@ public class LocalInstance implements IPack
     private LocalInstance()
     {
     }
-    //Does java have a deconstructor? I wanna save the json on deconstruct to make sure
 
     public FTBModPackInstallerTask install()
     {
@@ -345,6 +345,11 @@ public class LocalInstance implements IPack
         FTBModPackInstallerTask installer = new FTBModPackInstallerTask(this);
         if (!this.isImport)
         {
+            installComplete = false;
+            try {
+                saveJson(); // save to ensure saved to disk as false
+            } catch (IOException e) {
+            }
             CreeperLauncher.isInstalling.set(true);
             Analytics.sendInstallRequest(this.getId(), this.getVersionId(), this.packType);
             LOGGER.debug("Running installer async task");
@@ -368,6 +373,7 @@ public class LocalInstance implements IPack
                 }
                 try
                 {
+                    installComplete = true;
                     this.saveJson();
                 } catch (IOException e) { e.printStackTrace(); }
                 this.hasLoadingMod = checkForLaunchMod();
