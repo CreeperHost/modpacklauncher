@@ -133,6 +133,10 @@ public class InstanceInstallModHandler implements IMessageHandler<InstanceInstal
                 {
                     progressTask.cancel(false);
                     executor.shutdown();
+                    try {
+                        instance.setModified(true);
+                        instance.saveJson();
+                    } catch(Exception ignored) {} //TODO: We REALLY need to stop ignoring these...
                     Settings.webSocketAPI.sendMessage(
                             new InstanceInstallModData.Reply(
                                     data,

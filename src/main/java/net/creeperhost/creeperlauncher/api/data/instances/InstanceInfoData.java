@@ -1,6 +1,7 @@
 package net.creeperhost.creeperlauncher.api.data.instances;
 
 import net.creeperhost.creeperlauncher.api.data.BaseData;
+import net.creeperhost.creeperlauncher.pack.ModPack;
 
 import java.awt.*;
 import java.util.HashMap;
@@ -16,8 +17,9 @@ public class InstanceInfoData extends BaseData
     public static class Reply extends InstanceInfoData
     {
         public HashMap<String, String> instanceInfo;
+        ModPack packInfo;
 
-        public Reply(InstanceInfoData data, HashMap<String, String> instanceInfo)
+        public Reply(InstanceInfoData data, HashMap<String, String> instanceInfo, ModPack packInfo)
         {
             type = "instanceInfoReply";
             GraphicsDevice[] devices = GraphicsEnvironment.getLocalGraphicsEnvironment()
@@ -35,6 +37,7 @@ public class InstanceInfoData extends BaseData
             uuid = data.uuid;
             requestId = data.requestId;
             this.instanceInfo = instanceInfo;
+            this.packInfo = packInfo;
             // TODO: configurable options in InstanceInfoDataReply
         }
     }

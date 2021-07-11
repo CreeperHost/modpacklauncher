@@ -17,7 +17,7 @@ import net.creeperhost.creeperlauncher.minecraft.modloader.ModLoader;
 import net.creeperhost.creeperlauncher.minecraft.modloader.ModLoaderManager;
 import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.os.OSUtils;
-import net.creeperhost.creeperlauncher.pack.FTBPack;
+import net.creeperhost.creeperlauncher.pack.ModPack;
 import net.creeperhost.creeperlauncher.pack.LocalInstance;
 import net.creeperhost.creeperlauncher.util.*;
 import net.creeperhost.creeperlauncher.util.Artifact;
@@ -163,7 +163,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
         return (Files.exists(modpackJson) && Files.exists(versionJson));
     }
 
-    public static FTBPack getPackFromAPI(long packId, long versionId, boolean _private, byte packType)
+    public static ModPack getPackFromAPI(long packId, long versionId, boolean _private, byte packType)
     {
         LOGGER.info("Getting pack from api.");
         String modpackURL = Constants.getCreeperhostModpackSearch2(_private, packType) + packId;
@@ -277,7 +277,7 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
                 }
             }
         }
-        return new FTBPack(name, version, Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve("name"), authorList, description, mc_version, url, arturl, id, minMemory, recMemory, downloadableFileList);
+        return new ModPack(name, version, Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve("name"), authorList, description, mc_version, url, arturl, id, minMemory, recMemory, downloadableFileList);
     }
 
     public List<DownloadableFile> getModList(File target) {

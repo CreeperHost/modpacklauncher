@@ -10,7 +10,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class FTBPack implements IPack
+public class ModPack implements IPack
 {
     private final String name;
     private final String version;
@@ -25,7 +25,7 @@ public class FTBPack implements IPack
     private final long id;
     private final List<SimpleDownloadableFile> files;
 
-    public FTBPack(String name, String version, Path dir, List<String> authors, String description, String mcVersion, String URL, String artUrl, long id, int minMemory, int recMemory, List<SimpleDownloadableFile> files)
+    public ModPack(String name, String version, Path dir, List<String> authors, String description, String mcVersion, String URL, String artUrl, long id, int minMemory, int recMemory, List<SimpleDownloadableFile> files)
     {
         this.name = name;
         this.version = version;

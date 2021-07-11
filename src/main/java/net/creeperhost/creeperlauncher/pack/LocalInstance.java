@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -75,6 +76,7 @@ public class LocalInstance implements IPack
     public int height = Integer.parseInt(Settings.settings.getOrDefault("height", String.valueOf((int) Toolkit.getDefaultToolkit().getScreenSize().getHeight() / 2)));
     public String modLoader = "";
     private long lastPlayed;
+    private boolean isModified = false;
     private boolean isImport = false;
     public boolean cloudSaves = false;
     public boolean hasInstMods = false;
@@ -91,13 +93,16 @@ public class LocalInstance implements IPack
     private transient boolean preUninstallAsync;
     private transient AtomicBoolean inUse = new AtomicBoolean(false);
     private transient HashMap<String, instanceEvent> gameCloseEvents = new HashMap<>();
+    public transient ModPack manifest;
+    private transient boolean updateManifest = false;
 
-    public LocalInstance(FTBPack pack, long versionId)
+    public LocalInstance(ModPack pack, long versionId)
     {
         //We're making an instance!
         String tmpArt = "";
         UUID uuid = UUID.randomUUID();
         this.uuid = uuid;
+        this.manifest = pack;
         this.versionId = versionId;
         this.path = Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve(this.uuid.toString());
         this.cloudSaves = Boolean.getBoolean(Settings.settings.getOrDefault("cloudSaves", "false"));
@@ -161,12 +166,13 @@ public class LocalInstance implements IPack
         }
     }
 
-    public LocalInstance(FTBPack pack, long versionId, boolean _private, byte packType)
+    public LocalInstance(ModPack pack, long versionId, boolean _private, byte packType)
     {
         //We're making an instance!
         String tmpArt = "";
         UUID uuid = UUID.randomUUID();
         this.uuid = uuid;
+        this.manifest = pack;
         this.versionId = versionId;
         this.path = Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve(this.uuid.toString());
         this.cloudSaves = Boolean.getBoolean(Settings.settings.getOrDefault("cloudSaves", "false"));
@@ -275,6 +281,12 @@ public class LocalInstance implements IPack
             this.cloudSaves = jsonOutput.cloudSaves;
             this.hasInstMods = jsonOutput.hasInstMods;
             this.packType = jsonOutput.packType;
+            if(Files.exists(path.resolve("pack.json"))) {
+                try (BufferedReader manifestreader = Files.newBufferedReader(path.resolve("pack.json"))) {
+                    ModPack pack = GsonUtils.GSON.fromJson(manifestreader, ModPack.class);
+                    this.manifest = pack;
+                }
+            }
             this._private = jsonOutput._private;
             this.installComplete = jsonOutput.installComplete;
             reader.close();
@@ -675,12 +687,23 @@ public class LocalInstance implements IPack
         }
         return false;
     }
-
+    public void setModified(boolean state)
+    {
+        this.isModified = state;
+    }
     public boolean saveJson() throws IOException
     {
         try (BufferedWriter writer = Files.newBufferedWriter(path.resolve("instance.json"))) {
             GsonUtils.GSON.toJson(this, writer);
             writer.close();
+        }
+        if(updateManifest)
+        {
+            try (BufferedWriter writer = Files.newBufferedWriter(path.resolve("pack.json"))) {
+                GsonUtils.GSON.toJson(this.manifest, writer);
+                writer.close();
+                updateManifest = false;
+            }
         }
         return true;
     }
@@ -772,6 +795,36 @@ public class LocalInstance implements IPack
     public String getModLoader()
     {
         return modLoader;
+    }
+
+    public ModPack getManifest(Runnable updateCallback)
+    {
+        AtomicReference<ModPack> newManifest = new AtomicReference<>();
+        CompletableFuture ftr = CompletableFuture.runAsync(() -> {
+            ModPack oldManifest = this.manifest;//Copy of existing manifest
+            ModPack pack = FTBModPackInstallerTask.getPackFromAPI(this.id, this.versionId, this._private, this.packType);
+            if (pack == null) {
+                pack = FTBModPackInstallerTask.getPackFromAPI(this.id, this.versionId, !this._private, this.packType);
+            }
+            if(pack != null) {
+                newManifest.set(pack);
+                if (oldManifest != null && (!newManifest.get().equals(oldManifest))) {
+                    //Manifest has changed server side from cache
+                    this.manifest = newManifest.get();
+                    this.updateManifest = true;
+                    if (updateCallback != null) updateCallback.run();
+                }
+            }
+        });
+        if(this.manifest == null)
+        {
+            ftr.join();
+            this.manifest = newManifest.get();
+            try {
+                saveJson();
+            } catch (IOException ignored) { }//TODO: We should really stop ignoring saving errors
+        }
+        return this.manifest;
     }
 
     public boolean setJre(boolean autoDetect, Path path)
