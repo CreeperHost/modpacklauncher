@@ -281,8 +281,8 @@ public class LocalInstance implements IPack
             this.cloudSaves = jsonOutput.cloudSaves;
             this.hasInstMods = jsonOutput.hasInstMods;
             this.packType = jsonOutput.packType;
-            if(Files.exists(path.resolve("pack.json"))) {
-                try (BufferedReader manifestreader = Files.newBufferedReader(path.resolve("pack.json"))) {
+            if(Files.exists(path.resolve("modpack.json"))) {
+                try (BufferedReader manifestreader = Files.newBufferedReader(path.resolve("modpack.json"))) {
                     ModPack pack = GsonUtils.GSON.fromJson(manifestreader, ModPack.class);
                     this.manifest = pack;
                 }
@@ -699,7 +699,7 @@ public class LocalInstance implements IPack
         }
         if(updateManifest)
         {
-            try (BufferedWriter writer = Files.newBufferedWriter(path.resolve("pack.json"))) {
+            try (BufferedWriter writer = Files.newBufferedWriter(path.resolve("modpack.json"))) {
                 GsonUtils.GSON.toJson(this.manifest, writer);
                 writer.close();
                 updateManifest = false;
