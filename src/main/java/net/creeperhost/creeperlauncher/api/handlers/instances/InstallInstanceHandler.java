@@ -30,7 +30,7 @@ public class InstallInstanceHandler implements IMessageHandler<InstallInstanceDa
     @Override
     public void handle(InstallInstanceData data)
     {
-        LOGGER.debug("Received install pack message");
+        LOGGER.debug("Received install pack message for " + "ID:" + data.id + " VERSION:" + data.version + " PACKTYPE:" + data.packType);
         hasError.set(false);
         if (CreeperLauncher.isInstalling.get())
         {
