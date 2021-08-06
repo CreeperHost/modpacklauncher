@@ -4,6 +4,7 @@ import com.google.common.hash.HashCode;
 import com.google.gson.*;
 import com.google.gson.stream.JsonReader;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.concurrent.ConcurrentHashMap;
 import net.creeperhost.creeperlauncher.Constants;
@@ -278,6 +279,123 @@ public class FTBModPackInstallerTask implements IInstallTask<Void>
             }
         }
         return new ModPack(name, version, Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve("name"), authorList, description, mc_version, url, arturl, id, minMemory, recMemory, downloadableFileList);
+    }
+
+    public static ModPack getPackFromFile(Path _path)
+    {
+        LOGGER.info("Getting pack from api.");
+        String name = "";
+        String version = "";
+        List<String> authorList = new ArrayList<>();
+        String description = "";
+        String mc_version = "";
+        String url = "";
+        String arturl = "";
+        int minMemory = 2048;
+        int recMemory = 4096;
+        long id = -1;
+        try
+        {
+        String resp = Files.readString(_path.resolve("modpack.json"));
+
+        JsonElement jElement = new JsonParser().parse(resp);
+
+        if (jElement.isJsonObject())
+        {
+            JsonObject object = jElement.getAsJsonObject();
+            if(object.getAsJsonPrimitive("status").getAsString().equalsIgnoreCase("error"))
+            {
+                return null;
+            }
+            description = object.getAsJsonPrimitive("description").getAsString();
+            name = object.getAsJsonPrimitive("name").getAsString();
+            id = object.getAsJsonPrimitive("id").getAsLong();
+
+            JsonArray authors = jElement.getAsJsonObject().getAsJsonArray("authors");
+
+            if (authors != null)
+            {
+                for (JsonElement element : authors)
+                {
+                    JsonObject jsonObject = (JsonObject) element;
+                    String authorName = jsonObject.get("name").getAsString();
+                    authorList.add(authorName);
+                }
+            }
+            JsonArray artwork = jElement.getAsJsonObject().getAsJsonArray("art");
+
+            if (artwork != null)
+            {
+                for (JsonElement element : artwork)
+                {
+                    //TODO: better handling later plz, we can have more than one art.
+                    JsonObject jsonObject = (JsonObject) element;
+                    if (jsonObject.get("type").getAsString().equals("square"))
+                    {
+                        arturl = jsonObject.get("url").getAsString();
+                        break;
+                    }
+                }
+            }
+        }
+
+//        String ver = WebUtils.getAPIResponse(versionURL);
+//        JsonElement jElement2 = new JsonParser().parse(ver);
+
+//        if (jElement2.isJsonObject())
+//        {
+//            JsonObject object = jElement2.getAsJsonObject();
+//            version = object.getAsJsonPrimitive("name").getAsString();
+//            if(object.has("specs") && object.get("specs").isJsonObject())
+//            {
+//                minMemory = object.getAsJsonObject("specs").getAsJsonPrimitive("minimum").getAsInt();
+//                recMemory = object.getAsJsonObject("specs").getAsJsonPrimitive("recommended").getAsInt();
+//            }
+//            else
+//            {
+//                minMemory = 4096;
+//                recMemory = 6132;
+//            }
+//
+//            JsonArray targets = jElement.getAsJsonObject().getAsJsonArray("targets");
+//
+//            if (targets != null)
+//            {
+//                for (JsonElement serverEl : targets)
+//                {
+//                    JsonObject server = (JsonObject) serverEl;
+//                    String targetVersion = server.get("version").toString();
+//                    String targetName = server.get("name").getAsString();
+//                    if (targetName.equalsIgnoreCase("minecraft"))
+//                    {
+//                        mc_version = targetVersion;
+//                    }
+//                }
+//            }
+//            JsonArray filesArray = object.getAsJsonArray("files");
+//            if (filesArray != null)
+//            {
+//                for (JsonElement serverEl : filesArray)
+//                {
+//                    JsonObject server = (JsonObject) serverEl;
+//                    String fileType = server.get("type").getAsString();
+//                    String fileName = server.get("name").getAsString();
+//                    String fileVersion = server.get("version").getAsString();
+//                    String path = server.get("path").getAsString();
+//                    long size = server.get("size").getAsInt();
+//                    boolean clientSideOnly = server.get("clientonly").getAsBoolean();
+//                    boolean serverSideOnly = server.has("serveronly") && server.get("serveronly").getAsBoolean();
+//                    if (serverSideOnly) continue;
+//                    boolean optional = server.get("optional").getAsBoolean();
+//                    long fileId = server.get("id").getAsLong();
+//                    if(fileName == null) continue;
+////                    downloadableFileList.add(new SimpleDownloadableFile(fileVersion, Path.of(path).resolve(fileName), size, clientSideOnly, optional, fileId, fileName, fileType));
+//                }
+//            }
+//        }
+            } catch (IOException exception) { exception.printStackTrace(); }
+
+            return new ModPack(name, version, Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve("name"), authorList, description, mc_version, url, arturl, id, minMemory, recMemory, null);
     }
 
     public List<DownloadableFile> getModList(File target) {

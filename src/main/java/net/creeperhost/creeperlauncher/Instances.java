@@ -111,6 +111,7 @@ public class Instances
             return localInstance;
         } catch(Exception e) {
             LOGGER.error("Instance has corrupted 'instance.json'. {}", json.toAbsolutePath());
+            LOGGER.error(e);
             return null;
         }
     }

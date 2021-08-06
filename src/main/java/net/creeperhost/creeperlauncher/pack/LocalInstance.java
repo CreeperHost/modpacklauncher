@@ -281,17 +281,21 @@ public class LocalInstance implements IPack
             this.cloudSaves = jsonOutput.cloudSaves;
             this.hasInstMods = jsonOutput.hasInstMods;
             this.packType = jsonOutput.packType;
-            if(Files.exists(path.resolve("modpack.json"))) {
-                try (BufferedReader manifestreader = Files.newBufferedReader(path.resolve("modpack.json"))) {
-                    ModPack pack = GsonUtils.GSON.fromJson(manifestreader, ModPack.class);
-                    this.manifest = pack;
-                }
+            if(Files.exists(path.resolve("modpack.json")))
+            {
+                this.manifest = FTBModPackInstallerTask.getPackFromFile(path);
+
+//                try (BufferedReader manifestreader = Files.newBufferedReader(path.resolve("modpack.json"))) {
+//                    ModPack pack = GsonUtils.GSON.fromJson(manifestreader, ModPack.class);
+//                    this.manifest = pack;
+//                }
             }
             this._private = jsonOutput._private;
             this.installComplete = jsonOutput.installComplete;
             reader.close();
         } catch(Exception e)
         {
+            LOGGER.error(e);
             throw new RuntimeException("Instance is corrupted!", e);
         }
     }
