@@ -573,7 +573,7 @@ public class LocalInstance implements IPack
         Profile profile = (extraArgs.length() > 0) ? this.toProfile(extraArgs) : this.toProfile();
         if(jrePath != null) {
             if (jrePath.endsWith("javaw.exe") || jrePath.endsWith("java")) {
-                if (!Files.notExists(jrePath)) jrePath = null;
+                if (Files.notExists(jrePath)) jrePath = null;
             } else {
                 jrePath = null;
             }
