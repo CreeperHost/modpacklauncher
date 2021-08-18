@@ -1,4 +1,4 @@
-package net.creeperhost.minetogether.lib.chat;
+/*package net.creeperhost.minetogether.lib.chat;
 
 import net.creeperhost.minetogether.lib.util.Consumers;
 import org.pircbotx.Configuration;
@@ -152,3 +152,4 @@ public class Handler {
         }
     }
 }
+*/

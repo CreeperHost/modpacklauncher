@@ -1,10 +1,14 @@
 package net.creeperhost.creeperlauncher.api.data.irc;
 
-public class IRCEventMessageData extends IRCEventBaseUserData {
-    private final String message;
+import net.creeperhost.creeperlauncher.api.data.BaseData;
 
-    public IRCEventMessageData(String message, String nick, String realname) {
-        super("message", "privmsg", nick, realname);
+public class IRCEventMessageData extends BaseData {
+    private final String message;
+    private final String nick;
+
+    public IRCEventMessageData(String message, String nick) {
+        this.type = "message";
         this.message = message;
+        this.nick = nick;
     }
 }
