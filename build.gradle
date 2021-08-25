@@ -234,6 +234,9 @@ ext {
 
 dependencies {
     compileOnly files("lib/i4jruntime.jar")
+
+    implementation 'net.creeperhost.minetogether:minetogether-api:1.0.1'
+
     implementation 'org.apache.tika:tika-core:1.22'
     implementation 'com.google.code.gson:gson:2.8.5'
     implementation 'org.java-websocket:Java-WebSocket:1.4.0'
@@ -252,8 +255,6 @@ dependencies {
 
     implementation 'org.apache.ant:ant-commons-net:1.10.7'
     implementation group: 'org.apache.httpcomponents', name: 'httpmime', version: '4.5.13'
-
-    implementation group: 'net.creeperhost.minetogether', name: 'minetogether-api', version: '1.0-SNAPSHOT'
 
     annotationProcessor 'org.apache.logging.log4j:log4j-core:2.11.1'
 
