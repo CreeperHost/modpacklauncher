@@ -4,10 +4,10 @@ import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.data.instances.InstanceInfoData;
 import net.creeperhost.creeperlauncher.api.handlers.IMessageHandler;
+import net.creeperhost.creeperlauncher.pack.ModPack;
 import net.creeperhost.creeperlauncher.pack.LocalInstance;
 
 import java.util.HashMap;
-import java.util.UUID;
 
 public class InstanceInfoHandler implements IMessageHandler<InstanceInfoData>
 {
@@ -15,6 +15,7 @@ public class InstanceInfoHandler implements IMessageHandler<InstanceInfoData>
     public void handle(InstanceInfoData data)
     {
         HashMap<String, String> instanceInfo = new HashMap<>();
+        ModPack packInfo = null;
         try
         {
             LocalInstance instance = new LocalInstance(Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve(data.uuid));
@@ -25,10 +26,13 @@ public class InstanceInfoHandler implements IMessageHandler<InstanceInfoData>
             instanceInfo.put("width", String.valueOf(instance.width));
             instanceInfo.put("height", String.valueOf(instance.height));
             instanceInfo.put("embeddedjre", String.valueOf(instance.embeddedJre));
+            packInfo = instance.getManifest(() -> {
+                Settings.webSocketAPI.sendMessage(new InstanceInfoData.Reply(data, instanceInfo, instance.manifest));
+            });
 
         } catch (Exception ignored)
         {
         }
-        Settings.webSocketAPI.sendMessage(new InstanceInfoData.Reply(data, instanceInfo));
+        Settings.webSocketAPI.sendMessage(new InstanceInfoData.Reply(data, instanceInfo, packInfo));
     }
 }

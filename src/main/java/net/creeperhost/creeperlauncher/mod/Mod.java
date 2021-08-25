@@ -34,7 +34,7 @@ public class Mod {
         private long id;
         String type;
         ArrayList<LoaderTarget> targets;
-        ArrayList<Integer> dependencies;
+        ArrayList<Dependency> dependencies;
 
         private transient Mod parentMod;
         public transient boolean existsOnDisk;
@@ -57,13 +57,14 @@ public class Mod {
             }
             ArrayList<Version> dependTemp = new ArrayList<>();
             dependLoop:
-            for (Integer dependInt: dependencies) {
+            for (Dependency dependInt: dependencies) {
+                if(!dependInt.required) continue;
                 for(Version candVer: fileCandidates) {
-                    if (candVer.parentMod.id == dependInt) {
+                    if (candVer.parentMod.id == dependInt.id) {
                         continue dependLoop;
                     }
                 }
-                Mod otherMod = getFromAPI(dependInt);
+                Mod otherMod = getFromAPI(dependInt.id);
                 if (otherMod != null) {
                     Version versionMatching = otherMod.findVersionMatching(existingFiles, gameTarget, loaderTarget);
                     if (versionMatching != null) {
@@ -134,6 +135,11 @@ public class Mod {
         } catch (JsonSyntaxException e) {
             return null;
         }
+    }
+
+    public static class Dependency {
+        public int id;
+        public boolean required;
     }
 
     /*targets.stream().filter(target -> LoaderTarget.type.equals("game")).sorted((a, b) -> {

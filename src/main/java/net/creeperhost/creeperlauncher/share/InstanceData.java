@@ -1,22 +1,16 @@
 package net.creeperhost.creeperlauncher.share;
 
-import net.creeperhost.creeperlauncher.Constants;
 import net.creeperhost.creeperlauncher.CreeperLauncher;
 import net.creeperhost.creeperlauncher.Instances;
-import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.install.tasks.FTBModPackInstallerTask;
-import net.creeperhost.creeperlauncher.pack.CursePack;
-import net.creeperhost.creeperlauncher.pack.FTBPack;
+import net.creeperhost.creeperlauncher.pack.ModPack;
 import net.creeperhost.creeperlauncher.pack.LocalInstance;
 import net.creeperhost.creeperlauncher.util.FileUtils;
-import net.creeperhost.creeperlauncher.util.GsonUtils;
-import net.creeperhost.creeperlauncher.util.WebUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpVersion;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.mime.MultipartEntity;
 import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.impl.client.DefaultHttpClient;
@@ -27,16 +21,11 @@ import org.apache.logging.log4j.Logger;
 
 import java.io.*;
 import java.net.*;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class InstanceData
 {
@@ -81,7 +70,7 @@ public class InstanceData
     {
         CreeperLauncher.initSettingsAndCache();
         Instances.refreshInstances();
-        FTBPack pack = FTBModPackInstallerTask.getPackFromAPI(285109, 2935316, false, (byte) 1);
+        ModPack pack = FTBModPackInstallerTask.getPackFromAPI(285109, 2935316, false, (byte) 1);
         LocalInstance localInstance = new LocalInstance(pack, 2935316, false, (byte) 1);
         FTBModPackInstallerTask install = localInstance.install();
         install.execute().join();

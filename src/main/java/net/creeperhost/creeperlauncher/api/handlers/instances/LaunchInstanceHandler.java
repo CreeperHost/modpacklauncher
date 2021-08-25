@@ -4,7 +4,6 @@ import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.Instances;
 import net.creeperhost.creeperlauncher.api.data.instances.LaunchInstanceData;
 import net.creeperhost.creeperlauncher.api.handlers.IMessageHandler;
-import net.creeperhost.creeperlauncher.chat.Handler;
 import net.creeperhost.creeperlauncher.pack.LocalInstance;
 
 import java.util.UUID;
@@ -17,9 +16,6 @@ public class LaunchInstanceHandler implements IMessageHandler<LaunchInstanceData
         String _uuid = data.uuid;
         UUID uuid = UUID.fromString(_uuid);
         LocalInstance instance = Instances.getInstance(uuid);
-        if(Handler.isConnected()){
-            Handler.disconnect();
-        }
         instance.play(data.extraArgs, data.loadInApp);
         Settings.webSocketAPI.sendMessage(new LaunchInstanceData.Reply(data, "success"));
     }

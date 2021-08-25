@@ -3,10 +3,6 @@ package net.creeperhost.creeperlauncher.util;
 import com.google.common.hash.HashCode;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.TypeAdapter;
-import com.google.gson.stream.JsonReader;
-import com.google.gson.stream.JsonToken;
-import com.google.gson.stream.JsonWriter;
 import net.covers1624.quack.gson.HashCodeAdapter;
 import net.covers1624.quack.gson.PathTypeAdapter;
 
@@ -14,10 +10,8 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.lang.reflect.Type;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 @SuppressWarnings ("UnstableApiUsage")
 public class GsonUtils {

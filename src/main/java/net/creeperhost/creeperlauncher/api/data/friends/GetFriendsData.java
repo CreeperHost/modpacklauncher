@@ -1,15 +1,19 @@
 package net.creeperhost.creeperlauncher.api.data.friends;
 
 import net.creeperhost.creeperlauncher.api.data.BaseData;
-import net.creeperhost.creeperlauncher.chat.Friends;
+import net.creeperhost.minetogether.lib.chat.data.Profile;
+
+import java.util.List;
 
 public class GetFriendsData extends BaseData {
-    public String hash;
+
     public static class Reply extends BaseData {
-        Friends.ListFriendResponse friends;
-        public Reply(GetFriendsData data, Friends.ListFriendResponse friends) {
-            this.friends = friends;
-            this.requestId = data.requestId;
+        List<Profile> online;
+        List<Profile> offline;
+        Reply(List<Profile> online, List<Profile> offline) {
+            this.type = "ircFriendsReply";
+            this.online = online;
+            this.offline = offline;
         }
     }
 }

@@ -2,7 +2,7 @@ package net.creeperhost.creeperlauncher;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import net.creeperhost.creeperlauncher.minetogether.cloudsaves.CloudSaveManager;
+import net.creeperhost.minetogether.lib.cloudsaves.CloudSaveManager;
 import net.creeperhost.creeperlauncher.pack.LocalInstance;
 import net.creeperhost.creeperlauncher.util.ElapsedTimer;
 import net.creeperhost.creeperlauncher.util.FileUtils;
@@ -103,9 +103,15 @@ public class Instances
             return null;
         }
         try {
-            return new LocalInstance(path);
+            LocalInstance localInstance = new LocalInstance(path);
+            if (!localInstance.installComplete) {
+                LOGGER.error("Instance install never completed, Ignoring. {}", json.toAbsolutePath());
+                return null;
+            }
+            return localInstance;
         } catch(Exception e) {
             LOGGER.error("Instance has corrupted 'instance.json'. {}", json.toAbsolutePath());
+            LOGGER.error(e);
             return null;
         }
     }

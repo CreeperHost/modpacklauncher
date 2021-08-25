@@ -33,6 +33,7 @@ repositories {
     mavenLocal()
     mavenCentral()
     gradlePluginPortal()
+    maven { url 'https://maven.creeperhost.net' }
     maven { url 'https://jitpack.io' }
     maven { url 'https://maven.covers1624.net/' }
     maven {
@@ -233,10 +234,13 @@ ext {
 
 dependencies {
     compileOnly files("lib/i4jruntime.jar")
+
+    implementation 'net.creeperhost.minetogether:minetogether-api:1.0.1'
+
     implementation 'org.apache.tika:tika-core:1.22'
     implementation 'com.google.code.gson:gson:2.8.5'
     implementation 'org.java-websocket:Java-WebSocket:1.4.0'
-    implementation 'com.github.oshi:oshi-core-java11:5.7.0'
+    implementation 'com.github.oshi:oshi-core:5.7.0'
     implementation 'com.squareup.okhttp3:okhttp:4.2.2'
     implementation 'org.apache.commons:commons-compress:1.2'
     implementation 'net.java.dev.jna:jna:5.5.0'

@@ -9,7 +9,7 @@ import net.creeperhost.creeperlauncher.api.data.other.*;
 import net.creeperhost.creeperlauncher.install.tasks.FTBModPackInstallerTask;
 import net.creeperhost.creeperlauncher.install.tasks.LocalCache;
 import net.creeperhost.creeperlauncher.migration.MigrationManager;
-import net.creeperhost.creeperlauncher.minetogether.vpn.MineTogetherConnect;
+import net.creeperhost.minetogether.lib.vpn.MineTogetherConnect;
 import net.creeperhost.creeperlauncher.os.OS;
 import net.creeperhost.creeperlauncher.util.*;
 import org.apache.logging.log4j.LogManager;

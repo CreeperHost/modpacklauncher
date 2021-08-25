@@ -2,7 +2,6 @@ package net.creeperhost.creeperlauncher.util;
 
 import com.google.gson.*;
 
-import java.io.File;
 import java.lang.reflect.Type;
 import java.nio.file.Path;
 

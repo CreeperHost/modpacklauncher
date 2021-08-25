@@ -24,6 +24,12 @@ public class Settings
     public static void saveSettings()
     {
         Path json = Constants.BIN_LOCATION.resolve("settings.json");
+        if(Files.notExists(Constants.BIN_LOCATION))
+        {
+            try {
+                Files.createDirectories(Constants.BIN_LOCATION);
+            } catch(Exception ignored) {}
+        }
         try (BufferedWriter writer = Files.newBufferedWriter(json, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE))
         {
             gson.toJson(settings, settingsToken, writer);

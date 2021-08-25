@@ -1,7 +1,6 @@
 package net.creeperhost.creeperlauncher.util;
 
 import net.covers1624.quack.collection.ColUtils;
-import net.covers1624.quack.util.SneakyUtils;
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.logging.log4j.LogManager;
@@ -17,7 +16,6 @@ import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;

@@ -227,11 +227,30 @@ public class ForgeUtils
             method = progressCallbackClass.getDeclaredMethod("withOutputs", OutputStream[].class);
             Object progress = method.invoke(null, (Object) new OutputStream[]{System.out});
             Class<?> clientInstallClass = Class.forName("net.minecraftforge.installer.actions.ClientInstall", true, child);
-            Constructor constructor = clientInstallClass.getDeclaredConstructor(Class.forName("net.minecraftforge.installer.json.Install", true, child), progressCallbackClass);
+            Constructor constructor;
+            boolean newInstallMethod = false;
+            try {
+                constructor = clientInstallClass.getDeclaredConstructor(Class.forName("net.minecraftforge.installer.json.Install", true, child), progressCallbackClass);
+            } catch (Exception ignored)
+            {
+                LOGGER.error("Switching to newer install method");
+                newInstallMethod = true;
+                constructor = clientInstallClass.getDeclaredConstructor(Class.forName("net.minecraftforge.installer.json.InstallV1", true, child), progressCallbackClass);
+            }
             Object clientInstall = constructor.newInstance(install, progress);
-            Method runMethod = clientInstallClass.getDeclaredMethod("run", File.class, java.util.function.Predicate.class);
+
+            Method runMethod;
+            if(!newInstallMethod) {
+                runMethod = clientInstallClass.getDeclaredMethod("run", File.class, java.util.function.Predicate.class);
+            } else {
+                runMethod = clientInstallClass.getDeclaredMethod("run", File.class, java.util.function.Predicate.class, File.class);
+            }
             java.util.function.Predicate<String> pred = (p) -> true;
-            runMethod.invoke(clientInstall, Constants.BIN_LOCATION.toFile(), pred);
+            if(newInstallMethod) {
+                runMethod.invoke(clientInstall, Constants.BIN_LOCATION.toFile(), pred, jarloc.toFile());
+            } else {
+                runMethod.invoke(clientInstall, Constants.BIN_LOCATION.toFile(), pred);
+            }
             System.out.println(install);
             System.out.println(progress);
             System.out.println(clientInstall);

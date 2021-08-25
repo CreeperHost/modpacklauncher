@@ -68,7 +68,13 @@ public class McUtils {
         return null;
     }
 
-    public static boolean removeProfile(Path target, String profileID) {
+    public static boolean removeProfile(Path target, String profileID)
+    {
+        verifyJson(target);
+        if(target == null || !target.toFile().exists())
+        {
+            LOGGER.error("launcher_profiles.json does not exist at " + target);
+        }
         LOGGER.info("Attempting to remove {}", profileID);
         try {
             JsonObject json = null;
@@ -142,7 +148,13 @@ public class McUtils {
         }
     }
 
-    public static boolean clearProfiles(Path target) {
+    public static boolean clearProfiles(Path target)
+    {
+        verifyJson(target);
+        if(target == null || !target.toFile().exists())
+        {
+            LOGGER.error("launcher_profiles.json does not exist at " + target);
+        }
         try {
             JsonObject json = null;
             try (BufferedReader reader = Files.newBufferedReader(target)) {

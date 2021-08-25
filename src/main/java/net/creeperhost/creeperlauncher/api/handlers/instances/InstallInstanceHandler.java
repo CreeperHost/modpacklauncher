@@ -4,10 +4,9 @@ import net.creeperhost.creeperlauncher.*;
 import net.creeperhost.creeperlauncher.api.SimpleDownloadableFile;
 import net.creeperhost.creeperlauncher.api.data.instances.InstallInstanceData;
 import net.creeperhost.creeperlauncher.api.data.other.InstalledFileEventData;
-import net.creeperhost.creeperlauncher.api.data.other.InstalledFileEventData.Reply;
 import net.creeperhost.creeperlauncher.api.handlers.IMessageHandler;
 import net.creeperhost.creeperlauncher.install.tasks.FTBModPackInstallerTask;
-import net.creeperhost.creeperlauncher.pack.FTBPack;
+import net.creeperhost.creeperlauncher.pack.ModPack;
 import net.creeperhost.creeperlauncher.pack.LocalInstance;
 import net.creeperhost.creeperlauncher.util.GsonUtils;
 import net.creeperhost.creeperlauncher.util.MiscUtils;
@@ -15,7 +14,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -32,7 +30,7 @@ public class InstallInstanceHandler implements IMessageHandler<InstallInstanceDa
     @Override
     public void handle(InstallInstanceData data)
     {
-        LOGGER.debug("Received install pack message");
+        LOGGER.debug("Received install pack message for " + "ID:" + data.id + " VERSION:" + data.version + " PACKTYPE:" + data.packType);
         hasError.set(false);
         if (CreeperLauncher.isInstalling.get())
         {
@@ -46,7 +44,7 @@ public class InstallInstanceHandler implements IMessageHandler<InstallInstanceDa
             try {
                 instance = new LocalInstance(Settings.getInstanceLocOr(Constants.INSTANCES_FOLDER_LOC).resolve(data.uuid));
                 data.packType = instance.packType;
-                FTBPack pack = FTBModPackInstallerTask.getPackFromAPI(data.id, data.version, data._private, data.packType);
+                ModPack pack = FTBModPackInstallerTask.getPackFromAPI(data.id, data.version, data._private, data.packType);
                 if (pack == null) {
                     pack = FTBModPackInstallerTask.getPackFromAPI(data.id, data.version, !data._private, data.packType);
                 }
@@ -63,7 +61,7 @@ public class InstallInstanceHandler implements IMessageHandler<InstallInstanceDa
                 return;
             }
         } else {
-            FTBPack pack = FTBModPackInstallerTask.getPackFromAPI(data.id, data.version, data._private, data.packType);
+            ModPack pack = FTBModPackInstallerTask.getPackFromAPI(data.id, data.version, data._private, data.packType);
             if (pack == null) {
                 pack = FTBModPackInstallerTask.getPackFromAPI(data.id, data.version, !data._private, data.packType);
             }
