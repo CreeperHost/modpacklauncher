@@ -7,5 +7,6 @@ public abstract class FriendData extends BaseData {
     Profile profile;
     public FriendData(Profile profile){
         this.profile = profile;
+        type = "ircFriendProfile";
     }
 }

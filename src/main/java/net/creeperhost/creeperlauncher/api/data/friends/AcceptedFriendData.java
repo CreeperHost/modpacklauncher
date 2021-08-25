@@ -6,7 +6,7 @@ public class AcceptedFriendData extends BaseData {
     private final String friendName;
 
     public AcceptedFriendData(String friendName) {
-        this.type = "ircAcceptedfriend";
+        this.type = "ircAcceptedFriend";
         this.friendName = friendName;
     }
 }

@@ -3,6 +3,7 @@ package net.creeperhost.creeperlauncher.api.handlers.irc;
 import net.creeperhost.creeperlauncher.Settings;
 import net.creeperhost.creeperlauncher.api.data.friends.OnlineFriendData;
 import net.creeperhost.creeperlauncher.api.data.irc.IRCConnectData;
+import net.creeperhost.creeperlauncher.api.data.irc.IRCPartyInviteData;
 import net.creeperhost.creeperlauncher.api.handlers.IMessageHandler;
 import net.creeperhost.minetogether.lib.chat.ChatHandler;
 
@@ -11,19 +12,16 @@ import net.creeperhost.creeperlauncher.api.data.irc.IRCEventMessageData;
 import net.creeperhost.minetogether.lib.chat.IChatListener;
 import net.creeperhost.minetogether.lib.chat.data.Message;
 import net.creeperhost.minetogether.lib.chat.data.Profile;
-import net.creeperhost.minetogether.lib.util.Consumers;
 
 public class IRCConnectHandler implements IMessageHandler<IRCConnectData>
 {
-    private static final Consumers.DuoConsumer<String, String> messageHandler = (message, nick) -> Settings.webSocketAPI.sendMessage(new IRCEventMessageData(message, nick));
-
     @Override
     public void handle(IRCConnectData data) {
         if(!ChatHandler.isOnline()) {
             ChatHandler.init(data.nick, data.realname, new IChatListener() {
                 @Override
                 public void onPartyInvite(Profile profile) {
-                    Settings.webSocketAPI.sendMessage(new PartyInviteData(profile));
+                    Settings.webSocketAPI.sendMessage(new IRCPartyInviteData(profile));
                 }
 
                 @Override
@@ -45,7 +43,7 @@ public class IRCConnectHandler implements IMessageHandler<IRCConnectData>
                 // message received
                 @Override
                 public void sendMessage(Message message) {
-                    messageHandler.accept(message.sender, message.messageStr);
+                    Settings.webSocketAPI.sendMessage(new IRCEventMessageData(message.messageStr, message.sender));
                 }
 
                 @Override

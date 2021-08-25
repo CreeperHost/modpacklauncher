@@ -7,7 +7,7 @@ public class IRCEventMessageData extends BaseData {
     private final String nick;
 
     public IRCEventMessageData(String message, String nick) {
-        this.type = "message";
+        this.type = "ircMessage";
         this.message = message;
         this.nick = nick;
     }
